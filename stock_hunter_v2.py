@@ -98,6 +98,14 @@ def get_taiwan_listed_stocks():
         response = requests.get(url, headers=headers, timeout=10, verify=False)
         response.raise_for_status()
 
+        # 檢查回應內容是否為空或非 JSON
+        if not response.text or response.text.strip() == '':
+            raise Exception("API 回傳空白內容（可能是非交易時間）")
+
+        # 檢查是否為 HTML（錯誤頁面）
+        if response.text.strip().startswith('<'):
+            raise Exception("API 回傳 HTML 而非 JSON（可能是維護中或非交易時間）")
+
         data = response.json()
         stocks = []
 
