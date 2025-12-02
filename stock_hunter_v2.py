@@ -587,30 +587,146 @@ def analyze_day_trade_potential(stock_data):
     策略：爆量長紅 + 強勢收盤
     """
     # 1. 爆量檢查
-    if stock_data['avg_volume_5d'] == 0: return None
+    if stock_data['avg_volume_5d'] == 0:
+        return None
     volume_ratio = stock_data['today_volume'] / stock_data['avg_volume_5d']
-    
+
     # 2. 價格檢查 (Yahoo Finance API 限制：這裡用的是昨天的收盤資料)
     # 我們要找的是「昨天收盤強勢」，作為「今天/明天」的觀察名單
     price = stock_data['price']
-    # 假設我們能拿到開盤價 (Yahoo API 有 open)，這裡簡化用 price 代替 close
-    # 實際策略：收盤價接近最高價 (強勢)
-    
-    if volume_ratio >= 2.0: # 爆量 2 倍以上
+
+    if volume_ratio >= 2.0:  # 爆量 2 倍以上
         # 計算 CDP
-        # 注意：因為 Yahoo API 的限制，我們這裡的 high/low 是最近一天的
-        # 實際應用應該要拿 daily high/low，這裡暫時用 current price 模擬 (需優化)
-        # 為了演示，我們先假設 high = price * 1.02, low = price * 0.98
-        high = price * 1.02 
+        # 注意：因為 Yahoo API 的限制，這裡暫時用 current price 模擬
+        high = price * 1.02
         low = price * 0.98
         cdp_levels = calculate_cdp(high, low, price)
-        
+
         return {
             'is_candidate': True,
             'volume_ratio': volume_ratio,
             'cdp': cdp_levels,
             'reason': f"爆量 {volume_ratio:.1f}x"
         }
+
+    return None
+
+# ==================== 🎯 完整分析流程 ====================
+
+def analyze_single_stock(stock_info):
+    """分析單一股票（完整流程）"""
+    ticker = stock_info['ticker']
+    name = stock_info['name']
+
+    try:
+        # 1. 取得股價資料
+        stock_data = get_stock_data_yahoo(ticker)
+        if not stock_data['success']:
+            return None
+
+        # 2. 快速過濾：流動性
+        liquidity = guardian_2_liquidity(stock_data)
+        if not liquidity['pass']:
+            return None
+
+        # 3. 取得法人資料
+        chips_data = get_institutional_investors(ticker)
+        if not chips_data['success']:
+            return None
+
+        # 4. 技術面檢查
+        technical = guardian_4_technical(stock_data, CONFIG)
+        if not technical['pass']:
+            return None
+
+        # 5. 籌碼評分
+        chips = guardian_3_chips(chips_data, CONFIG)
+
+        # 6. 新聞情緒
+        news = guardian_0_news_sentiment(ticker, name, CONFIG)
+
+        # 7. 綜合評分
+        final_score = chips['score'] + news['bonus']
+
+        # 8. 判斷行動
+        if final_score >= 3:
+            action = 'BUY'
+            allocation = CONFIG['HIGH_CONFIDENCE_ALLOCATION']
+        elif final_score > 0:
+            action = 'BUY'
+            allocation = CONFIG['MEDIUM_CONFIDENCE_ALLOCATION']
+        elif final_score <= -2 and technical.get('short_signal'):
+            action = 'SHORT'
+            allocation = 0
+        else:
+            return None
+
+        # 9. 計算停損停利點
+        price = stock_data['price']
+        stop_loss = round(price * (1 - CONFIG['STOP_LOSS']), 2)
+        take_profit = round(price * (1 + CONFIG['TAKE_PROFIT']), 2)
+
+        # 10. 檢查當沖潛力
+        day_trade_potential = analyze_day_trade_potential(stock_data)
+
+        result = {
+            'ticker': ticker,
+            'name': name,
+            'price': price,
+            'action': action,
+            'score': final_score,
+            'chips': chips,
+            'news': news,
+            'allocation': allocation,
+            'stop_loss': stop_loss,
+            'take_profit': take_profit,
+            'technical': technical
+        }
+
+        # 添加當沖資訊（如果有）
+        if day_trade_potential:
+            result['day_trade'] = day_trade_potential
+
+        return result
+
+    except Exception as e:
+        print(f"⚠️ {ticker} 分析失敗：{e}")
+        return None
+
+def scan_all_stocks():
+    """掃描全台股上市股票"""
+    print("\n" + "="*60)
+    print("🚀 開始掃描全台股上市股票")
+    print("="*60 + "\n")
+
+    # 1. 守護者 1：市場檢查
+    market_status = guardian_1_market_check()
+    print(f"🌍 市場狀態：{market_status['status']}")
+    print(f"   大盤：{market_status['index_price']:,} 點")
+    print(f"   季線：{market_status['ma60']:,} 點\n")
+
+    if market_status['status'] == 'DANGER':
+        print("⚠️ 市場熔斷，僅尋找做空機會\n")
+
+    # 2. 取得股票清單
+    all_stocks = get_taiwan_listed_stocks()
+    print(f"📊 股票清單：{len(all_stocks)} 支\n")
+
+    # 3. 抓取產業分類
+    industry_map = get_industry_mapping()
+
+    # 4. 抓取總體新聞
+    macro_news = get_macro_news()
+
+    # 5. 多執行緒掃描
+    buy_list = []
+    short_list = []
+    day_trade_list = []
+
+    print("🔍 開始分析...")
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(analyze_single_stock, stock): stock for stock in all_stocks}
+
         for i, future in enumerate(as_completed(futures), 1):
             if i % 50 == 0:
                 print(f"   進度：{i}/{len(all_stocks)}")
@@ -623,19 +739,115 @@ def analyze_day_trade_potential(stock_data):
                 # 波段做空
                 elif result['action'] == 'SHORT':
                     short_list.append(result)
-                
+
                 # 當沖觀察 (獨立判斷)
                 if result.get('day_trade'):
                     day_trade_list.append(result)
 
-    # 4. 排序與限制數量
+    # 6. 排序與限制數量
     buy_list.sort(key=lambda x: x['score'], reverse=True)
     short_list.sort(key=lambda x: x['score'])
-    day_trade_list.sort(key=lambda x: x['day_trade']['volume_ratio'], reverse=True) # 爆量優先
+    day_trade_list.sort(key=lambda x: x['day_trade']['volume_ratio'], reverse=True)
 
     buy_list = buy_list[:CONFIG['MAX_BUY_RECOMMENDATIONS']]
     short_list = short_list[:CONFIG['MAX_SHORT_RECOMMENDATIONS']]
     day_trade_list = day_trade_list[:CONFIG['MAX_DAY_TRADE_RECOMMENDATIONS']]
+
+    # 7. 產業趨勢分析
+    industry_performance = {}
+    for stock in all_stocks:
+        industry = industry_map.get(stock['ticker'])
+        if industry:
+            if industry not in industry_performance:
+                industry_performance[industry] = []
+            industry_performance[industry].append(stock['change_pct'])
+
+    # 計算各產業平均漲跌幅
+    industry_avg = {ind: sum(changes)/len(changes) for ind, changes in industry_performance.items() if len(changes) > 5}
+    top_industries = sorted(industry_avg.items(), key=lambda x: x[1], reverse=True)[:3]
+    bottom_industries = sorted(industry_avg.items(), key=lambda x: x[1])[:3]
+
+    print(f"\n✅ 掃描完成")
+    print(f"   推薦買入：{len(buy_list)} 支")
+    print(f"   推薦做空：{len(short_list)} 支")
+    print(f"   當沖觀察：{len(day_trade_list)} 支\n")
+
+    return {
+        'market_status': market_status,
+        'buy': buy_list,
+        'short': short_list,
+        'day_trade': day_trade_list,
+        'macro_news': macro_news,
+        'top_industries': [(name, round(pct, 2)) for name, pct in top_industries],
+        'bottom_industries': [(name, round(pct, 2)) for name, pct in bottom_industries],
+        'timestamp': datetime.now().isoformat()
+    }
+
+# ==================== 💾 復盤記錄系統 ====================
+
+def save_daily_record(analysis_result):
+    """儲存每日分析記錄"""
+    os.makedirs('records', exist_ok=True)
+
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    filepath = f"records/{date_str}.json"
+
+    # 格式化記錄
+    record = {
+        'date': date_str,
+        'market_status': analysis_result['market_status']['status'],
+        'index_price': analysis_result['market_status']['index_price'],
+        'macro_news': analysis_result.get('macro_news', []),
+        'top_industries': analysis_result.get('top_industries', []),
+        'bottom_industries': analysis_result.get('bottom_industries', []),
+        'recommendations': {
+            'buy': [
+                {
+                    'ticker': item['ticker'],
+                    'name': item['name'],
+                    'recommend_price': item['price'],
+                    'recommend_time': analysis_result['timestamp'],
+                    'reason': {
+                        'chips_score': item['chips']['score'],
+                        'chips_reasons': item['chips']['reasons'],
+                        'news_sentiment': item['news']['sentiment'],
+                        'news_summary': item['news']['summary'],
+                    },
+                    'targets': {
+                        'stop_loss': item['stop_loss'],
+                        'take_profit': item['take_profit']
+                    },
+                    'allocation': item['allocation'],
+                    'review': {}  # 隔日更新
+                }
+                for item in analysis_result['buy']
+            ],
+            'short': [
+                {
+                    'ticker': item['ticker'],
+                    'name': item['name'],
+                    'recommend_price': item['price'],
+                    'reason': {
+                        'chips_score': item['chips']['score'],
+                        'chips_reasons': item['chips']['reasons'],
+                    },
+                    'review': {}
+                }
+                for item in analysis_result['short']
+            ],
+            'day_trade': [
+                {
+                    'ticker': item['ticker'],
+                    'name': item['name'],
+                    'recommend_price': item['price'],
+                    'cdp': item['day_trade']['cdp'],
+                    'volume_ratio': item['day_trade']['volume_ratio'],
+                    'review': {}
+                }
+                for item in analysis_result.get('day_trade', [])
+            ]
+        }
+    }
 
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(record, f, ensure_ascii=False, indent=2)
