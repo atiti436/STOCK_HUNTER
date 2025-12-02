@@ -807,12 +807,23 @@ def manual_run():
     return "分析完成！請查看 LINE"
 
 if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
-    print("\n" + "="*60)
-    print("🚀 台股情報獵人 v2.0 啟動")
-    print("="*60)
-    print(f"📡 監聽 Port: {port}")
-    print(f"⏰ 定時推送：每天 08:00")
-    print("="*60 + "\n")
+    try:
+        port = int(os.environ.get('PORT', 8080))
+        print("\n" + "="*60, flush=True)
+        print("🚀 台股情報獵人 v2.0 啟動", flush=True)
+        print("="*60, flush=True)
+        print(f"📡 監聽 Port: {port}", flush=True)
+        print(f"⏰ 定時推送：每天 08:00", flush=True)
+        print(f"🔑 環境變數檢查:", flush=True)
+        print(f"   LINE_CHANNEL_ACCESS_TOKEN: {'已設定' if LINE_CHANNEL_ACCESS_TOKEN != 'YOUR_TOKEN' else '未設定'}", flush=True)
+        print(f"   LINE_CHANNEL_SECRET: {'已設定' if LINE_CHANNEL_SECRET != 'YOUR_SECRET' else '未設定'}", flush=True)
+        print(f"   GEMINI_API_KEY: {'已設定' if GEMINI_API_KEY != 'YOUR_GEMINI_KEY' else '未設定'}", flush=True)
+        print(f"   LINE_USER_ID: {LINE_USER_ID}", flush=True)
+        print("="*60 + "\n", flush=True)
 
-    app.run(host='0.0.0.0', port=port, debug=False)
+        app.run(host='0.0.0.0', port=port, debug=False)
+    except Exception as e:
+        print(f"❌ 啟動失敗：{e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        raise
