@@ -95,11 +95,14 @@ def get_taiwan_listed_stocks():
         url = "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY_ALL"
         headers = {'User-Agent': 'Mozilla/5.0'}
 
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, headers=headers, timeout=10, verify=False)
         response.raise_for_status()
 
         data = response.json()
         stocks = []
+
+        if 'data' not in data:
+            raise Exception("API 沒有回傳 data 欄位")
 
         for item in data['data']:
             ticker = item[0].strip()
@@ -141,13 +144,15 @@ def get_taiwan_listed_stocks():
 
     except Exception as e:
         print(f"❌ 取得股票清單失敗：{e}")
-        # 備用清單（部分股票）
+        import traceback
+        print(f"詳細錯誤：{traceback.format_exc()}")
+        # 備用清單（部分股票）- 加上 change_pct 欄位
         return [
-            {'ticker': '2330', 'name': '台積電'},
-            {'ticker': '2454', 'name': '聯發科'},
-            {'ticker': '2317', 'name': '鴻海'},
-            {'ticker': '2308', 'name': '台達電'},
-            {'ticker': '2603', 'name': '長榮'},
+            {'ticker': '2330', 'name': '台積電', 'change_pct': 0.0},
+            {'ticker': '2454', 'name': '聯發科', 'change_pct': 0.0},
+            {'ticker': '2317', 'name': '鴻海', 'change_pct': 0.0},
+            {'ticker': '2308', 'name': '台達電', 'change_pct': 0.0},
+            {'ticker': '2603', 'name': '長榮', 'change_pct': 0.0},
         ]
 
 # ==================== 📡 Yahoo Finance API ====================
@@ -864,10 +869,12 @@ def scan_all_stocks():
     industry_performance = {}
     for stock in all_stocks:
         industry = industry_map.get(stock['ticker'])
-        if industry:
+        # 安全取得 change_pct（避免 KeyError）
+        change_pct = stock.get('change_pct', 0.0)
+        if industry and change_pct is not None:
             if industry not in industry_performance:
                 industry_performance[industry] = []
-            industry_performance[industry].append(stock['change_pct'])
+            industry_performance[industry].append(change_pct)
 
     # 計算各產業平均漲跌幅
     industry_avg = {ind: sum(changes)/len(changes) for ind, changes in industry_performance.items() if len(changes) > 5}

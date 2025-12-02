@@ -130,3 +130,19 @@
 - MA120 = 120 日均線 ≈ 6 個月（扣除週末/假日）
 - 需要至少 120 筆收盤價才能計算
 - TWSE API 一次只能抓 1 個月資料 → 需要抓 6 次
+
+### Fixed by Claude (Current Session - 2025-12-03 01:45)
+**Issue**: `KeyError: 'change_pct'` - 產業分析時備用股票清單缺少欄位
+
+**Root Cause**:
+- `get_taiwan_listed_stocks()` 失敗時回傳備用清單（5 支股票）
+- 備用清單只有 `ticker` 和 `name`，缺少 `change_pct` 欄位
+- 第 873 行產業分析時直接存取 `stock['change_pct']` 導致 KeyError
+
+**Solution Applied**:
+- ✅ 備用清單加上 `'change_pct': 0.0` 預設值
+- ✅ 產業分析改用 `stock.get('change_pct', 0.0)` 安全取值
+- ✅ 加強錯誤處理：顯示完整 traceback 方便除錯
+
+**Files Modified**:
+- `stock_hunter_v2.py` (lines 145-156, 868-874)
