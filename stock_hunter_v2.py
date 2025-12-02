@@ -721,6 +721,11 @@ def format_line_message(analysis_result):
 
 def send_line_push(message):
     """推送訊息到 LINE"""
+    # 檢查 LINE_USER_ID 是否有效
+    if not LINE_USER_ID or LINE_USER_ID in ['YOUR_USER_ID', 'test', 'TEST']:
+        print("⚠️ LINE_USER_ID 未設定，跳過推送")
+        return
+
     try:
         line_bot_api.push_message(
             LINE_USER_ID,
