@@ -6,7 +6,10 @@
     -   **Model**: **Gemini 2.5 Pro** (Must use this! Do not downgrade to 1.5 Flash/Pro unless explicitly asked).
     -   **Data**: Must be **REAL**. We switched from mock news to **Google News RSS**.
     -   **Style**: Likes "Premium" and "Cool" designs (e.g., Cyberpunk/Dark mode for UI).
-    -   **Communication**: Keep it professional but friendly. Acknowledge mistakes immediately.
+    -   **Communication**: 
+        -   **Ask Before Acting**: The user is learning (Python + Stock Trading). If a request is ambiguous (e.g., "Find stable stocks"), **DO NOT ASSUME**. Ask clarifying questions first (e.g., "By stable, do you mean low volatility or high dividend?").
+        -   **Explain Like I'm 5**: Avoid heavy jargon. Explain *why* we are doing this (e.g., "We need this API because...").
+        -   **Honesty**: Acknowledge mistakes immediately.
 -   **Habits**: Checks the report daily at **8:00 AM**.
 
 ## 🏗️ System Architecture (Current Status)
