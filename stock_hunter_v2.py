@@ -24,6 +24,10 @@ from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from apscheduler.schedulers.background import BackgroundScheduler
 import google.generativeai as genai
+import urllib3
+
+# 關閉 SSL 警告（TWSE 憑證問題）
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # ==================== 環境變數設定 ====================
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'YOUR_TOKEN')
@@ -148,40 +152,62 @@ def get_taiwan_listed_stocks():
 
 # ==================== 📡 Yahoo Finance API ====================
 
-def get_stock_data_yahoo(ticker):
+def get_stock_data_twse(ticker):
     """
-    取得股票資料（Yahoo Finance）
+    取得股票資料（TWSE 證交所 API）
     - 股價
     - 均線（MA20, MA60, MA120）
     - 成交量
     """
     try:
-        # Yahoo Finance API（台股要加 .TW）
-        symbol = f"{ticker}.TW"
-        url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-        params = {
-            'interval': '1d',
-            'range': '6mo'  # 取 6 個月資料（計算均線用）
-        }
+        # 1. 取得最近 6 個月的歷史資料（用於計算均線）
+        from datetime import datetime, timedelta
 
-        # 加上延遲避免 Rate Limit（每個請求間隔 0.2 秒）
-        time.sleep(0.2)
+        closes = []
+        volumes = []
 
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
-        data = response.json()
+        # 抓取最近 6 個月資料
+        for i in range(6):
+            target_date = datetime.now() - timedelta(days=30*i)
+            date_str = target_date.strftime('%Y%m01')  # 每月 1 號
 
-        # 解析資料
-        quote = data['chart']['result'][0]
-        meta = quote['meta']
-        indicators = quote['indicators']['quote'][0]
+            url = f"https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY"
+            params = {
+                'date': date_str,
+                'stockNo': ticker,
+                'response': 'json'
+            }
 
-        # 當前股價
-        current_price = meta['regularMarketPrice']
+            try:
+                # TWSE 憑證問題，需要關閉 SSL 驗證
+                response = requests.get(url, params=params, timeout=10, verify=False)
+                response.raise_for_status()
+                data = response.json()
 
-        # 歷史收盤價（計算均線）
-        closes = indicators['close']
-        volumes = indicators['volume']
+                if data.get('stat') == 'OK' and data.get('data'):
+                    for row in data['data']:
+                        # row[6] = 收盤價, row[1] = 成交股數
+                        close_price = float(row[6].replace(',', ''))
+                        volume = int(row[1].replace(',', ''))
+                        closes.append(close_price)
+                        volumes.append(volume)
+
+                # 避免打太快
+                time.sleep(0.3)
+
+            except:
+                continue
+
+        # 如果抓不到歷史資料，回傳失敗
+        if len(closes) < 5:
+            return {'ticker': ticker, 'success': False}
+
+        # 反轉（從舊到新）
+        closes = closes[::-1]
+        volumes = volumes[::-1]
+
+        # 當前股價（最新一筆）
+        current_price = closes[-1]
 
         # 計算均線
         ma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else current_price
@@ -210,6 +236,11 @@ def get_stock_data_yahoo(ticker):
     except Exception as e:
         print(f"⚠️ {ticker} 資料取得失敗：{e}")
         return {'ticker': ticker, 'success': False}
+
+# 保留舊函數名稱，方便相容
+def get_stock_data_yahoo(ticker):
+    """相容性包裝：實際呼叫 TWSE API"""
+    return get_stock_data_twse(ticker)
 
 # ==================== 📊 證交所三大法人 API ====================
 
