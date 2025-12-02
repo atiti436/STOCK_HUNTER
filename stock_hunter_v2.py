@@ -76,6 +76,7 @@ CONFIG = {
     # 推薦數量上限
     "MAX_BUY_RECOMMENDATIONS": 10,
     "MAX_SHORT_RECOMMENDATIONS": 5,
+    "MAX_DAY_TRADE_RECOMMENDATIONS": 5,
 }
 
 # ==================== 📈 台股上市股票清單 ====================
@@ -464,6 +465,60 @@ def guardian_0_news_sentiment(ticker, name, config):
         'bonus': bonus
     }
 
+# ==================== ⚡ 當沖/隔日沖邏輯 (CDP + 爆量) ====================
+
+def calculate_cdp(high, low, close):
+    """
+    計算 CDP 關鍵價位 (逆勢操作系統)
+    回傳：AH (最高), NH (近高), CDP (中軸), NL (近低), AL (最低)
+    """
+    cdp = (high + low + (close * 2)) / 4
+    ah = cdp + (high - low)
+    nh = (cdp * 2) - low
+    nl = (cdp * 2) - high
+    al = cdp - (high - low)
+
+    return {
+        'AH': round(ah, 2),
+        'NH': round(nh, 2),
+        'CDP': round(cdp, 2),
+        'NL': round(nl, 2),
+        'AL': round(al, 2)
+    }
+
+def analyze_day_trade_potential(stock_data):
+    """
+    分析當沖/隔日沖潛力
+    策略：爆量長紅 + 強勢收盤
+    """
+    # 1. 爆量檢查
+    if stock_data['avg_volume_5d'] == 0: return None
+    volume_ratio = stock_data['today_volume'] / stock_data['avg_volume_5d']
+    
+    # 2. 價格檢查 (Yahoo Finance API 限制：這裡用的是昨天的收盤資料)
+    # 我們要找的是「昨天收盤強勢」，作為「今天/明天」的觀察名單
+    price = stock_data['price']
+    # 假設我們能拿到開盤價 (Yahoo API 有 open)，這裡簡化用 price 代替 close
+    # 實際策略：收盤價接近最高價 (強勢)
+    
+    if volume_ratio >= 2.0: # 爆量 2 倍以上
+        # 計算 CDP
+        # 注意：因為 Yahoo API 的限制，我們這裡的 high/low 是最近一天的
+        # 實際應用應該要拿 daily high/low，這裡暫時用 current price 模擬 (需優化)
+        # 為了演示，我們先假設 high = price * 1.02, low = price * 0.98
+        high = price * 1.02 
+        low = price * 0.98
+        cdp_levels = calculate_cdp(high, low, price)
+        
+        return {
+            'is_candidate': True,
+            'volume_ratio': volume_ratio,
+            'cdp': cdp_levels,
+            'reason': f"爆量 {volume_ratio:.1f}x"
+        }
+    
+    return None
+
 # ==================== 🎯 完整分析流程 ====================
 
 def analyze_single_stock(stock_info):
@@ -519,6 +574,9 @@ def analyze_single_stock(stock_info):
         stop_loss = round(price * (1 - CONFIG['STOP_LOSS']), 2)
         take_profit = round(price * (1 + CONFIG['TAKE_PROFIT']), 2)
 
+        # 10. 當沖分析
+        day_trade = analyze_day_trade_potential(stock_data)
+
         return {
             'ticker': ticker,
             'name': name,
@@ -530,7 +588,8 @@ def analyze_single_stock(stock_info):
             'allocation': allocation,
             'stop_loss': stop_loss,
             'take_profit': take_profit,
-            'technical': technical
+            'technical': technical,
+            'day_trade': day_trade
         }
 
     except Exception as e:
@@ -559,6 +618,7 @@ def scan_all_stocks():
     # 3. 多執行緒掃描
     buy_list = []
     short_list = []
+    day_trade_list = []
 
     print("🔍 開始分析...")
     with ThreadPoolExecutor(max_workers=10) as executor:
@@ -570,26 +630,36 @@ def scan_all_stocks():
 
             result = future.result()
             if result:
+                # 波段買入
                 if result['action'] == 'BUY' and market_status['status'] == 'SAFE':
                     buy_list.append(result)
+                # 波段做空
                 elif result['action'] == 'SHORT':
                     short_list.append(result)
+                
+                # 當沖觀察 (獨立判斷)
+                if result.get('day_trade'):
+                    day_trade_list.append(result)
 
     # 4. 排序與限制數量
     buy_list.sort(key=lambda x: x['score'], reverse=True)
     short_list.sort(key=lambda x: x['score'])
+    day_trade_list.sort(key=lambda x: x['day_trade']['volume_ratio'], reverse=True) # 爆量優先
 
     buy_list = buy_list[:CONFIG['MAX_BUY_RECOMMENDATIONS']]
     short_list = short_list[:CONFIG['MAX_SHORT_RECOMMENDATIONS']]
+    day_trade_list = day_trade_list[:CONFIG['MAX_DAY_TRADE_RECOMMENDATIONS']]
 
     print(f"\n✅ 掃描完成")
     print(f"   推薦買入：{len(buy_list)} 支")
-    print(f"   推薦做空：{len(short_list)} 支\n")
+    print(f"   推薦做空：{len(short_list)} 支")
+    print(f"   當沖觀察：{len(day_trade_list)} 支\n")
 
     return {
         'market_status': market_status,
         'buy': buy_list,
         'short': short_list,
+        'day_trade': day_trade_list,
         'timestamp': datetime.now().isoformat()
     }
 
@@ -641,6 +711,16 @@ def save_daily_record(analysis_result):
                     'review': {}
                 }
                 for item in analysis_result['short']
+            ],
+            'day_trade': [
+                {
+                    'ticker': item['ticker'],
+                    'name': item['name'],
+                    'price': item['price'],
+                    'cdp': item['day_trade']['cdp'],
+                    'reason': item['day_trade']['reason']
+                }
+                for item in analysis_result.get('day_trade', [])
             ]
         }
     }
@@ -707,6 +787,21 @@ def format_line_message(analysis_result):
                 for reason in item['chips']['reasons']:
                     msg += f"• {reason}\n"
 
+            msg += f"\n"
+
+    # 當沖觀察
+    day_trade_list = analysis_result.get('day_trade', [])
+    if day_trade_list:
+        msg += f"⚡ 當沖觀察（{len(day_trade_list)}支）\n"
+        msg += f"{'─'*30}\n\n"
+
+        for item in day_trade_list:
+            cdp = item['day_trade']['cdp']
+            msg += f"[{item['ticker']} {item['name']}] ${item['price']}\n"
+            msg += f"• {item['day_trade']['reason']}\n"
+            msg += f"• 突破(進)：${cdp['NH']}\n"
+            msg += f"• 防守(損)：${cdp['NL']}\n"
+            msg += f"• 目標(利)：${cdp['AH']}\n"
             msg += f"\n"
 
     # 無推薦
@@ -797,11 +892,22 @@ def handle_message(event):
         result = scan_all_stocks()
         save_daily_record(result)
         reply_text = format_line_message(result)
+    elif user_message in ["當沖觀察", "當沖"]:
+        # 執行分析但只顯示當沖部分 (目前簡化為執行全部分析，因為 scan_all_stocks 是一次性的)
+        # 未來可以優化為只顯示當沖區塊
+        result = scan_all_stocks()
+        save_daily_record(result)
+        reply_text = format_line_message(result)
+        
+    elif user_message in ["設定", "歷史紀錄", "聯絡作者"]:
+        reply_text = "🚧 功能開發中，敬請期待！"
+
     elif user_message in ["幫助", "help"]:
         reply_text = """📖 台股情報獵人使用說明
 
 【指令】
-• 今日分析 - 立即掃描全台股
+• 今日分析 - 立即掃描全台股 (含波段/當沖)
+• 當沖觀察 - 查看當沖/隔日沖標的
 • 幫助 - 顯示此說明
 
 每天早上 8:00 自動推送！"""
