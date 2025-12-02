@@ -788,6 +788,8 @@ def callback():
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    user_id = event.source.user_id
+    print(f"\n📩 收到訊息 from User ID: {user_id}", flush=True)
     user_message = event.message.text.strip()
 
     if user_message in ["今日分析", "分析", "推薦"]:
