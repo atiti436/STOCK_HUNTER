@@ -100,12 +100,36 @@ def get_taiwan_listed_stocks():
         for item in data['data']:
             ticker = item[0].strip()
             name = item[1].strip()
+            
+            # 解析漲跌幅 (item[9] 是漲跌百分比? 不，STOCK_DAY_ALL 的格式是：
+            # 0:代號, 1:名稱, 2:成交股數, 3:成交金額, 4:開盤, 5:最高, 6:最低, 7:收盤, 8:漲跌價差, 9:成交筆數
+            # 糟糕，STOCK_DAY_ALL 沒有直接給百分比，只有價差。我們需要計算：(收盤 - 價差) = 昨收 -> 價差/昨收
+            # 或者直接用 item[7] (收盤) 和 item[8] (價差)
+            
+            try:
+                close_price = float(item[7].replace(',', ''))
+                change_price = float(item[8].replace(',', '').replace('+', '').replace('X', '')) # X是除權息
+                if '-' in item[8]: # 處理負號
+                     pass # float conversion handles -
+                
+                # 昨收 = 收盤 - 漲跌 (注意：如果是跌，漲跌是負的，所以 收盤 - (-跌) = 收盤 + 跌 = 昨收)
+                # 這裡 item[8] 如果是跌，通常帶有負號嗎？ TWSE API 有時候是用顏色標記，這裡的 raw data 通常有正負號
+                # 讓我們保守一點，如果無法計算就設為 0
+                
+                prev_close = close_price - change_price
+                if prev_close > 0:
+                    change_pct = (change_price / prev_close) * 100
+                else:
+                    change_pct = 0.0
+            except:
+                change_pct = 0.0
 
             # 只要數字股票代碼（排除 ETF 等）
             if ticker.isdigit() and len(ticker) == 4:
                 stocks.append({
                     'ticker': ticker,
-                    'name': name
+                    'name': name,
+                    'change_pct': change_pct
                 })
 
         print(f"✅ 取得 {len(stocks)} 支上市股票")
@@ -250,37 +274,108 @@ def get_institutional_investors(ticker):
 
 # 股票關鍵字對應表（智能關聯）
 NEWS_KEYWORDS = {
-    "2330": ["台積電", "TSMC", "TSM", "張忠謀", "魏哲家", "3奈米", "2奈米", "CoWoS"],
-    "2454": ["聯發科", "MediaTek", "蔡明介", "天璣", "5G晶片"],
-    "2317": ["鴻海", "Foxconn", "郭台銘", "劉揚偉", "iPhone"],
-    "2308": ["台達電", "Delta", "鄭平"],
-    # 產業關鍵字
-    "AI": ["黃仁勳", "輝達", "NVIDIA", "Jensen Huang", "AI伺服器"],
+    "2330": ["台積電", "TSMC", "TSM", "張忠謀", "魏哲家", "3奈米", "CoWoS", "黃仁勳", "NVIDIA"],
+    "2454": ["聯發科", "MediaTek", "蔡明介", "天璣", "5G晶片", "黃仁勳"],
+    "2317": ["鴻海", "Foxconn", "郭台銘", "劉揚偉", "iPhone", "GB200", "黃仁勳"],
+    "2308": ["台達電", "Delta", "鄭平", "AI電源"],
+    "2382": ["廣達", "林百里", "AI伺服器", "黃仁勳", "GB200"],
+    "3231": ["緯創", "林憲銘", "AI伺服器", "黃仁勳"],
+    "2356": ["英業達", "葉力誠", "AI伺服器"],
+    "3008": ["大立光", "林恩平", "手機鏡頭"],
 }
+
+MACRO_KEYWORDS = ["川普", "Trump", "關稅", "聯準會", "Fed", "降息", "美股"]
+
+import xml.etree.ElementTree as ET
 
 def get_stock_news(ticker, name):
     """
-    抓取股票相關新聞（Google News）
+    抓取股票相關新聞（Google News RSS）
     """
     try:
         # 建立關鍵字
         keywords = NEWS_KEYWORDS.get(ticker, [name])
-        keywords_str = " OR ".join(keywords)
-
-        # Google News RSS（簡化版，實際應用建議用 News API）
-        # 這裡使用 Gemini 搜尋功能（需要開啟 grounding）
-
-        # 模擬新聞（實際應用需串接真實 News API）
-        mock_news = [
-            f"{name}近期營運表現強勁，法人看好",
-            f"外資連續買超{name}，目標價上看新高",
-            f"{name}受惠AI趨勢，訂單滿載"
-        ]
-
-        return mock_news[:3]  # 取前 3 則
+        query = " OR ".join(keywords)
+        
+        # Google News RSS URL (台灣繁體中文)
+        url = f"https://news.google.com/rss/search?q={query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        # 解析 XML
+        root = ET.fromstring(response.content)
+        news_items = []
+        
+        for item in root.findall('.//item')[:3]: # 取前 3 則
+            title = item.find('title').text
+            # 移除新聞來源標記 (例如 " - Yahoo奇摩新聞")
+            if ' - ' in title:
+                title = title.split(' - ')[0]
+            news_items.append(title)
+            
+        return news_items
 
     except Exception as e:
         print(f"⚠️ {ticker} 新聞抓取失敗：{e}")
+        return []
+
+def get_industry_mapping():
+    """
+    抓取股票產業分類 (從 TWSE ISIN 網頁)
+    回傳: {'2330': '半導體業', '2603': '航運業', ...}
+    """
+    try:
+        url = "https://isin.twse.com.tw/isin/C_public.jsp?strMode=2"
+        response = requests.get(url, timeout=10)
+        # Big5 encoding for TWSE old pages
+        response.encoding = 'big5' 
+        
+        mapping = {}
+        # 簡單的正則表達式抓取： 2330  台積電 ... 半導體業
+        # 尋找 4 位數代碼，後面跟著名稱，然後中間有些欄位，最後是產業
+        # 這裡簡化處理：直接逐行掃描
+        lines = response.text.split('\n')
+        for line in lines:
+            # 尋找類似 <td>2330&nbsp;</td>...<td>半導體業</td> 的結構
+            if '<td>' in line and len(line) > 100:
+                parts = line.split('<td>')
+                if len(parts) > 5:
+                    code_part = parts[1].split('&')[0].strip() # 2330
+                    industry_part = parts[5].split('<')[0].strip() # 半導體業
+                    
+                    if code_part.isdigit() and len(code_part) == 4:
+                        mapping[code_part] = industry_part
+        
+        print(f"✅ 取得產業分類：{len(mapping)} 筆")
+        return mapping
+    except Exception as e:
+        print(f"⚠️ 產業分類抓取失敗：{e}")
+        return {}
+
+def get_macro_news():
+    """
+    抓取總體經濟/國際大事新聞 (川普、Fed)
+    """
+    try:
+        query = " OR ".join(MACRO_KEYWORDS)
+        url = f"https://news.google.com/rss/search?q={query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        root = ET.fromstring(response.content)
+        news_items = []
+        
+        for item in root.findall('.//item')[:3]: # 取前 3 則
+            title = item.find('title').text
+            if ' - ' in title:
+                title = title.split(' - ')[0]
+            news_items.append(title)
+            
+        return news_items
+    except Exception as e:
+        print(f"⚠️ 國際新聞抓取失敗：{e}")
         return []
 
 def analyze_news_sentiment(ticker, name, news_list):
@@ -291,8 +386,8 @@ def analyze_news_sentiment(ticker, name, news_list):
         return {'sentiment': 0, 'summary': '無相關新聞'}
 
     try:
-        # Gemini 模型
-        model = genai.GenerativeModel('gemini-pro')
+        # Gemini 模型 (升級至 2.5 Pro)
+        model = genai.GenerativeModel('gemini-2.5-pro')
 
         # Prompt
         news_text = "\n".join([f"{i+1}. {news}" for i, news in enumerate(news_list)])
@@ -516,114 +611,6 @@ def analyze_day_trade_potential(stock_data):
             'cdp': cdp_levels,
             'reason': f"爆量 {volume_ratio:.1f}x"
         }
-    
-    return None
-
-# ==================== 🎯 完整分析流程 ====================
-
-def analyze_single_stock(stock_info):
-    """分析單一股票（完整流程）"""
-    ticker = stock_info['ticker']
-    name = stock_info['name']
-
-    try:
-        # 1. 取得股價資料
-        stock_data = get_stock_data_yahoo(ticker)
-        if not stock_data['success']:
-            return None
-
-        # 2. 快速過濾：流動性
-        liquidity = guardian_2_liquidity(stock_data)
-        if not liquidity['pass']:
-            return None
-
-        # 3. 取得法人資料
-        chips_data = get_institutional_investors(ticker)
-        if not chips_data['success']:
-            return None
-
-        # 4. 技術面檢查
-        technical = guardian_4_technical(stock_data, CONFIG)
-        if not technical['pass']:
-            return None
-
-        # 5. 籌碼評分
-        chips = guardian_3_chips(chips_data, CONFIG)
-
-        # 6. 新聞情緒
-        news = guardian_0_news_sentiment(ticker, name, CONFIG)
-
-        # 7. 綜合評分
-        final_score = chips['score'] + news['bonus']
-
-        # 8. 判斷行動
-        if final_score >= 3:
-            action = 'BUY'
-            allocation = CONFIG['HIGH_CONFIDENCE_ALLOCATION']
-        elif final_score > 0:
-            action = 'BUY'
-            allocation = CONFIG['MEDIUM_CONFIDENCE_ALLOCATION']
-        elif final_score <= -2 and technical.get('short_signal'):
-            action = 'SHORT'
-            allocation = 0
-        else:
-            return None
-
-        # 9. 計算停損停利點
-        price = stock_data['price']
-        stop_loss = round(price * (1 - CONFIG['STOP_LOSS']), 2)
-        take_profit = round(price * (1 + CONFIG['TAKE_PROFIT']), 2)
-
-        # 10. 當沖分析
-        day_trade = analyze_day_trade_potential(stock_data)
-
-        return {
-            'ticker': ticker,
-            'name': name,
-            'price': price,
-            'action': action,
-            'score': final_score,
-            'chips': chips,
-            'news': news,
-            'allocation': allocation,
-            'stop_loss': stop_loss,
-            'take_profit': take_profit,
-            'technical': technical,
-            'day_trade': day_trade
-        }
-
-    except Exception as e:
-        print(f"⚠️ {ticker} 分析失敗：{e}")
-        return None
-
-def scan_all_stocks():
-    """掃描全台股上市股票"""
-    print("\n" + "="*60)
-    print("🚀 開始掃描全台股上市股票")
-    print("="*60 + "\n")
-
-    # 1. 守護者 1：市場檢查
-    market_status = guardian_1_market_check()
-    print(f"🌍 市場狀態：{market_status['status']}")
-    print(f"   大盤：{market_status['index_price']:,} 點")
-    print(f"   季線：{market_status['ma60']:,} 點\n")
-
-    if market_status['status'] == 'DANGER':
-        print("⚠️ 市場熔斷，僅尋找做空機會\n")
-
-    # 2. 取得股票清單
-    all_stocks = get_taiwan_listed_stocks()
-    print(f"📊 股票清單：{len(all_stocks)} 支\n")
-
-    # 3. 多執行緒掃描
-    buy_list = []
-    short_list = []
-    day_trade_list = []
-
-    print("🔍 開始分析...")
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(analyze_single_stock, stock): stock for stock in all_stocks}
-
         for i, future in enumerate(as_completed(futures), 1):
             if i % 50 == 0:
                 print(f"   進度：{i}/{len(all_stocks)}")
@@ -650,81 +637,6 @@ def scan_all_stocks():
     short_list = short_list[:CONFIG['MAX_SHORT_RECOMMENDATIONS']]
     day_trade_list = day_trade_list[:CONFIG['MAX_DAY_TRADE_RECOMMENDATIONS']]
 
-    print(f"\n✅ 掃描完成")
-    print(f"   推薦買入：{len(buy_list)} 支")
-    print(f"   推薦做空：{len(short_list)} 支")
-    print(f"   當沖觀察：{len(day_trade_list)} 支\n")
-
-    return {
-        'market_status': market_status,
-        'buy': buy_list,
-        'short': short_list,
-        'day_trade': day_trade_list,
-        'timestamp': datetime.now().isoformat()
-    }
-
-# ==================== 💾 復盤記錄系統 ====================
-
-def save_daily_record(analysis_result):
-    """儲存每日分析記錄"""
-    os.makedirs('records', exist_ok=True)
-
-    date_str = datetime.now().strftime('%Y-%m-%d')
-    filepath = f"records/{date_str}.json"
-
-    # 格式化記錄
-    record = {
-        'date': date_str,
-        'market_status': analysis_result['market_status']['status'],
-        'index_price': analysis_result['market_status']['index_price'],
-        'recommendations': {
-            'buy': [
-                {
-                    'ticker': item['ticker'],
-                    'name': item['name'],
-                    'recommend_price': item['price'],
-                    'recommend_time': analysis_result['timestamp'],
-                    'reason': {
-                        'chips_score': item['chips']['score'],
-                        'chips_reasons': item['chips']['reasons'],
-                        'news_sentiment': item['news']['sentiment'],
-                        'news_summary': item['news']['summary'],
-                    },
-                    'targets': {
-                        'stop_loss': item['stop_loss'],
-                        'take_profit': item['take_profit']
-                    },
-                    'allocation': item['allocation'],
-                    'review': {}  # 隔日更新
-                }
-                for item in analysis_result['buy']
-            ],
-            'short': [
-                {
-                    'ticker': item['ticker'],
-                    'name': item['name'],
-                    'recommend_price': item['price'],
-                    'reason': {
-                        'chips_score': item['chips']['score'],
-                        'chips_reasons': item['chips']['reasons'],
-                    },
-                    'review': {}
-                }
-                for item in analysis_result['short']
-            ],
-            'day_trade': [
-                {
-                    'ticker': item['ticker'],
-                    'name': item['name'],
-                    'price': item['price'],
-                    'cdp': item['day_trade']['cdp'],
-                    'reason': item['day_trade']['reason']
-                }
-                for item in analysis_result.get('day_trade', [])
-            ]
-        }
-    }
-
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(record, f, ensure_ascii=False, indent=2)
 
@@ -748,6 +660,22 @@ def format_line_message(analysis_result):
     msg += f"大盤：{market['index_price']:,} 點\n"
     msg += f"季線：{market['ma60']:,} 點\n"
     msg += f"原因：{market['reason']}\n\n"
+
+    # 國際焦點
+    macro_news = analysis_result.get('macro_news', [])
+    if macro_news:
+        msg += f"📰 國際焦點：\n"
+        for news in macro_news:
+            msg += f"• {news}\n"
+        msg += f"\n"
+
+    # 產業趨勢
+    top_ind = analysis_result.get('top_industries', [])
+    bottom_ind = analysis_result.get('bottom_industries', [])
+    if top_ind:
+        msg += f"🏭 產業趨勢：\n"
+        msg += f"🔥 強：{', '.join([f'{n} {v}%' for n, v in top_ind])}\n"
+        msg += f"❄️ 弱：{', '.join([f'{n} {v}%' for n, v in bottom_ind])}\n\n"
 
     # 推薦買入
     if buy_list:
