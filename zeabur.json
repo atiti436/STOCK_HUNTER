@@ -1,11 +1,5 @@
 {
   "name": "stock-hunter",
   "buildCommand": "pip install -r requirements_v2.txt",
-  "startCommand": "python stock_hunter_v2.py",
-  "environment": {
-    "LINE_CHANNEL_ACCESS_TOKEN": "",
-    "LINE_CHANNEL_SECRET": "",
-    "GEMINI_API_KEY": "",
-    "LINE_USER_ID": ""
-  }
+  "startCommand": "python stock_hunter_v2.py"
 }
