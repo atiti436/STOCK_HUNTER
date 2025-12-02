@@ -1,0 +1,1 @@
+web: python -u stock_hunter_v2.py
