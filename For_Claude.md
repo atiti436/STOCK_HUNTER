@@ -54,3 +54,46 @@
 -   **Do NOT revert to Mock Data**. The user hates it.
 -   **Do NOT downgrade the model**. Stick to 2.5 Pro.
 -   **Zeabur Deployment**: Remember to push to GitHub to trigger deploy.
+
+---
+
+## 🔧 Recent Fixes (2025-12-02)
+
+### Fixed by Claude (Previous Session)
+**Issue**: Zeabur deployment kept failing with 404 errors.
+
+**Root Causes**:
+1. ❌ LINE BOT SDK version conflict (`line-bot-sdk==3.5.0` incompatible with v2 code syntax)
+2. ❌ `requests==2.31.0` version conflict with line-bot-sdk dependencies
+3. ❌ Python 3.13 too new → `aiohttp` compilation failed
+4. ❌ Zeabur misdetected project as static site (missing Dockerfile)
+
+**Solutions Applied**:
+1. ✅ Downgraded `line-bot-sdk` to `2.4.2` (compatible with existing code)
+2. ✅ Removed `requests` version constraint (let pip auto-resolve)
+3. ✅ Added `runtime.txt` with `python-3.11.9`
+4. ✅ Added `Procfile` for Zeabur deployment
+5. ✅ Modified `send_line_push()` to skip if `LINE_USER_ID` is empty/test
+
+### Fixed by Claude (Current Session - 2025-12-02 20:30)
+**Issue**: Timezone mismatch - scheduled job would run at 16:00 (4 PM) instead of 08:00 (8 AM).
+
+**Root Cause**:
+- Dockerfile uses `python:3.11-slim` (default UTC timezone)
+- `scheduler.add_job(..., hour=8)` runs at UTC 8:00 = Taiwan 16:00
+
+**Solution Applied**:
+- ✅ Added timezone configuration to `Dockerfile`:
+  ```dockerfile
+  ENV TZ=Asia/Taipei
+  RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+  ```
+- Now `hour=8` in scheduler means Taiwan 08:00 (correct!)
+- Also fixes `datetime.now()` for accurate record filenames
+
+**Files Modified**:
+- `Dockerfile` (lines 5-7 added)
+
+**Testing**:
+- Scheduled push should now trigger at Taiwan 08:00 tomorrow
+- Check Zeabur logs for startup message with correct timezone
