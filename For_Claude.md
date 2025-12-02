@@ -30,12 +30,22 @@
 -   [x] **Model**: Hardcoded `gemini-2.5-pro`.
 
 ## 📝 Next Steps (To-Do)
-1.  **Weekly Review (復盤系統)**:
-    -   **Goal**: On Saturday/Sunday, auto-analyze the performance of the past week's recommendations.
-    -   **Logic**: Read `records/*.json`, compare recommend price vs. current price, calculate win rate/ROI.
-    -   **User Request**: "每日推薦紀錄後 週六OR日自動復盤".
-2.  **Database**: Currently using JSON files in `records/`. Might need SQLite/PostgreSQL if data grows.
-3.  **Async Processing**: If manual trigger takes too long (>30s), move to async reply pattern.
+1.  **Deep Weekly Review (深度復盤)**:
+    -   **Goal**: Not just ROI, but **WHY**.
+    -   **Logic**: If a recommended stock failed (e.g., dropped), ask Gemini to analyze the "Crime Scene". Compare the recommendation reasons vs. the actual outcome. Was it a false breakout? Market crash?
+    -   **User Request**: "推(結果收盤大跌)分析WHY".
+
+2.  **"Almost There" Watchlist (盤整轉強/低估股)**:
+    -   **Goal**: Identify stocks that are *almost* good enough (e.g., score 2/5) or "Consolidation turning positive".
+    -   **Logic**: Create a "Watchlist" category for stocks that pass technicals but maybe lack strong chip consensus yet.
+
+3.  **Stock Search & Explain (個股查詢)**:
+    -   **Goal**: User types "2330", bot analyzes it and explains.
+    -   **Critical**: If NOT recommended, explain **WHY** (e.g., "Score is only 1 because Foreign investors are selling").
+    -   **User Request**: "輸入2330 你就整理他的資訊 告訴WHY不推薦".
+
+4.  **Database**: Currently using JSON files in `records/`. Might need SQLite/PostgreSQL if data grows.
+5.  **Async Processing**: If manual trigger takes too long (>30s), move to async reply pattern.
 
 ## ⚠️ Critical Notes
 -   **Do NOT revert to Mock Data**. The user hates it.
