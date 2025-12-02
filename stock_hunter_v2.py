@@ -164,6 +164,9 @@ def get_stock_data_yahoo(ticker):
             'range': '6mo'  # 取 6 個月資料（計算均線用）
         }
 
+        # 加上延遲避免 Rate Limit（每個請求間隔 0.2 秒）
+        time.sleep(0.2)
+
         response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
         data = response.json()
@@ -762,7 +765,7 @@ def scan_all_stocks():
     print("🔍 第一階段：快速篩選 980 支股票...")
     candidates = []
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:  # 降低並發，避免 Yahoo Finance Rate Limit
         futures = {executor.submit(quick_filter_stock, stock): stock for stock in all_stocks}
 
         for i, future in enumerate(as_completed(futures), 1):
