@@ -613,8 +613,12 @@ def analyze_day_trade_potential(stock_data):
 
 # ==================== 🎯 完整分析流程 ====================
 
-def analyze_single_stock(stock_info):
-    """分析單一股票（完整流程）"""
+def quick_filter_stock(stock_info):
+    """
+    第一階段：快速篩選（不呼叫 Gemini API）
+    只用 Python 檢查籌碼 + 技術面 + 流動性
+    回傳：候選股票資料 或 None
+    """
     ticker = stock_info['ticker']
     name = stock_info['name']
 
@@ -639,16 +643,56 @@ def analyze_single_stock(stock_info):
         if not technical['pass']:
             return None
 
-        # 5. 籌碼評分
+        # 5. 籌碼評分（不含新聞）
         chips = guardian_3_chips(chips_data, CONFIG)
 
-        # 6. 新聞情緒
+        # 6. 初步評分（只看籌碼）
+        preliminary_score = chips['score']
+
+        # 7. 檢查當沖潛力
+        day_trade_potential = analyze_day_trade_potential(stock_data)
+
+        # 8. 篩選條件：籌碼評分 >= 2 或 有做空訊號 或 有當沖潛力
+        if preliminary_score >= 2 or (preliminary_score <= -2 and technical.get('short_signal')) or day_trade_potential:
+            # 通過初步篩選，返回候選資料
+            return {
+                'ticker': ticker,
+                'name': name,
+                'price': stock_data['price'],
+                'stock_data': stock_data,
+                'chips_data': chips_data,
+                'chips': chips,
+                'technical': technical,
+                'preliminary_score': preliminary_score,
+                'day_trade': day_trade_potential
+            }
+
+        return None
+
+    except Exception as e:
+        print(f"⚠️ {ticker} 快速篩選失敗：{e}")
+        return None
+
+def deep_analyze_candidate(candidate):
+    """
+    第二階段：深度分析候選股票（呼叫 Gemini API）
+    加上新聞情緒分析，計算最終評分
+    """
+    try:
+        ticker = candidate['ticker']
+        name = candidate['name']
+        price = candidate['price']
+        chips = candidate['chips']
+        technical = candidate['technical']
+        preliminary_score = candidate['preliminary_score']
+
+        # 呼叫 Gemini 分析新聞（唯一的 API 呼叫）
         news = guardian_0_news_sentiment(ticker, name, CONFIG)
 
-        # 7. 綜合評分
-        final_score = chips['score'] + news['bonus']
+        # 最終評分 = 籌碼評分 + 新聞評分
+        final_score = preliminary_score + news['bonus']
 
-        # 8. 判斷行動
+        # 判斷行動
         if final_score >= 3:
             action = 'BUY'
             allocation = CONFIG['HIGH_CONFIDENCE_ALLOCATION']
@@ -659,15 +703,11 @@ def analyze_single_stock(stock_info):
             action = 'SHORT'
             allocation = 0
         else:
-            return None
+            return None  # 加上新聞後，評分不夠，淘汰
 
-        # 9. 計算停損停利點
-        price = stock_data['price']
+        # 計算停損停利點
         stop_loss = round(price * (1 - CONFIG['STOP_LOSS']), 2)
         take_profit = round(price * (1 + CONFIG['TAKE_PROFIT']), 2)
-
-        # 10. 檢查當沖潛力
-        day_trade_potential = analyze_day_trade_potential(stock_data)
 
         result = {
             'ticker': ticker,
@@ -684,13 +724,13 @@ def analyze_single_stock(stock_info):
         }
 
         # 添加當沖資訊（如果有）
-        if day_trade_potential:
-            result['day_trade'] = day_trade_potential
+        if candidate.get('day_trade'):
+            result['day_trade'] = candidate['day_trade']
 
         return result
 
     except Exception as e:
-        print(f"⚠️ {ticker} 分析失敗：{e}")
+        print(f"⚠️ {candidate['ticker']} 深度分析失敗：{e}")
         return None
 
 def scan_all_stocks():
@@ -718,19 +758,33 @@ def scan_all_stocks():
     # 4. 抓取總體新聞
     macro_news = get_macro_news()
 
-    # 5. 多執行緒掃描
+    # 5. 第一階段：快速篩選（不呼叫 Gemini）
+    print("🔍 第一階段：快速篩選 980 支股票...")
+    candidates = []
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(quick_filter_stock, stock): stock for stock in all_stocks}
+
+        for i, future in enumerate(as_completed(futures), 1):
+            if i % 100 == 0:
+                print(f"   進度：{i}/{len(all_stocks)}")
+
+            candidate = future.result()
+            if candidate:
+                candidates.append(candidate)
+
+    print(f"✅ 第一階段完成，篩選出 {len(candidates)} 支候選股票\n")
+
+    # 6. 第二階段：深度分析候選股票（呼叫 Gemini）
+    print(f"🧠 第二階段：AI 分析 {len(candidates)} 支候選...")
     buy_list = []
     short_list = []
     day_trade_list = []
 
-    print("🔍 開始分析...")
-    with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(analyze_single_stock, stock): stock for stock in all_stocks}
+    with ThreadPoolExecutor(max_workers=5) as executor:  # 降低並發，避免 API Rate Limit
+        futures = {executor.submit(deep_analyze_candidate, candidate): candidate for candidate in candidates}
 
         for i, future in enumerate(as_completed(futures), 1):
-            if i % 50 == 0:
-                print(f"   進度：{i}/{len(all_stocks)}")
-
             result = future.result()
             if result:
                 # 波段買入
