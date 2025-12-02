@@ -97,3 +97,36 @@
 **Testing**:
 - Scheduled push should now trigger at Taiwan 08:00 tomorrow
 - Check Zeabur logs for startup message with correct timezone
+
+### Fixed by Claude (Current Session - 2025-12-03 01:00)
+**Issue**: Yahoo Finance API Rate Limit (429 Too Many Requests) - IP blocked after ~900 requests.
+
+**Root Cause**:
+- Yahoo Finance限制：每秒 2-5 個請求
+- 程式用 10 個並發執行緒同時打 API → 瞬間觸發 Rate Limit
+- IP 被封鎖 5-10 分鐘
+
+**Solution Applied**:
+- ✅ **完全改用 TWSE 官方 API** (台灣證交所)
+  - API: `https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY`
+  - 沒有 Rate Limit
+  - 官方資料更準確
+- ✅ 新函數：`get_stock_data_twse(ticker)`
+  - 抓取最近 **6 個月**歷史資料（計算 MA120 需要 120 天 ≈ 6 個月）
+  - 每支股票發 6 次請求（每月 1 日），每次間隔 0.3 秒
+  - 計算 MA20, MA60, MA120
+- ✅ 保留相容性：`get_stock_data_yahoo()` 實際呼叫 TWSE API
+- ✅ 處理 SSL 憑證問題：`verify=False` + `urllib3.disable_warnings()`
+
+**Performance Impact**:
+- ⏱️ 第一階段（980 支快速篩選）：從 30 秒 → **4-6 分鐘**（慢了，但穩定）
+- ✅ 不會再被封鎖
+- ✅ 第二階段（Gemini AI 分析）：維持 30 秒
+
+**Files Modified**:
+- `stock_hunter_v2.py` (lines 15-238: new TWSE API implementation)
+
+**Why 6 months?**
+- MA120 = 120 日均線 ≈ 6 個月（扣除週末/假日）
+- 需要至少 120 筆收盤價才能計算
+- TWSE API 一次只能抓 1 個月資料 → 需要抓 6 次
