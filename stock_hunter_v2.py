@@ -769,10 +769,20 @@ def callback():
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
 
+    print(f"\n📩 收到 Webhook 請求", flush=True)
+    print(f"   Signature: {signature}", flush=True)
+    print(f"   Body length: {len(body)}", flush=True)
+
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        print("❌ Invalid Signature Error: 簽名驗證失敗，請檢查 Channel Secret 是否正確", flush=True)
         abort(400)
+    except Exception as e:
+        print(f"❌ Webhook 處理錯誤: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        abort(500)
 
     return 'OK'
 
