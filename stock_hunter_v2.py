@@ -469,27 +469,44 @@ def analyze_news_sentiment(ticker, name, news_list):
 def guardian_1_market_check():
     """守護者 1：市場熔斷（檢查大盤）- 使用 TWSE API"""
     try:
-        # 方法 1: 直接從 TWSE 取得加權指數
-        today = datetime.now()
-        date_str = today.strftime('%Y%m%d')
+        # 嘗試抓取最近 7 天的交易日資料（往前推，找到最近一個有資料的日期）
+        taiex_current = None
+        used_date = None
+        
+        for days_ago in range(7):
+            target_date = datetime.now() - timedelta(days=days_ago)
+            date_str = target_date.strftime('%Y%m%d')
 
-        url = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
-        params = {
-            'date': date_str,
-            'response': 'json'
-        }
+            url = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
+            params = {
+                'date': date_str,
+                'response': 'json'
+            }
 
-        response = requests.get(url, params=params, timeout=10, verify=False)
-        data = response.json()
+            try:
+                response = requests.get(url, params=params, timeout=10, verify=False)
+                data = response.json()
 
-        # 解析加權指數
-        taiex_current = 20000  # 預設值
+                if data.get('stat') == 'OK' and data.get('data1'):
+                    # data1[0] 是加權指數
+                    # [日期, 指數, 漲跌點數, 漲跌百分比]
+                    taiex_str = data['data1'][0][1].replace(',', '')
+                    taiex_current = float(taiex_str)
+                    used_date = f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}"
+                    print(f"✅ 使用 {used_date} 的大盤資料：{int(taiex_current):,} 點")
+                    break  # 找到資料就跳出
+            except:
+                continue  # 這一天沒資料，繼續往前找
 
-        if data.get('stat') == 'OK' and data.get('data1'):
-            # data1[0] 是加權指數
-            # [日期, 指數, 漲跌點數, 漲跌百分比]
-            taiex_str = data['data1'][0][1].replace(',', '')
-            taiex_current = float(taiex_str)
+        # 如果還是抓不到，回報錯誤
+        if taiex_current is None:
+            print("❌ 無法取得大盤資料（最近 7 天都無資料）")
+            return {
+                'status': 'ERROR',
+                'index_price': 0,
+                'ma60': 0,
+                'reason': '無法取得大盤資料'
+            }
 
         # 計算季線（簡化版：假設季線在當前指數的 98%）
         # 實際上應該要抓歷史資料計算 MA60
@@ -533,7 +550,14 @@ def guardian_1_market_check():
 
     except Exception as e:
         print(f"❌ 大盤檢查失敗：{e}")
-        return {'status': 'SAFE', 'index_price': 20000, 'ma60': 19600, 'reason': '資料取得失敗，預設安全'}
+        import traceback
+        print(f"詳細錯誤：{traceback.format_exc()}")
+        return {
+            'status': 'ERROR',
+            'index_price': 0,
+            'ma60': 0,
+            'reason': f'大盤資料取得失敗：{str(e)}'
+        }
 
 def guardian_2_liquidity(stock_data):
     """守護者 2：流動性檢查"""
