@@ -364,31 +364,23 @@ def get_industry_mapping():
     回傳: {'2330': '半導體業', '2603': '航運業', ...}
     """
     try:
-        url = "https://isin.twse.com.tw/isin/C_public.jsp?strMode=2"
+        # 使用 OpenAPI 取得產業分類（更穩定）
+        url = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
         response = requests.get(url, timeout=10, verify=False)
-        # Big5 encoding for TWSE old pages
-        response.encoding = 'big5' 
-        
+        data = response.json()
+
         mapping = {}
-        # 簡單的正則表達式抓取： 2330  台積電 ... 半導體業
-        # 尋找 4 位數代碼，後面跟著名稱，然後中間有些欄位，最後是產業
-        # 這裡簡化處理：直接逐行掃描
-        lines = response.text.split('\n')
-        for line in lines:
-            # 尋找類似 <td>2330&nbsp;</td>...<td>半導體業</td> 的結構
-            if '<td>' in line and len(line) > 100:
-                parts = line.split('<td>')
-                if len(parts) > 5:
-                    code_part = parts[1].split('&')[0].strip() # 2330
-                    industry_part = parts[5].split('<')[0].strip() # 半導體業
-                    
-                    if code_part.isdigit() and len(code_part) == 4:
-                        mapping[code_part] = industry_part
-        
+        for item in data:
+            code = item.get('公司代號', '')
+            industry = item.get('產業別', '')
+            if code and industry:
+                mapping[code] = industry
+
         print(f"✅ 取得產業分類：{len(mapping)} 筆")
         return mapping
     except Exception as e:
         print(f"⚠️ 產業分類抓取失敗：{e}")
+        # 回傳空字典，不影響主流程
         return {}
 
 def get_macro_news():
@@ -497,16 +489,16 @@ def guardian_1_market_check():
                 continue
 
         # 使用固定的大盤點數（簡化版，實際應該從其他 API 取得）
-        # 這裡用 0050 的價格 × 300 作為大盤估算
-        taiex_proxy = 17500  # 預設值
-        ma60_proxy = 17200   # 預設值
+        # 這裡用 0050 的價格 × 325 作為大盤估算
+        taiex_proxy = 20000  # 預設值（2024 年底）
+        ma60_proxy = 19600   # 預設值
 
         try:
             # 嘗試從 0050 推算大盤
             stock_0050 = next((s for s in data if s.get('Code') == '0050'), None)
             if stock_0050:
                 price_0050 = float(stock_0050.get('ClosingPrice', '0').replace(',', ''))
-                taiex_proxy = int(price_0050 * 285)  # 0050 約為大盤 1/285
+                taiex_proxy = int(price_0050 * 325)  # 2024年底比例約 1:325
                 ma60_proxy = int(taiex_proxy * 0.98)  # 假設季線在 2% 下方
         except:
             pass
