@@ -46,6 +46,9 @@ genai.configure(api_key=GEMINI_API_KEY)
 # 測試模式：限制掃描股票數量（用於快速驗證）
 MAX_TEST_STOCKS = None  # None = 掃描全部，設定數字 = 只掃前 N 檔（例如 200）
 
+# Debug 模式：顯示詳細價格與 K 線資訊
+DEBUG_MODE = False  # True = 顯示詳細 debug 資訊（針對 2330 等）
+
 CONFIG = {
     # 守護者 1：市場熔斷
     "MARKET_MA60_PERIOD": 60,
@@ -89,6 +92,29 @@ CONFIG = {
 # ==================== 📈 台股上市股票清單 ====================
 
 CACHE_FILE = 'data/stock_list_cache.json'
+
+def is_etf_or_index(ticker, name):
+    """
+    判斷是否為 ETF 或指數型商品
+
+    排除條件：
+    1. 代號開頭為 "00", "008", "009", "010"
+    2. 名稱包含：ETF, 指數, 反1, 正2, 槓桿
+
+    Returns:
+        bool: True = 是 ETF/指數商品，應排除
+    """
+    # 代號過濾
+    if ticker.startswith(('00', '008', '009', '010')):
+        return True
+
+    # 名稱過濾
+    exclude_keywords = ['ETF', 'etf', '指數', '反1', '正2', '槓桿']
+    for keyword in exclude_keywords:
+        if keyword in name:
+            return True
+
+    return False
 
 def save_stock_list_cache(stocks):
     """儲存股票清單快取"""
@@ -169,13 +195,14 @@ def get_taiwan_listed_stocks():
                 except:
                     change_pct = 0.0
 
-                # 只要數字股票代碼（排除 ETF 等）
+                # 只要數字股票代碼，並排除 ETF/指數商品
                 if ticker.isdigit() and len(ticker) == 4:
-                    stocks.append({
-                        'ticker': ticker,
-                        'name': name,
-                        'change_pct': change_pct
-                    })
+                    if not is_etf_or_index(ticker, name):
+                        stocks.append({
+                            'ticker': ticker,
+                            'name': name,
+                            'change_pct': change_pct
+                        })
 
             print(f"✅ 成功取得 {len(stocks)} 支上市股票（來源：TWSE）", flush=True)
 
@@ -215,7 +242,7 @@ def get_taiwan_listed_stocks():
 def get_stock_data_twse(ticker):
     """
     取得股票資料（TWSE 證交所 API）
-    - 股價
+    - 股價 + 價格日期
     - 均線（MA20, MA60, MA120）
     - 成交量
     """
@@ -225,6 +252,8 @@ def get_stock_data_twse(ticker):
 
         closes = []
         volumes = []
+        dates = []  # 新增：記錄每筆資料的日期
+        raw_data_for_debug = []  # 新增：記錄原始資料（debug 用）
 
         # 抓取最近 6 個月資料
         for i in range(6):
@@ -246,11 +275,34 @@ def get_stock_data_twse(ticker):
 
                 if data.get('stat') == 'OK' and data.get('data'):
                     for row in data['data']:
-                        # row[6] = 收盤價, row[1] = 成交股數
+                        # row[0] = 日期(格式: "113/11/25")
+                        # row[1] = 成交股數
+                        # row[6] = 收盤價
+                        # row[3] = 開盤, row[4] = 最高, row[5] = 最低
+
+                        # 解析日期（民國年轉西元年）
+                        date_parts = row[0].split('/')
+                        year = int(date_parts[0]) + 1911  # 民國轉西元
+                        month = int(date_parts[1])
+                        day = int(date_parts[2])
+                        date_str_formatted = f"{year}-{month:02d}-{day:02d}"
+
                         close_price = float(row[6].replace(',', ''))
                         volume = int(row[1].replace(',', ''))
+
                         closes.append(close_price)
                         volumes.append(volume)
+                        dates.append(date_str_formatted)
+
+                        # 記錄原始資料（debug 用）
+                        raw_data_for_debug.append({
+                            'date': date_str_formatted,
+                            'open': row[3],
+                            'high': row[4],
+                            'low': row[5],
+                            'close': row[6],
+                            'volume': row[1]
+                        })
 
                 # 避免打太快
                 time.sleep(0.3)
@@ -269,9 +321,32 @@ def get_stock_data_twse(ticker):
         # 反轉（從舊到新）
         closes = closes[::-1]
         volumes = volumes[::-1]
+        dates = dates[::-1]
+        raw_data_for_debug = raw_data_for_debug[::-1]
 
         # 當前股價（最新一筆）
         current_price = closes[-1]
+        price_date = dates[-1]  # 新增：價格對應的日期
+
+        # Debug 模式：顯示詳細資訊（針對 2330）
+        if DEBUG_MODE and ticker == '2330':
+            print(f"\n{'='*60}")
+            print(f"🔍 DEBUG: {ticker} 詳細資料")
+            print(f"{'='*60}")
+            print(f"📅 最後 3 筆 K 線 (raw data):")
+            for data in raw_data_for_debug[-3:]:
+                print(f"   {data['date']}: 開={data['open']} 高={data['high']} 低={data['low']} "
+                      f"收={data['close']} 量={data['volume']}")
+
+            print(f"\n📊 用於計算的 closes[-5:]:")
+            for i, (date, close) in enumerate(zip(dates[-5:], closes[-5:]), 1):
+                print(f"   {i}. {date}: {close}")
+
+            print(f"\n💰 當前價格資訊:")
+            print(f"   current_price = {current_price}")
+            print(f"   price_date = {price_date}")
+            print(f"   資料來源: TWSE API")
+            print(f"{'='*60}\n", flush=True)
 
         # 計算均線
         ma20 = sum(closes[-20:]) / 20 if len(closes) >= 20 else current_price
@@ -288,13 +363,15 @@ def get_stock_data_twse(ticker):
         return {
             'ticker': ticker,
             'price': round(current_price, 2),
+            'price_date': price_date,  # 新增欄位
             'ma20': round(ma20, 2),
             'ma60': round(ma60, 2),
             'ma120': round(ma120, 2),
             'avg_volume_5d': int(avg_volume_5d),
             'today_volume': int(today_volume),
             'avg_turnover_5d': int(avg_turnover_5d),
-            'success': True
+            'success': True,
+            'data_source': 'twse'  # 新增：資料來源標記
         }
 
     except Exception as e:
