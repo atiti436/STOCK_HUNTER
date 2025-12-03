@@ -723,27 +723,32 @@ def analyze_day_trade_potential(stock_data):
 def quick_filter_stock(stock_info):
     """
     第一階段：快速篩選（不呼叫 Gemini API）
-    v3.1 版本：最小化剔除，僅保留安全性門檻
+    v3.2 版本：極度放寬，改用 OR 邏輯 + 評分機制
 
-    唯二硬過濾條件：
+    唯一硬過濾條件：
     - 價格安全：price >= 10
-    - 流動性安全：avg_turnover_5d >= 20M, avg_volume_5d >= 1000張
 
-    其他全部改為評分項目：
-    - 技術面、籌碼面、量能 → 只影響 score
-    - pass/fail → 改為加分/扣分
-    - 永遠回傳資料，不再 return None（除非資料抓取失敗）
+    流動性改為 OR + 評分：
+    - 金額 >= 500萬 OR 張數 >= 500張 → 通過
+    - 兩個都達標 → 加分
+    - 只達標一個 → 不加不減
+    - 都不達標 → 扣分（但不剔除）
 
-    目標：回傳 200~400 支候選股給主程式排序
+    資料失敗處理：
+    - 法人資料失敗 → 籌碼分數 0，不剔除
+
+    目標：回傳 400~600 支候選股給主程式排序
     """
     ticker = stock_info['ticker']
     name = stock_info['name']
+    reject_reason = None  # 記錄淘汰原因
 
     try:
         # 1. 取得股價資料
         stock_data = get_stock_data_yahoo(ticker)
         if not stock_data['success']:
-            return None  # 唯一可以 return None 的情況：資料抓取失敗
+            reject_reason = 'data_fail'
+            return {'reject_reason': reject_reason}
 
         price = stock_data['price']
         ma20 = stock_data['ma20']
@@ -753,25 +758,39 @@ def quick_filter_stock(stock_info):
         avg_turnover_5d = stock_data['avg_turnover_5d']
         today_volume = stock_data['today_volume']
 
-        # === 唯二硬過濾：安全性門檻 ===
+        # === 唯一硬過濾：價格安全 ===
 
         # 價格安全（避免低價股風險）
         if price < 10:
-            return None
+            reject_reason = 'low_price'
+            return {'reject_reason': reject_reason}
 
-        # 流動性安全（再次放寬：20M, 1000張）
-        if avg_turnover_5d < 20_000_000:  # 2000萬
-            return None
+        # === 流動性改為 OR + 評分機制 ===
 
-        if avg_volume_5d < 1_000_000:  # 1000張 = 1,000,000股
-            return None
+        # 門檻：500萬 或 500張
+        turnover_ok = avg_turnover_5d >= 5_000_000   # 500萬
+        volume_ok = avg_volume_5d >= 500_000         # 500張 = 500,000股
+
+        # 至少一個達標才通過（非常寬鬆）
+        if not (turnover_ok or volume_ok):
+            reject_reason = 'low_liquidity'
+            return {'reject_reason': reject_reason}
 
         # === 以下全部改為評分項目，不再剔除 ===
 
         score = 0
         reasons = []
 
-        # 取得法人資料（不再作為必要條件）
+        # 流動性評分（兩個都達標才加分）
+        if turnover_ok and volume_ok:
+            score += 1
+            reasons.append(f"流動性充足({avg_turnover_5d/1e6:.0f}M, {avg_volume_5d/1000:.0f}張)")
+        elif turnover_ok:
+            reasons.append(f"僅金額達標({avg_turnover_5d/1e6:.0f}M)")
+        elif volume_ok:
+            reasons.append(f"僅張數達標({avg_volume_5d/1000:.0f}張)")
+
+        # 取得法人資料（失敗不剔除，只是分數 = 0）
         chips_data = get_institutional_investors(ticker)
         has_chips_data = chips_data.get('success', False)
 
@@ -973,7 +992,14 @@ def scan_all_stocks():
     # 5. 第一階段：快速篩選（不呼叫 Gemini）
     print(f"🔍 第一階段：快速篩選 {len(all_stocks)} 支股票...")
     candidates = []
-    failed_tickers = []
+
+    # 統計分類
+    reject_stats = {
+        'low_price': 0,      # 價格 < 10
+        'low_liquidity': 0,  # 流動性不足
+        'data_fail': 0,      # 資料抓取失敗
+        'other': 0           # 其他錯誤
+    }
 
     with ThreadPoolExecutor(max_workers=3) as executor:  # 降低並發，避免 Yahoo Finance Rate Limit
         # 建立 future 對應表（方便 debug）
@@ -989,19 +1015,31 @@ def scan_all_stocks():
                 print(f"   進度：{i}/{len(all_stocks)} (最後處理：{ticker} {name})", flush=True)
 
             try:
-                candidate = future.result()
-                if candidate:
-                    candidates.append(candidate)
+                result = future.result()
+
+                # 檢查是否被淘汰
+                if isinstance(result, dict) and 'reject_reason' in result:
+                    reason = result['reject_reason']
+                    reject_stats[reason] = reject_stats.get(reason, 0) + 1
+                elif result:
+                    candidates.append(result)
                 else:
-                    failed_tickers.append(ticker)
+                    reject_stats['other'] += 1
+
             except Exception as e:
                 print(f"⚠️ {ticker} {name} 處理失敗：{e}", flush=True)
-                failed_tickers.append(ticker)
+                reject_stats['other'] += 1
 
-    print(f"✅ 第一階段完成，篩選出 {len(candidates)} 支候選股票")
-    if failed_tickers:
-        print(f"   （失敗/跳過：{len(failed_tickers)} 支）")
-    print()
+    # 詳細統計
+    total_rejected = sum(reject_stats.values())
+    print(f"\n✅ 第一階段完成，篩選出 {len(candidates)} 支候選股票")
+    print(f"   淘汰統計：")
+    print(f"   - 價格 < 10：{reject_stats['low_price']} 檔")
+    print(f"   - 流動性不足：{reject_stats['low_liquidity']} 檔")
+    print(f"   - 資料抓取失敗：{reject_stats['data_fail']} 檔")
+    if reject_stats['other'] > 0:
+        print(f"   - 其他錯誤：{reject_stats['other']} 檔")
+    print(f"   - 總計淘汰：{total_rejected} 檔\n")
 
     # 6. 排序並取 Top N（v3.1 新增）
     print("📊 依綜合評分排序...")
