@@ -706,14 +706,18 @@ def analyze_day_trade_potential(stock_data):
 def quick_filter_stock(stock_info):
     """
     第一階段：快速篩選（不呼叫 Gemini API）
-    v3.0 版本：放寬條件，確保每日有足夠候選股
+    v3.1 版本：最小化剔除，僅保留安全性門檻
 
-    硬過濾條件：
-    - 流動性：price >= 10, turnover >= 30M, volume >= 2000張
-    - 技術面：price > MA20, MA20 >= MA60
-    - 籌碼面：至少一方近3日買超（OR邏輯）
+    唯二硬過濾條件：
+    - 價格安全：price >= 10
+    - 流動性安全：avg_turnover_5d >= 20M, avg_volume_5d >= 1000張
 
-    評分機制：只影響排序，不影響是否通過
+    其他全部改為評分項目：
+    - 技術面、籌碼面、量能 → 只影響 score
+    - pass/fail → 改為加分/扣分
+    - 永遠回傳資料，不再 return None（除非資料抓取失敗）
+
+    目標：回傳 200~400 支候選股給主程式排序
     """
     ticker = stock_info['ticker']
     name = stock_info['name']
@@ -722,7 +726,7 @@ def quick_filter_stock(stock_info):
         # 1. 取得股價資料
         stock_data = get_stock_data_yahoo(ticker)
         if not stock_data['success']:
-            return None
+            return None  # 唯一可以 return None 的情況：資料抓取失敗
 
         price = stock_data['price']
         ma20 = stock_data['ma20']
@@ -732,91 +736,56 @@ def quick_filter_stock(stock_info):
         avg_turnover_5d = stock_data['avg_turnover_5d']
         today_volume = stock_data['today_volume']
 
-        # === 第一層：硬過濾 ===
+        # === 唯二硬過濾：安全性門檻 ===
 
-        # 2. 流動性條件（放寬版）
+        # 價格安全（避免低價股風險）
         if price < 10:
             return None
 
-        if avg_turnover_5d < 30_000_000:  # 3000萬（原本5000萬）
+        # 流動性安全（再次放寬：20M, 1000張）
+        if avg_turnover_5d < 20_000_000:  # 2000萬
             return None
 
-        if avg_volume_5d < 2_000_000:  # 2000張 = 2,000,000股
+        if avg_volume_5d < 1_000_000:  # 1000張 = 1,000,000股
             return None
 
-        # 3. 技術面基本條件（移除乖離率硬限制）
-        if price <= ma20:  # 必須站上月線
-            return None
+        # === 以下全部改為評分項目，不再剔除 ===
 
-        if ma20 < ma60:  # 月線必須在季線之上（偏多格局）
-            return None
+        score = 0
+        reasons = []
 
-        # 4. 取得法人資料（改為柔性處理）
+        # 取得法人資料（不再作為必要條件）
         chips_data = get_institutional_investors(ticker)
         has_chips_data = chips_data.get('success', False)
 
-        # 籌碼基本條件：至少一方買超（OR邏輯）
+        # 籌碼評分（純加分/扣分，不剔除）
         if has_chips_data:
             foreign = chips_data['foreign']
             trust = chips_data['trust']
             dealer = chips_data['dealer']
 
-            # 簡化判斷：至少一方今日買超即可
-            has_buying = (foreign['today_ratio'] > 0 or
-                         trust['today_ratio'] > 0 or
-                         dealer['today_ratio'] > 0)
-
-            if not has_buying:
-                return None
-        # 如果抓不到籌碼資料，不剔除，只是不加分
-
-        # === 第二層：評分（不影響是否通過） ===
-
-        score = 0
-        reasons = []
-
-        # 籌碼加分
-        if has_chips_data:
-            # 外資連續買超（近3日）
+            # 外資連續買超
             if foreign['buy_days'] >= 3 and foreign['today_ratio'] > 0.02:
                 score += 2
                 reasons.append(f"外資連{foreign['buy_days']}日買超")
+            elif foreign['today_ratio'] < -0.03:  # 大賣超扣分
+                score -= 1
+                reasons.append("外資賣超")
 
-            # 投信連續買超（近3日）
+            # 投信連續買超
             if trust['buy_days'] >= 3 and trust['today_ratio'] > 0.01:
                 score += 2
                 reasons.append(f"投信連{trust['buy_days']}日買超")
+            elif trust['today_ratio'] < -0.02:
+                score -= 1
+                reasons.append("投信賣超")
 
             # 三大法人同步買超
             if foreign['today_ratio'] > 0 and trust['today_ratio'] > 0 and dealer['today_ratio'] > 0:
                 score += 1
                 reasons.append("三大法人同步買超")
 
-        # 技術面加分
-        if price > ma60:
-            score += 1
-            reasons.append("站上季線")
-
-        # 量能加分
-        volume_ratio = today_volume / avg_volume_5d if avg_volume_5d > 0 else 0
-        if volume_ratio > 2.0:
-            score += 1
-            reasons.append(f"爆量{volume_ratio:.1f}x")
-
-        # 計算技術指標（保留原有邏輯，但不作為硬篩）
-        bias_60 = (price - ma60) / ma60 if ma60 > 0 else 0
-        is_bullish = (ma20 > ma60 > ma120)
-
-        technical = {
-            'pass': True,
-            'bias': bias_60,
-            'trend': '多頭' if is_bullish else '盤整',
-            'short_signal': False,
-            'reasons': reasons
-        }
-
-        # 計算籌碼摘要（保留原有格式）
-        if has_chips_data:
+            # 計算籌碼摘要
             chips = guardian_3_chips(chips_data, CONFIG)
         else:
             chips = {
@@ -825,13 +794,56 @@ def quick_filter_stock(stock_info):
                 'reasons': ['無籌碼資料']
             }
 
+        # 技術面評分（不再作為硬條件）
+        # 站上月線
+        if price > ma20:
+            score += 1
+            reasons.append("站上月線")
+        else:
+            score -= 1
+            reasons.append("跌破月線")
+
+        # 站上季線
+        if price > ma60:
+            score += 1
+            reasons.append("站上季線")
+
+        # 多頭排列
+        if ma20 > ma60 > ma120:
+            score += 1
+            reasons.append("多頭排列")
+        elif ma20 < ma60 < ma120:
+            score -= 1
+            reasons.append("空頭排列")
+
+        # 量能評分
+        volume_ratio = today_volume / avg_volume_5d if avg_volume_5d > 0 else 0
+        if volume_ratio > 2.0:
+            score += 1
+            reasons.append(f"爆量{volume_ratio:.1f}x")
+        elif volume_ratio < 0.5:
+            score -= 1
+            reasons.append("量縮")
+
+        # 計算技術指標（保留原有邏輯，但不影響是否通過）
+        bias_60 = (price - ma60) / ma60 if ma60 > 0 else 0
+        is_bullish = (ma20 > ma60 > ma120)
+
+        technical = {
+            'pass': True,  # 永遠是 True，不再用來剔除
+            'bias': bias_60,
+            'trend': '多頭' if is_bullish else '空頭' if (ma20 < ma60 < ma120) else '盤整',
+            'short_signal': (price < ma60 and ma20 < ma60 < ma120),  # 空頭訊號
+            'reasons': reasons
+        }
+
         # 檢查當沖潛力
         day_trade_potential = analyze_day_trade_potential(stock_data)
         if day_trade_potential:
             score += 1
             reasons.append("當沖潛力")
 
-        # === 回傳候選股（不再用 score 門檻篩選） ===
+        # === 永遠回傳完整資料（不再用分數門檻篩選） ===
         return {
             'ticker': ticker,
             'name': name,
@@ -840,8 +852,8 @@ def quick_filter_stock(stock_info):
             'chips_data': chips_data if has_chips_data else {},
             'chips': chips,
             'technical': technical,
-            'preliminary_score': score,  # 新版評分
-            'score_reasons': reasons,     # 加分原因
+            'preliminary_score': score,  # 綜合評分（可能為負）
+            'score_reasons': reasons,     # 加分/扣分原因
             'day_trade': day_trade_potential
         }
 
@@ -953,14 +965,30 @@ def scan_all_stocks():
 
     print(f"✅ 第一階段完成，篩選出 {len(candidates)} 支候選股票\n")
 
-    # 6. 第二階段：深度分析候選股票（呼叫 Gemini）
-    print(f"🧠 第二階段：AI 分析 {len(candidates)} 支候選...")
+    # 6. 排序並取 Top N（v3.1 新增）
+    print("📊 依綜合評分排序...")
+    candidates.sort(key=lambda x: x['preliminary_score'], reverse=True)
+
+    # 顯示分數分佈
+    if candidates:
+        top_score = candidates[0]['preliminary_score']
+        bottom_score = candidates[-1]['preliminary_score']
+        print(f"   分數範圍：{top_score} ～ {bottom_score}")
+        print(f"   前 10 名：{[c['preliminary_score'] for c in candidates[:10]]}")
+
+    # 取前 20 支進行 AI 深度分析
+    TOP_N_FOR_AI = 20
+    top_candidates = candidates[:TOP_N_FOR_AI]
+    print(f"   取前 {len(top_candidates)} 支進行 AI 深度分析\n")
+
+    # 7. 第二階段：深度分析候選股票（呼叫 Gemini）
+    print(f"🧠 第二階段：AI 分析 {len(top_candidates)} 支候選...")
     buy_list = []
     short_list = []
     day_trade_list = []
 
     with ThreadPoolExecutor(max_workers=5) as executor:  # 降低並發，避免 API Rate Limit
-        futures = {executor.submit(deep_analyze_candidate, candidate): candidate for candidate in candidates}
+        futures = {executor.submit(deep_analyze_candidate, candidate): candidate for candidate in top_candidates}
 
         for i, future in enumerate(as_completed(futures), 1):
             result = future.result()
