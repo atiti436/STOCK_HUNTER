@@ -43,6 +43,9 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # ==================== 📊 設定參數 ====================
 
+# 測試模式：限制掃描股票數量（用於快速驗證）
+MAX_TEST_STOCKS = None  # None = 掃描全部，設定數字 = 只掃前 N 檔（例如 200）
+
 CONFIG = {
     # 守護者 1：市場熔斷
     "MARKET_MA60_PERIOD": 60,
@@ -193,7 +196,7 @@ def get_stock_data_twse(ticker):
 
             try:
                 # TWSE 憑證問題，需要關閉 SSL 驗證
-                response = requests.get(url, params=params, timeout=10, verify=False)
+                response = requests.get(url, params=params, timeout=15, verify=False)
                 response.raise_for_status()
                 data = response.json()
 
@@ -208,7 +211,11 @@ def get_stock_data_twse(ticker):
                 # 避免打太快
                 time.sleep(0.3)
 
-            except:
+            except requests.Timeout:
+                print(f"⚠️ {ticker} 月資料 timeout ({date_str})", flush=True)
+                continue
+            except Exception as e:
+                # 其他錯誤也跳過，不影響整體流程
                 continue
 
         # 如果抓不到歷史資料，回傳失敗
@@ -274,8 +281,13 @@ def get_institutional_investors(ticker):
             'response': 'json'
         }
 
-        response = requests.get(url, params=params, timeout=10, verify=False)
+        response = requests.get(url, params=params, timeout=15, verify=False)
         response.raise_for_status()
+
+        # 檢查回應內容
+        if not response.text or response.text.strip() == '':
+            return {'ticker': ticker, 'success': False}
+
         data = response.json()
 
         # 檢查是否有 data 欄位
@@ -285,10 +297,15 @@ def get_institutional_investors(ticker):
         # 尋找該股票的資料
         for item in data['data']:
             if item[0] == ticker:
-                # 解析三大法人資料
-                foreign_buy = float(item[1].replace(',', '')) if item[1] != '--' else 0
-                trust_buy = float(item[2].replace(',', '')) if item[2] != '--' else 0
-                dealer_buy = float(item[3].replace(',', '')) if item[3] != '--' else 0
+                # 解析三大法人資料（加強錯誤處理）
+                try:
+                    foreign_buy = float(item[1].replace(',', '').strip()) if item[1] != '--' else 0
+                    trust_buy = float(item[2].replace(',', '').strip()) if item[2] != '--' else 0
+                    dealer_buy = float(item[3].replace(',', '').strip()) if item[3] != '--' else 0
+                except (ValueError, AttributeError) as e:
+                    # 如果資料格式異常（如 0052 的 "富邦科技        "），跳過
+                    print(f"⚠️ {ticker} 法人資料格式異常：{e}", flush=True)
+                    return {'ticker': ticker, 'success': False}
 
                 # 計算連續買超天數（需要歷史資料，這裡簡化）
                 foreign_buy_days = 3 if foreign_buy > 0 else 0
@@ -368,7 +385,7 @@ def get_stock_news(ticker, name):
         return news_items
 
     except Exception as e:
-        print(f"⚠️ {ticker} 新聞抓取失敗：{e}")
+        print(f"⚠️ {ticker} 新聞抓取失敗：{e}", flush=True)
         return []
 
 def get_industry_mapping():
@@ -942,6 +959,11 @@ def scan_all_stocks():
     all_stocks = get_taiwan_listed_stocks()
     print(f"📊 股票清單：{len(all_stocks)} 支\n")
 
+    # 測試模式：只掃前 N 檔
+    if MAX_TEST_STOCKS is not None:
+        all_stocks = all_stocks[:MAX_TEST_STOCKS]
+        print(f"⚠️ 測試模式：只掃描前 {len(all_stocks)} 檔\n")
+
     # 3. 抓取產業分類
     industry_map = get_industry_mapping()
 
@@ -949,21 +971,37 @@ def scan_all_stocks():
     macro_news = get_macro_news()
 
     # 5. 第一階段：快速篩選（不呼叫 Gemini）
-    print("🔍 第一階段：快速篩選 980 支股票...")
+    print(f"🔍 第一階段：快速篩選 {len(all_stocks)} 支股票...")
     candidates = []
+    failed_tickers = []
 
     with ThreadPoolExecutor(max_workers=3) as executor:  # 降低並發，避免 Yahoo Finance Rate Limit
-        futures = {executor.submit(quick_filter_stock, stock): stock for stock in all_stocks}
+        # 建立 future 對應表（方便 debug）
+        future_to_stock = {executor.submit(quick_filter_stock, stock): stock for stock in all_stocks}
 
-        for i, future in enumerate(as_completed(futures), 1):
+        for i, future in enumerate(as_completed(future_to_stock), 1):
+            stock_info = future_to_stock[future]
+            ticker = stock_info['ticker']
+            name = stock_info['name']
+
+            # 每 100 檔顯示進度
             if i % 100 == 0:
-                print(f"   進度：{i}/{len(all_stocks)}")
+                print(f"   進度：{i}/{len(all_stocks)} (最後處理：{ticker} {name})", flush=True)
 
-            candidate = future.result()
-            if candidate:
-                candidates.append(candidate)
+            try:
+                candidate = future.result()
+                if candidate:
+                    candidates.append(candidate)
+                else:
+                    failed_tickers.append(ticker)
+            except Exception as e:
+                print(f"⚠️ {ticker} {name} 處理失敗：{e}", flush=True)
+                failed_tickers.append(ticker)
 
-    print(f"✅ 第一階段完成，篩選出 {len(candidates)} 支候選股票\n")
+    print(f"✅ 第一階段完成，篩選出 {len(candidates)} 支候選股票")
+    if failed_tickers:
+        print(f"   （失敗/跳過：{len(failed_tickers)} 支）")
+    print()
 
     # 6. 排序並取 Top N（v3.1 新增）
     print("📊 依綜合評分排序...")
