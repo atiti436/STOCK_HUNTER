@@ -706,8 +706,14 @@ def analyze_day_trade_potential(stock_data):
 def quick_filter_stock(stock_info):
     """
     第一階段：快速篩選（不呼叫 Gemini API）
-    只用 Python 檢查籌碼 + 技術面 + 流動性
-    回傳：候選股票資料 或 None
+    v3.0 版本：放寬條件，確保每日有足夠候選股
+
+    硬過濾條件：
+    - 流動性：price >= 10, turnover >= 30M, volume >= 2000張
+    - 技術面：price > MA20, MA20 >= MA60
+    - 籌碼面：至少一方近3日買超（OR邏輯）
+
+    評分機制：只影響排序，不影響是否通過
     """
     ticker = stock_info['ticker']
     name = stock_info['name']
@@ -718,46 +724,126 @@ def quick_filter_stock(stock_info):
         if not stock_data['success']:
             return None
 
-        # 2. 快速過濾：流動性
-        liquidity = guardian_2_liquidity(stock_data)
-        if not liquidity['pass']:
+        price = stock_data['price']
+        ma20 = stock_data['ma20']
+        ma60 = stock_data['ma60']
+        ma120 = stock_data['ma120']
+        avg_volume_5d = stock_data['avg_volume_5d']
+        avg_turnover_5d = stock_data['avg_turnover_5d']
+        today_volume = stock_data['today_volume']
+
+        # === 第一層：硬過濾 ===
+
+        # 2. 流動性條件（放寬版）
+        if price < 10:
             return None
 
-        # 3. 取得法人資料
+        if avg_turnover_5d < 30_000_000:  # 3000萬（原本5000萬）
+            return None
+
+        if avg_volume_5d < 2_000_000:  # 2000張 = 2,000,000股
+            return None
+
+        # 3. 技術面基本條件（移除乖離率硬限制）
+        if price <= ma20:  # 必須站上月線
+            return None
+
+        if ma20 < ma60:  # 月線必須在季線之上（偏多格局）
+            return None
+
+        # 4. 取得法人資料（改為柔性處理）
         chips_data = get_institutional_investors(ticker)
-        if not chips_data['success']:
-            return None
+        has_chips_data = chips_data.get('success', False)
 
-        # 4. 技術面檢查
-        technical = guardian_4_technical(stock_data, CONFIG)
-        if not technical['pass']:
-            return None
+        # 籌碼基本條件：至少一方買超（OR邏輯）
+        if has_chips_data:
+            foreign = chips_data['foreign']
+            trust = chips_data['trust']
+            dealer = chips_data['dealer']
 
-        # 5. 籌碼評分（不含新聞）
-        chips = guardian_3_chips(chips_data, CONFIG)
+            # 簡化判斷：至少一方今日買超即可
+            has_buying = (foreign['today_ratio'] > 0 or
+                         trust['today_ratio'] > 0 or
+                         dealer['today_ratio'] > 0)
 
-        # 6. 初步評分（只看籌碼）
-        preliminary_score = chips['score']
+            if not has_buying:
+                return None
+        # 如果抓不到籌碼資料，不剔除，只是不加分
 
-        # 7. 檢查當沖潛力
-        day_trade_potential = analyze_day_trade_potential(stock_data)
+        # === 第二層：評分（不影響是否通過） ===
 
-        # 8. 篩選條件：籌碼評分 >= 2 或 有做空訊號 或 有當沖潛力
-        if preliminary_score >= 2 or (preliminary_score <= -2 and technical.get('short_signal')) or day_trade_potential:
-            # 通過初步篩選，返回候選資料
-            return {
-                'ticker': ticker,
-                'name': name,
-                'price': stock_data['price'],
-                'stock_data': stock_data,
-                'chips_data': chips_data,
-                'chips': chips,
-                'technical': technical,
-                'preliminary_score': preliminary_score,
-                'day_trade': day_trade_potential
+        score = 0
+        reasons = []
+
+        # 籌碼加分
+        if has_chips_data:
+            # 外資連續買超（近3日）
+            if foreign['buy_days'] >= 3 and foreign['today_ratio'] > 0.02:
+                score += 2
+                reasons.append(f"外資連{foreign['buy_days']}日買超")
+
+            # 投信連續買超（近3日）
+            if trust['buy_days'] >= 3 and trust['today_ratio'] > 0.01:
+                score += 2
+                reasons.append(f"投信連{trust['buy_days']}日買超")
+
+            # 三大法人同步買超
+            if foreign['today_ratio'] > 0 and trust['today_ratio'] > 0 and dealer['today_ratio'] > 0:
+                score += 1
+                reasons.append("三大法人同步買超")
+
+        # 技術面加分
+        if price > ma60:
+            score += 1
+            reasons.append("站上季線")
+
+        # 量能加分
+        volume_ratio = today_volume / avg_volume_5d if avg_volume_5d > 0 else 0
+        if volume_ratio > 2.0:
+            score += 1
+            reasons.append(f"爆量{volume_ratio:.1f}x")
+
+        # 計算技術指標（保留原有邏輯，但不作為硬篩）
+        bias_60 = (price - ma60) / ma60 if ma60 > 0 else 0
+        is_bullish = (ma20 > ma60 > ma120)
+
+        technical = {
+            'pass': True,
+            'bias': bias_60,
+            'trend': '多頭' if is_bullish else '盤整',
+            'short_signal': False,
+            'reasons': reasons
+        }
+
+        # 計算籌碼摘要（保留原有格式）
+        if has_chips_data:
+            chips = guardian_3_chips(chips_data, CONFIG)
+        else:
+            chips = {
+                'score': 0,
+                'level': 'NEUTRAL',
+                'reasons': ['無籌碼資料']
             }
 
-        return None
+        # 檢查當沖潛力
+        day_trade_potential = analyze_day_trade_potential(stock_data)
+        if day_trade_potential:
+            score += 1
+            reasons.append("當沖潛力")
+
+        # === 回傳候選股（不再用 score 門檻篩選） ===
+        return {
+            'ticker': ticker,
+            'name': name,
+            'price': price,
+            'stock_data': stock_data,
+            'chips_data': chips_data if has_chips_data else {},
+            'chips': chips,
+            'technical': technical,
+            'preliminary_score': score,  # 新版評分
+            'score_reasons': reasons,     # 加分原因
+            'day_trade': day_trade_potential
+        }
 
     except Exception as e:
         print(f"⚠️ {ticker} 快速篩選失敗：{e}")
@@ -782,18 +868,20 @@ def deep_analyze_candidate(candidate):
         # 最終評分 = 籌碼評分 + 新聞評分
         final_score = preliminary_score + news['bonus']
 
-        # 判斷行動
+        # 判斷行動（放寬門檻，避免第二階段又刷成0檔）
         if final_score >= 3:
             action = 'BUY'
             allocation = CONFIG['HIGH_CONFIDENCE_ALLOCATION']
-        elif final_score > 0:
+        elif final_score >= 0:  # 改為 >= 0（原本 > 0）
             action = 'BUY'
             allocation = CONFIG['MEDIUM_CONFIDENCE_ALLOCATION']
         elif final_score <= -2 and technical.get('short_signal'):
             action = 'SHORT'
             allocation = 0
         else:
-            return None  # 加上新聞後，評分不夠，淘汰
+            # 改為保留但標記為低信心，而非直接淘汰
+            action = 'BUY'
+            allocation = CONFIG['MEDIUM_CONFIDENCE_ALLOCATION'] * 0.5  # 更低倉位
 
         # 計算停損停利點
         stop_loss = round(price * (1 - CONFIG['STOP_LOSS']), 2)
