@@ -88,83 +88,127 @@ CONFIG = {
 
 # ==================== 📈 台股上市股票清單 ====================
 
+CACHE_FILE = 'data/stock_list_cache.json'
+
+def save_stock_list_cache(stocks):
+    """儲存股票清單快取"""
+    try:
+        os.makedirs('data', exist_ok=True)
+        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump({
+                'timestamp': datetime.now().isoformat(),
+                'stocks': stocks
+            }, f, ensure_ascii=False, indent=2)
+        print(f"💾 已儲存股票清單快取（{len(stocks)} 支）", flush=True)
+    except Exception as e:
+        print(f"⚠️ 儲存快取失敗：{e}", flush=True)
+
+def load_stock_list_cache():
+    """讀取股票清單快取"""
+    try:
+        if os.path.exists(CACHE_FILE):
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                stocks = data.get('stocks', [])
+                timestamp = data.get('timestamp', 'unknown')
+                print(f"📦 讀取快取：{len(stocks)} 支（快取時間：{timestamp}）", flush=True)
+                return stocks, 'cache'
+    except Exception as e:
+        print(f"⚠️ 讀取快取失敗：{e}", flush=True)
+    return None, None
+
 def get_taiwan_listed_stocks():
     """
     取得台股上市股票清單（約 980 支）
-    資料來源：台灣證券交易所
+    資料來源優先順序：
+    1. TWSE API (with retry)
+    2. 本地快取
+    3. Demo 5 檔
     """
-    try:
-        # 證交所 API
-        url = "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY_ALL"
-        headers = {'User-Agent': 'Mozilla/5.0'}
+    # Retry 機制
+    MAX_RETRIES = 3
+    RETRY_DELAY = 3
 
-        response = requests.get(url, headers=headers, timeout=10, verify=False)
-        response.raise_for_status()
+    for attempt in range(MAX_RETRIES):
+        try:
+            # 證交所 API
+            url = "https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY_ALL"
+            headers = {'User-Agent': 'Mozilla/5.0'}
 
-        # 檢查回應內容是否為空或非 JSON
-        if not response.text or response.text.strip() == '':
-            raise Exception("API 回傳空白內容（可能是非交易時間）")
+            print(f"🔄 嘗試連接 TWSE API (第 {attempt + 1}/{MAX_RETRIES} 次)...", flush=True)
+            response = requests.get(url, headers=headers, timeout=20, verify=False)
+            response.raise_for_status()
 
-        # 檢查是否為 HTML（錯誤頁面）
-        if response.text.strip().startswith('<'):
-            raise Exception("API 回傳 HTML 而非 JSON（可能是維護中或非交易時間）")
+            # 檢查回應內容是否為空或非 JSON
+            if not response.text or response.text.strip() == '':
+                raise Exception("API 回傳空白內容（可能是非交易時間）")
 
-        data = response.json()
-        stocks = []
+            # 檢查是否為 HTML（錯誤頁面）
+            if response.text.strip().startswith('<'):
+                raise Exception("API 回傳 HTML 而非 JSON（可能是維護中或非交易時間）")
 
-        if 'data' not in data:
-            raise Exception("API 沒有回傳 data 欄位")
+            data = response.json()
+            stocks = []
 
-        for item in data['data']:
-            ticker = item[0].strip()
-            name = item[1].strip()
-            
-            # 解析漲跌幅 (item[9] 是漲跌百分比? 不，STOCK_DAY_ALL 的格式是：
-            # 0:代號, 1:名稱, 2:成交股數, 3:成交金額, 4:開盤, 5:最高, 6:最低, 7:收盤, 8:漲跌價差, 9:成交筆數
-            # 糟糕，STOCK_DAY_ALL 沒有直接給百分比，只有價差。我們需要計算：(收盤 - 價差) = 昨收 -> 價差/昨收
-            # 或者直接用 item[7] (收盤) 和 item[8] (價差)
-            
-            try:
-                close_price = float(item[7].replace(',', ''))
-                change_price = float(item[8].replace(',', '').replace('+', '').replace('X', '')) # X是除權息
-                if '-' in item[8]: # 處理負號
-                     pass # float conversion handles -
-                
-                # 昨收 = 收盤 - 漲跌 (注意：如果是跌，漲跌是負的，所以 收盤 - (-跌) = 收盤 + 跌 = 昨收)
-                # 這裡 item[8] 如果是跌，通常帶有負號嗎？ TWSE API 有時候是用顏色標記，這裡的 raw data 通常有正負號
-                # 讓我們保守一點，如果無法計算就設為 0
-                
-                prev_close = close_price - change_price
-                if prev_close > 0:
-                    change_pct = (change_price / prev_close) * 100
-                else:
+            if 'data' not in data:
+                raise Exception("API 沒有回傳 data 欄位")
+
+            for item in data['data']:
+                ticker = item[0].strip()
+                name = item[1].strip()
+
+                try:
+                    close_price = float(item[7].replace(',', ''))
+                    change_price = float(item[8].replace(',', '').replace('+', '').replace('X', ''))
+
+                    prev_close = close_price - change_price
+                    if prev_close > 0:
+                        change_pct = (change_price / prev_close) * 100
+                    else:
+                        change_pct = 0.0
+                except:
                     change_pct = 0.0
-            except:
-                change_pct = 0.0
 
-            # 只要數字股票代碼（排除 ETF 等）
-            if ticker.isdigit() and len(ticker) == 4:
-                stocks.append({
-                    'ticker': ticker,
-                    'name': name,
-                    'change_pct': change_pct
-                })
+                # 只要數字股票代碼（排除 ETF 等）
+                if ticker.isdigit() and len(ticker) == 4:
+                    stocks.append({
+                        'ticker': ticker,
+                        'name': name,
+                        'change_pct': change_pct
+                    })
 
-        print(f"✅ 取得 {len(stocks)} 支上市股票")
-        return stocks
+            print(f"✅ 成功取得 {len(stocks)} 支上市股票（來源：TWSE）", flush=True)
 
-    except Exception as e:
-        print(f"❌ 取得股票清單失敗：{e}")
-        import traceback
-        print(f"詳細錯誤：{traceback.format_exc()}")
-        # 備用清單（部分股票）- 加上 change_pct 欄位
-        return [
-            {'ticker': '2330', 'name': '台積電', 'change_pct': 0.0},
-            {'ticker': '2454', 'name': '聯發科', 'change_pct': 0.0},
-            {'ticker': '2317', 'name': '鴻海', 'change_pct': 0.0},
-            {'ticker': '2308', 'name': '台達電', 'change_pct': 0.0},
-            {'ticker': '2603', 'name': '長榮', 'change_pct': 0.0},
-        ]
+            # 儲存快取
+            save_stock_list_cache(stocks)
+
+            return stocks, 'twse'
+
+        except Exception as e:
+            print(f"❌ 第 {attempt + 1} 次嘗試失敗：{e}", flush=True)
+
+            if attempt < MAX_RETRIES - 1:
+                print(f"⏳ {RETRY_DELAY} 秒後重試...", flush=True)
+                time.sleep(RETRY_DELAY)
+            else:
+                print(f"❌ TWSE API 連線失敗（已重試 {MAX_RETRIES} 次）", flush=True)
+
+    # 所有重試都失敗，嘗試讀取快取
+    print("\n📦 嘗試讀取本地快取...", flush=True)
+    cached_stocks, source = load_stock_list_cache()
+    if cached_stocks:
+        return cached_stocks, source
+
+    # 快取也沒有，使用 demo 5 檔
+    print("\n⚠️⚠️⚠️ 使用備用 5 檔股票清單（僅供測試）⚠️⚠️⚠️", flush=True)
+    demo_stocks = [
+        {'ticker': '2330', 'name': '台積電', 'change_pct': 0.0},
+        {'ticker': '2454', 'name': '聯發科', 'change_pct': 0.0},
+        {'ticker': '2317', 'name': '鴻海', 'change_pct': 0.0},
+        {'ticker': '2308', 'name': '台達電', 'change_pct': 0.0},
+        {'ticker': '2603', 'name': '長榮', 'change_pct': 0.0},
+    ]
+    return demo_stocks, 'demo'
 
 # ==================== 📡 Yahoo Finance API ====================
 
@@ -973,10 +1017,21 @@ def scan_all_stocks():
 
     if market_status['status'] == 'DANGER':
         print("⚠️ 市場熔斷，僅尋找做空機會\n")
+    elif market_status['status'] == 'ERROR':
+        print("⚠️ 大盤資料抓取失敗，無法判斷市場狀態")
+        print("   → 仍允許買入推薦，但請謹慎評估\n", flush=True)
 
     # 2. 取得股票清單
-    all_stocks = get_taiwan_listed_stocks()
-    print(f"📊 股票清單：{len(all_stocks)} 支\n")
+    all_stocks, stock_source = get_taiwan_listed_stocks()
+
+    # 顯示來源
+    source_label = {
+        'twse': 'TWSE 即時',
+        'cache': '本地快取',
+        'demo': 'DEMO 測試'
+    }.get(stock_source, '未知')
+
+    print(f"📊 股票清單：{len(all_stocks)} 支（來源：{source_label}）\n", flush=True)
 
     # 測試模式：只掃前 N 檔
     if MAX_TEST_STOCKS is not None:
@@ -1069,8 +1124,8 @@ def scan_all_stocks():
         for i, future in enumerate(as_completed(futures), 1):
             result = future.result()
             if result:
-                # 波段買入
-                if result['action'] == 'BUY' and market_status['status'] == 'SAFE':
+                # 波段買入（允許 ERROR 狀態，只排除 DANGER）
+                if result['action'] == 'BUY' and market_status['status'] != 'DANGER':
                     buy_list.append(result)
                 # 波段做空
                 elif result['action'] == 'SHORT':
