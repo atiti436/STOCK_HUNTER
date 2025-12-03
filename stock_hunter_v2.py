@@ -314,9 +314,12 @@ def get_stock_data_twse(ticker):
                 # 其他錯誤也跳過，不影響整體流程
                 continue
 
-        # 如果抓不到歷史資料，回傳失敗
+        # 檢查資料完整性
+        has_month_data = len(closes) >= 120  # 至少 120 天資料才算完整
+
+        # 如果完全沒資料，才回傳失敗
         if len(closes) < 5:
-            return {'ticker': ticker, 'success': False}
+            return {'ticker': ticker, 'success': False, 'has_month_data': False}
 
         # 反轉（從舊到新）
         closes = closes[::-1]
@@ -371,12 +374,13 @@ def get_stock_data_twse(ticker):
             'today_volume': int(today_volume),
             'avg_turnover_5d': int(avg_turnover_5d),
             'success': True,
+            'has_month_data': has_month_data,  # 新增：標記是否有完整月資料
             'data_source': 'twse'  # 新增：資料來源標記
         }
 
     except Exception as e:
         print(f"⚠️ {ticker} 資料取得失敗：{e}")
-        return {'ticker': ticker, 'success': False}
+        return {'ticker': ticker, 'success': False, 'has_month_data': False}
 
 # 保留舊函數名稱，方便相容
 def get_stock_data_yahoo(ticker):
@@ -878,6 +882,7 @@ def quick_filter_stock(stock_info):
         avg_volume_5d = stock_data['avg_volume_5d']
         avg_turnover_5d = stock_data['avg_turnover_5d']
         today_volume = stock_data['today_volume']
+        has_month_data = stock_data.get('has_month_data', True)  # 預設為 True（向後相容）
 
         # === 唯一硬過濾：價格安全 ===
 
@@ -952,26 +957,35 @@ def quick_filter_stock(stock_info):
             }
 
         # 技術面評分（不再作為硬條件）
-        # 站上月線
-        if price > ma20:
-            score += 1
-            reasons.append("站上月線")
+        # 若無完整月資料，降低技術面權重（不扣分但也不加太多分）
+        if not has_month_data:
+            reasons.append("⚠️ 月資料不完整，技術面評估可能不準確")
+            # 只用基本均線判斷，不要太嚴格
+            if price > ma20:
+                score += 0.5  # 降低權重
+                reasons.append("站上短均線(粗估)")
         else:
-            score -= 1
-            reasons.append("跌破月線")
+            # 有完整資料，正常評分
+            # 站上月線
+            if price > ma20:
+                score += 1
+                reasons.append("站上月線")
+            else:
+                score -= 1
+                reasons.append("跌破月線")
 
-        # 站上季線
-        if price > ma60:
-            score += 1
-            reasons.append("站上季線")
+            # 站上季線
+            if price > ma60:
+                score += 1
+                reasons.append("站上季線")
 
-        # 多頭排列
-        if ma20 > ma60 > ma120:
-            score += 1
-            reasons.append("多頭排列")
-        elif ma20 < ma60 < ma120:
-            score -= 1
-            reasons.append("空頭排列")
+            # 多頭排列
+            if ma20 > ma60 > ma120:
+                score += 1
+                reasons.append("多頭排列")
+            elif ma20 < ma60 < ma120:
+                score -= 1
+                reasons.append("空頭排列")
 
         # 量能評分
         volume_ratio = today_volume / avg_volume_5d if avg_volume_5d > 0 else 0
@@ -1109,6 +1123,20 @@ def scan_all_stocks():
     }.get(stock_source, '未知')
 
     print(f"📊 股票清單：{len(all_stocks)} 支（來源：{source_label}）\n", flush=True)
+
+    # 🚫 當股票清單來源為 DEMO 時，禁止進入正常分析流程
+    if stock_source == "demo":
+        print("❌ TWSE API 連線失敗且無可用快取")
+        print("   → 本次僅使用 DEMO 股票，不產出實際推薦\n", flush=True)
+        return {
+            "status": "ERROR",
+            "reason": "TWSE_DATA_UNAVAILABLE",
+            "stock_source": stock_source,
+            "message": "TWSE API 連線失敗且無可用快取，本次僅使用 DEMO 股票，不產出實際推薦。",
+            "buy_list": [],
+            "short_list": [],
+            "macro_news": ""
+        }
 
     # 測試模式：只掃前 N 檔
     if MAX_TEST_STOCKS is not None:
