@@ -1405,7 +1405,7 @@ def format_line_message(analysis_result):
                 msg += f"• 新聞：{item['news']['summary']}\n"
 
             # 評分與倉位
-            score_stars = "⭐" * min(item['score'], 5)
+            score_stars = "⭐" * min(int(item['score']), 5)
             msg += f"• 評分：{item['score']}/5 {score_stars}\n"
             msg += f"• 建議倉位：{item['allocation']:.0%}\n"
             msg += f"• 停損：${item['stop_loss']} (-{CONFIG['STOP_LOSS']:.0%})\n"
