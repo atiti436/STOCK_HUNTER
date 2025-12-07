@@ -534,49 +534,71 @@ def scan_all_stocks():
 
 # ==================== LINE 訊息格式 ====================
 
-def format_line_message(result):
-    """格式化 LINE 推送訊息"""
+def format_line_messages(result):
+    """格式化 LINE 推送訊息 (分段發送)"""
     if 'error' in result:
-        return f"❌ 錯誤: {result['error']}"
+        return [f"❌ 錯誤: {result['error']}"]
     
     market = result['market']
     recommendations = result['recommendations']
     
-    lines = [
+    messages = []
+    
+    # 第一段: 大盤 + 摘要
+    msg1 = [
         f"📊 台股情報獵人 v3.0",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "",
         f"🌍 大盤: {market['status']}",
-        f"   {market['reason']}",
+        f"   {market.get('reason', '')}",
         "",
-        f"📈 今日推薦 ({len(recommendations)} 檔):",
-        ""
-    ]
-    
-    for i, rec in enumerate(recommendations[:5], 1):  # 只顯示前 5 名
-        lines.append(f"{i}. {rec['ticker']} {rec['name']}")
-        lines.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
-        lines.append(f"   📊 評分: {rec['score']} 分")
-        lines.append(f"   💡 {', '.join(rec['reasons'][:2])}")
-        lines.append("")
-    
-    if len(recommendations) > 5:
-        lines.append(f"...還有 {len(recommendations)-5} 檔")
-    
-    lines.extend([
-        "",
+        f"📈 今日推薦: {len(recommendations)} 檔",
         f"⚡ 掃描耗時: {result['execution_time']} 秒",
         f"📦 分析股票: {result['total_stocks']} 支"
-    ])
+    ]
+    messages.append("\n".join(msg1))
     
-    return "\n".join(lines)
+    # 第二段: 推薦清單 (每 5 檔一段)
+    for batch_start in range(0, len(recommendations), 5):
+        batch = recommendations[batch_start:batch_start+5]
+        
+        msg = [f"📈 推薦 ({batch_start+1}-{batch_start+len(batch)}):", ""]
+        
+        for i, rec in enumerate(batch, batch_start + 1):
+            msg.append(f"{i}. {rec['ticker']} {rec['name']}")
+            msg.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
+            msg.append(f"   📊 評分: {rec['score']} 分")
+            
+            # 籌碼資訊
+            inst = rec.get('institutional', {})
+            if inst:
+                foreign = inst.get('foreign', 0)
+                trust = inst.get('trust', 0)
+                if foreign > 0 or trust > 0:
+                    msg.append(f"   🏦 外資:{'+' if foreign>0 else ''}{foreign//1000}張 投信:{'+' if trust>0 else ''}{trust//1000}張")
+            
+            # 理由
+            if rec.get('reasons'):
+                msg.append(f"   💡 {', '.join(rec['reasons'][:2])}")
+            msg.append("")
+        
+        messages.append("\n".join(msg))
+    
+    return messages
 
 
 def send_line_push(message):
-    """推送訊息到 LINE"""
+    """推送訊息到 LINE (支援分段)"""
     try:
-        line_bot_api.push_message(LINE_USER_ID, TextSendMessage(text=message))
-        print("✅ LINE 推送成功", flush=True)
+        if isinstance(message, list):
+            # 分段發送
+            for msg in message:
+                line_bot_api.push_message(LINE_USER_ID, TextSendMessage(text=msg))
+                time.sleep(0.5)  # 避免太快
+            print(f"✅ LINE 推送成功 ({len(message)} 段)", flush=True)
+        else:
+            line_bot_api.push_message(LINE_USER_ID, TextSendMessage(text=message))
+            print("✅ LINE 推送成功", flush=True)
     except Exception as e:
         print(f"❌ LINE 推送失敗: {e}", flush=True)
 
@@ -589,8 +611,8 @@ def daily_analysis_task():
     
     try:
         result = scan_all_stocks()
-        message = format_line_message(result)
-        send_line_push(message)
+        messages = format_line_messages(result)
+        send_line_push(messages)
     except Exception as e:
         print(f"❌ 每日任務失敗: {e}", flush=True)
         send_line_push(f"❌ 今日分析失敗: {e}")
@@ -627,8 +649,11 @@ def handle_message(event):
         
         # 執行分析 (背景)
         result = scan_all_stocks()
-        message = format_line_message(result)
-        line_bot_api.push_message(event.source.user_id, TextSendMessage(text=message))
+        messages = format_line_messages(result)
+        # 分段發送
+        for msg in messages:
+            line_bot_api.push_message(event.source.user_id, TextSendMessage(text=msg))
+            time.sleep(0.5)
         
     elif text == '狀態':
         market = get_market_status()
@@ -649,7 +674,8 @@ def index():
 def manual_run():
     """手動觸發分析"""
     result = scan_all_stocks()
-    return format_line_message(result).replace('\n', '<br>')
+    messages = format_line_messages(result)
+    return '<hr>'.join([m.replace('\n', '<br>') for m in messages])
 
 
 # ==================== 主程式 ====================
