@@ -19,4 +19,4 @@ COPY . .
 EXPOSE 8080
 
 # 啟動應用
-CMD ["python", "-u", "stock_hunter_v2.py"]
+CMD ["python", "-u", "stock_hunter_v3.py"]
