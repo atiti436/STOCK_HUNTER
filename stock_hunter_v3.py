@@ -254,6 +254,38 @@ def get_institutional_data():
     return {}
 
 
+def get_market_index():
+    """取得大盤指數 (加權指數點數)"""
+    try:
+        # 嘗試最近 7 天
+        for days_ago in range(7):
+            target_date = datetime.now() - timedelta(days=days_ago)
+            date_str = target_date.strftime('%Y%m%d')
+            
+            url = "https://www.twse.com.tw/rwd/zh/afterTrading/MI_INDEX"
+            params = {'date': date_str, 'response': 'json'}
+            
+            response = requests.get(url, params=params, timeout=CONFIG['API_TIMEOUT'], verify=False)
+            data = response.json()
+            
+            if data.get('stat') == 'OK' and data.get('data1'):
+                # data1[0] 是加權指數
+                taiex_str = data['data1'][0][1].replace(',', '')
+                taiex = float(taiex_str)
+                used_date = f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:]}"
+                print(f"✅ 大盤指數: {int(taiex):,} 點 ({used_date})", flush=True)
+                return {
+                    'index': int(taiex),
+                    'date': used_date,
+                    'success': True
+                }
+        
+        return {'index': 0, 'date': '', 'success': False}
+    except Exception as e:
+        print(f"⚠️ 大盤指數取得失敗: {e}", flush=True)
+        return {'index': 0, 'date': '', 'success': False}
+
+
 def get_market_status():
     """取得大盤狀態"""
     try:
@@ -299,6 +331,9 @@ def get_market_status():
             except:
                 continue
         
+        # 取得大盤指數
+        index_data = get_market_index()
+        
         # 判斷市場狀態
         if limit_down > 100:
             status = 'DANGER'
@@ -317,15 +352,181 @@ def get_market_status():
             'down_count': down_count,
             'limit_up': limit_up,
             'limit_down': limit_down,
-            'total': total
+            'total': total,
+            'index': index_data.get('index', 0),
+            'index_date': index_data.get('date', '')
         }
         
     except Exception as e:
         print(f"⚠️ 大盤狀態取得失敗: {e}", flush=True)
         return {
             'status': 'UNKNOWN',
-            'reason': str(e)
+            'reason': str(e),
+            'index': 0
         }
+
+
+# ==================== 新聞情緒 AI ====================
+
+import xml.etree.ElementTree as ET
+
+# 股票關鍵字對應表
+NEWS_KEYWORDS = {
+    "2330": ["台積電", "TSMC", "TSM", "張忠謀", "魏哲家", "3奈米", "CoWoS", "黃仁勳", "NVIDIA"],
+    "2454": ["聯發科", "MediaTek", "蔡明介", "天璣", "5G晶片"],
+    "2317": ["鴻海", "Foxconn", "郭台銘", "劉揚偉", "iPhone", "GB200"],
+    "2308": ["台達電", "Delta", "鄭平", "AI電源"],
+    "2382": ["廣達", "林百里", "AI伺服器", "GB200"],
+    "3231": ["緯創", "林憲銘", "AI伺服器"],
+}
+
+MACRO_KEYWORDS = ["川普", "Trump", "關稅", "聯準會", "Fed", "降息", "美股", "台股"]
+
+
+def get_macro_news():
+    """抓取總經新聞 (川普、Fed)"""
+    try:
+        query = " OR ".join(MACRO_KEYWORDS)
+        url = f"https://news.google.com/rss/search?q={query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        root = ET.fromstring(response.content)
+        news_items = []
+        
+        for item in root.findall('.//item')[:3]:
+            title = item.find('title').text
+            if ' - ' in title:
+                title = title.split(' - ')[0]
+            news_items.append(title)
+            
+        return news_items
+    except Exception as e:
+        print(f"⚠️ 國際新聞抓取失敗: {e}", flush=True)
+        return []
+
+
+def get_stock_news(ticker, name):
+    """抓取股票相關新聞"""
+    try:
+        keywords = NEWS_KEYWORDS.get(ticker, [name])
+        query = " OR ".join(keywords)
+        url = f"https://news.google.com/rss/search?q={query}&hl=zh-TW&gl=TW&ceid=TW:zh-Hant"
+        
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        
+        root = ET.fromstring(response.content)
+        news_items = []
+        
+        for item in root.findall('.//item')[:3]:
+            title = item.find('title').text
+            if ' - ' in title:
+                title = title.split(' - ')[0]
+            news_items.append(title)
+            
+        return news_items
+    except Exception as e:
+        return []
+
+
+def analyze_news_sentiment(ticker, name, news_list):
+    """使用 Gemini API 分析新聞情緒"""
+    if not news_list:
+        return {'sentiment': 0, 'summary': '無相關新聞'}
+    
+    try:
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        
+        news_text = "\n".join([f"{i+1}. {news}" for i, news in enumerate(news_list)])
+        
+        prompt = f"""請分析以下新聞對「{name}（{ticker}）」股價的影響：
+
+{news_text}
+
+請給出：
+1. 綜合情緒分數（-1 到 +1，-1=極負面，0=中性，+1=極正面）
+2. 一句話摘要（15字內）
+
+請用 JSON 格式回答：
+{{
+  "sentiment": 0.5,
+  "summary": "法人看好，訂單強勁"
+}}"""
+        
+        response = model.generate_content(prompt)
+        result_text = response.text.strip()
+        
+        # 解析 JSON
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+        
+        result = json.loads(result_text)
+        
+        return {
+            'sentiment': float(result.get('sentiment', 0)),
+            'summary': result.get('summary', '無摘要')
+        }
+        
+    except Exception as e:
+        print(f"⚠️ {ticker} 新聞分析失敗: {e}", flush=True)
+        return {'sentiment': 0, 'summary': '分析失敗'}
+
+
+# ==================== 產業趨勢 ====================
+
+def get_industry_mapping():
+    """取得股票產業分類"""
+    try:
+        url = "https://openapi.twse.com.tw/v1/opendata/t187ap03_L"
+        response = requests.get(url, timeout=10, verify=False)
+        data = response.json()
+        
+        mapping = {}
+        for item in data:
+            code = item.get('公司代號', '')
+            industry = item.get('產業別', '')
+            if code and industry:
+                mapping[code] = industry
+        
+        print(f"✅ 取得產業分類: {len(mapping)} 筆", flush=True)
+        return mapping
+    except Exception as e:
+        print(f"⚠️ 產業分類抓取失敗: {e}", flush=True)
+        return {}
+
+
+def analyze_industry_trend(stocks, industry_mapping):
+    """分析產業趨勢"""
+    industry_stats = {}
+    
+    for stock in stocks:
+        ticker = stock['ticker']
+        change_pct = stock['change_pct']
+        industry = industry_mapping.get(ticker, '其他')
+        
+        if industry not in industry_stats:
+            industry_stats[industry] = {'total_change': 0, 'count': 0}
+        
+        industry_stats[industry]['total_change'] += change_pct
+        industry_stats[industry]['count'] += 1
+    
+    # 計算平均漲跌幅
+    industry_avg = {}
+    for industry, stats in industry_stats.items():
+        if stats['count'] >= 3:  # 至少 3 支股票才統計
+            industry_avg[industry] = round(stats['total_change'] / stats['count'], 2)
+    
+    # 排序
+    sorted_industries = sorted(industry_avg.items(), key=lambda x: x[1], reverse=True)
+    
+    return {
+        'strong': sorted_industries[:3],  # 前 3 強
+        'weak': sorted_industries[-3:] if len(sorted_industries) >= 3 else []  # 後 3 弱
+    }
 
 
 # ==================== 篩選邏輯 ====================
@@ -427,12 +628,13 @@ def quick_filter(stocks, institutional):
 
 def deep_analyze(candidates):
     """
-    第二階段: 深度分析 Top N (呼叫 Gemini API)
+    第二階段: 深度分析 Top N (呼叫 Gemini API 分析新聞)
     """
     top_n = CONFIG['TOP_N_FOR_DEEP_ANALYSIS']
     to_analyze = candidates[:top_n]
     
     print(f"\n🔬 第二階段: 深度分析 Top {len(to_analyze)} 支股票...", flush=True)
+    print(f"   (含 Gemini 新聞情緒分析)", flush=True)
     
     results = []
     
@@ -441,10 +643,25 @@ def deep_analyze(candidates):
         name = candidate['name']
         
         try:
-            # 呼叫 Gemini 分析 (可選)
-            # 這裡先跳過,只用評分排序
+            # 抓取新聞
+            news_list = get_stock_news(ticker, name)
             
-            final_score = candidate['score']
+            # Gemini 分析新聞情緒
+            news_result = analyze_news_sentiment(ticker, name, news_list)
+            
+            # 計算最終評分 = 基礎評分 + 新聞情緒加成
+            base_score = candidate['score']
+            sentiment = news_result.get('sentiment', 0)
+            
+            # 新聞加分/扣分
+            if sentiment > 0.3:
+                news_bonus = 1
+            elif sentiment < -0.3:
+                news_bonus = -1
+            else:
+                news_bonus = 0
+            
+            final_score = base_score + news_bonus
             
             # 計算停損停利
             price = candidate['price']
@@ -459,8 +676,11 @@ def deep_analyze(candidates):
                 'change_pct': candidate['change_pct'],
                 'turnover': candidate['turnover'],
                 'score': final_score,
+                'base_score': base_score,
                 'reasons': candidate['reasons'],
                 'institutional': candidate['institutional'],
+                'news_summary': news_result.get('summary', ''),
+                'news_sentiment': sentiment,
                 'stop_loss': stop_loss,
                 'take_profit': take_profit
             }
@@ -484,30 +704,46 @@ def deep_analyze(candidates):
 # ==================== 主流程 ====================
 
 def scan_all_stocks():
-    """掃描全台股 - 優化版"""
+    """掃描全台股 - 完整版 (含新聞AI+產業趨勢)"""
     print("\n" + "="*60, flush=True)
-    print("🚀 台股情報獵人 v3.0 - 開始掃描", flush=True)
+    print("🚀 台股情報獵人 v3.1 - 開始掃描", flush=True)
     print("="*60, flush=True)
     
     start_time = time.time()
     
-    # Step 1: 取得大盤狀態
+    # Step 1: 取得大盤狀態 (含指數)
     market = get_market_status()
-    print(f"\n🌍 大盤狀態: {market['status']}", flush=True)
-    print(f"   {market['reason']}", flush=True)
+    if market.get('index', 0) > 0:
+        print(f"\n📊 大盤指數: {market['index']:,} 點", flush=True)
+    print(f"🌍 市場狀態: {market['status']}", flush=True)
+    print(f"   {market.get('reason', '')}", flush=True)
     
-    # Step 2: 一次取得所有股票資料 (1 次 API 呼叫)
+    # Step 2: 取得國際新聞
+    print("\n📰 抓取國際新聞...", flush=True)
+    macro_news = get_macro_news()
+    for news in macro_news[:3]:
+        print(f"   • {news[:40]}...", flush=True)
+    
+    # Step 3: 一次取得所有股票資料
     stocks = get_all_stocks_data()
     if not stocks:
         return {'error': '無法取得股票資料'}
     
-    # Step 3: 取得法人資料 (1 次 API 呼叫)
+    # Step 4: 取得法人資料
     institutional = get_institutional_data()
     
-    # Step 4: 快速篩選 (不呼叫 API)
+    # Step 5: 取得產業分類並分析趨勢
+    industry_mapping = get_industry_mapping()
+    industry_trend = analyze_industry_trend(stocks, industry_mapping)
+    
+    print("\n🏭 產業趨勢:", flush=True)
+    print(f"   🔥 強勢: {', '.join([f'{i[0]}({i[1]:+.1f}%)' for i in industry_trend['strong'][:3]])}", flush=True)
+    print(f"   ❄️ 弱勢: {', '.join([f'{i[0]}({i[1]:+.1f}%)' for i in industry_trend['weak'][:3]])}", flush=True)
+    
+    # Step 6: 快速篩選
     candidates = quick_filter(stocks, institutional)
     
-    # Step 5: 深度分析 Top N
+    # Step 7: 深度分析 (含 Gemini 新聞 AI)
     recommendations = deep_analyze(candidates)
     
     end_time = time.time()
@@ -516,6 +752,8 @@ def scan_all_stocks():
     result = {
         'timestamp': datetime.now().isoformat(),
         'market': market,
+        'macro_news': macro_news,
+        'industry_trend': industry_trend,
         'total_stocks': len(stocks),
         'passed_filter': len(candidates),
         'recommendations': recommendations,
@@ -544,21 +782,43 @@ def format_line_messages(result):
     
     messages = []
     
-    # 第一段: 大盤 + 摘要
+    # 第一段: 大盤 + 國際新聞 + 產業趨勢
     msg1 = [
-        f"📊 台股情報獵人 v3.0",
+        f"📊 台股情報獵人 v3.1",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        "",
-        f"🌍 大盤: {market['status']}",
-        f"   {market.get('reason', '')}",
-        "",
-        f"📈 今日推薦: {len(recommendations)} 檔",
-        f"⚡ 掃描耗時: {result['execution_time']} 秒",
-        f"📦 分析股票: {result['total_stocks']} 支"
+        ""
     ]
+    
+    # 大盤指數
+    if market.get('index', 0) > 0:
+        msg1.append(f"📈 大盤: {market['index']:,} 點")
+    msg1.append(f"🌍 市場: {market['status']} ({market.get('reason', '')})")
+    msg1.append("")
+    
+    # 國際新聞
+    macro_news = result.get('macro_news', [])
+    if macro_news:
+        msg1.append("📰 國際焦點:")
+        for news in macro_news[:3]:
+            msg1.append(f"• {news[:35]}...")
+        msg1.append("")
+    
+    # 產業趨勢
+    industry = result.get('industry_trend', {})
+    if industry.get('strong'):
+        strong = ', '.join([f"{i[0]}({i[1]:+.1f}%)" for i in industry['strong'][:3]])
+        weak = ', '.join([f"{i[0]}({i[1]:+.1f}%)" for i in industry.get('weak', [])[:3]])
+        msg1.append("🏭 產業趨勢:")
+        msg1.append(f"🔥 強: {strong}")
+        msg1.append(f"❄️ 弱: {weak}")
+        msg1.append("")
+    
+    msg1.append(f"📈 今日推薦: {len(recommendations)} 檔")
+    msg1.append(f"⚡ 耗時: {result['execution_time']} 秒 | 分析: {result['total_stocks']} 支")
+    
     messages.append("\n".join(msg1))
     
-    # 第二段: 推薦清單 (每 5 檔一段)
+    # 第二段起: 推薦清單 (每 5 檔一段)
     for batch_start in range(0, len(recommendations), 5):
         batch = recommendations[batch_start:batch_start+5]
         
@@ -574,8 +834,13 @@ def format_line_messages(result):
             if inst:
                 foreign = inst.get('foreign', 0)
                 trust = inst.get('trust', 0)
-                if foreign > 0 or trust > 0:
-                    msg.append(f"   🏦 外資:{'+' if foreign>0 else ''}{foreign//1000}張 投信:{'+' if trust>0 else ''}{trust//1000}張")
+                if foreign != 0 or trust != 0:
+                    msg.append(f"   🏦 外資:{foreign//1000:+}張 投信:{trust//1000:+}張")
+            
+            # 新聞摘要 (來自 Gemini)
+            news_summary = rec.get('news_summary', '')
+            if news_summary and news_summary not in ['無相關新聞', '分析失敗', '']:
+                msg.append(f"   📰 {news_summary}")
             
             # 理由
             if rec.get('reasons'):
