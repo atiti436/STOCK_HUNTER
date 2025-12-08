@@ -1171,19 +1171,19 @@ def format_line_messages(result):
 
 
 def send_line_push(message):
-    """推送訊息到 LINE (支援分段)"""
+    """推送訊息到 LINE (廣播給所有追蹤者)"""
     try:
         if isinstance(message, list):
-            # 分段發送
+            # 分段發送 - 廣播給所有追蹤者
             for msg in message:
-                line_bot_api.push_message(LINE_USER_ID, TextSendMessage(text=msg))
+                line_bot_api.broadcast(TextSendMessage(text=msg))
                 time.sleep(0.5)  # 避免太快
-            print(f"✅ LINE 推送成功 ({len(message)} 段)", flush=True)
+            print(f"✅ LINE 廣播成功 ({len(message)} 段)", flush=True)
         else:
-            line_bot_api.push_message(LINE_USER_ID, TextSendMessage(text=message))
-            print("✅ LINE 推送成功", flush=True)
+            line_bot_api.broadcast(TextSendMessage(text=message))
+            print("✅ LINE 廣播成功", flush=True)
     except Exception as e:
-        print(f"❌ LINE 推送失敗: {e}", flush=True)
+        print(f"❌ LINE 廣播失敗: {e}", flush=True)
 
 
 # ==================== 定時任務 ====================

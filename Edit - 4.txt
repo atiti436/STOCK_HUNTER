@@ -1,0 +1,121 @@
+🛠 給 Claude 的訊息（請幫我查為什麼掃描會卡住）
+
+現在 v3.1 的邏輯 OK，但執行上遇到「掃描卡住不結束」問題，請幫我 debug。
+
+實際 log：
+✅ 取得產業分類：1071 筆
+
+🔍 第一階段：快速篩選 980 支股票...
+
+⚠️ 0052 法人資料取得失敗：could not convert string to float: '富邦科技        '
+⚠️ 0056 法人資料取得失敗：Expecting value: line 1 column 1 (char 0)
+
+   進度：100/1072
+   進度：200/1072
+   進度：300/1072
+   進度：400/1072
+   進度：500/1072
+   進度：600/1072
+   進度：700/1072
+   進度：800/1072
+
+（之後就沒有 900/1000/完成 的 log）
+
+192.168.90.1 - - [03/Dec/2025 19:56:13] "GET / HTTP/1.1" 200 -
+192.168.90.1 - - [03/Dec/2025 19:56:13] "GET /favicon.ico HTTP/1.1" 404 -
+
+192.168.90.1 - - [03/Dec/2025 20:13:00] "GET / HTTP/1.1" 200 -
+192.168.90.1 - - [03/Dec/2025 20:13:00] "GET /favicon.ico HTTP/1.1" 404 -
+
+192.168.90.1 - - [03/Dec/2025 20:19:55] "GET / HTTP/1.1" 200 -
+192.168.90.1 - - [03/Dec/2025 20:19:55] "GET /favicon.ico HTTP/1.1" 404 -
+
+狀況是：
+
+看似 loop 跑到大約 800/1072 就不再往下印進度
+
+沒有 traceback / error，但也沒印出「第一階段完成，篩選出 XX 支候選股票」
+
+所以應該是卡在某一支股票或某個外部 API 的地方，沒有回來
+
+✅ 我希望你幫我做這幾件事：
+1️⃣ 在掃描迴圈裡加「每檔開始/結束」的 debug log
+
+在 scan_all_stocks() 那個處理所有股票的地方，請加上類似：
+
+for idx, stock_info in enumerate(stock_list, start=1):
+    ticker = stock_info["ticker"]
+    name = stock_info["name"]
+
+    print(f"👉 開始處理第 {idx}/{total_stocks} 檔：{ticker} {name}", flush=True)
+
+    result = quick_filter_stock(stock_info)
+
+    print(f"✅ 結束處理：{ticker} {name}", flush=True)
+
+
+
+目的：
+下一次執行時，如果卡住，就可以從最後一行 log 看出是卡在 哪一檔股票 上。
+
+2️⃣ 幫我在 quick_filter_stock() 裡面檢查有沒有「可能卡住的地方」，加上保護
+
+特別請你檢查：get_stock_data_yahoo(ticker) / get_stock_data_twse(ticker)
+
+get_institutional_investors(ticker)
+
+請確保：
+
+所有 requests.get() 都有設定 timeout（例如 10 秒內沒反應就丟例外）
+
+所有對外部網站 / API 的呼叫都被 try/except 包起來，失敗時：
+
+不要讓程式卡住
+
+直接回傳 success=False 或跳過該資料來源
+
+印一行 warning，如現在 0052 / 0056 那種
+
+重點是：寧可跳過個別股票，也不要讓整個掃描卡死在某一支。
+
+3️⃣加一個「測試模式：只掃前 200 檔」的選項（方便我先驗證 v3.1 行為）
+
+例如在程式開頭加一個設定：
+
+MAX_TEST_STOCKS = None  # 正常模式：None（掃全部）
+# MAX_TEST_STOCKS = 200  # 測試模式：只掃前 200 檔
+
+
+然後在 scan_all_stocks() 中：
+
+effective_stock_list = stock_list
+if MAX_TEST_STOCKS is not None:
+    effective_stock_list = stock_list[:MAX_TEST_STOCKS]
+
+total_stocks = len(effective_stock_list)
+
+for idx, stock_info in enumerate(effective_stock_list, start=1):
+    ...
+
+
+這樣我可以先用 MAX_TEST_STOCKS = 200 測試：
+
+第一階段候選數量
+
+分數排序
+
+Top 20 AI 分析流程
+
+確認 v3.1 邏輯都正常之後，再改回掃全部。
+
+4️⃣請你根據上述需求，直接修改 stock_hunter_v2.py，並說明：
+
+你在哪一段加了 print() debug
+
+哪些函式加上了 timeout / try-except
+
+有沒有針對某些特定代碼（例如 0052、0056）做特別處理或直接 skip
+
+我現在遇到的主要問題不是「候選變 0」，
+是「掃描中途就卡住沒有結束」，請你優先處理這個穩定性問題，
+讓就算有少數股票資料異常，整體流程仍然可以正常完成。

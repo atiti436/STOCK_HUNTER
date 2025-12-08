@@ -1,0 +1,225 @@
+你目前的專案是單檔 stock_hunter_v2.py，裡面已經把 LINE Bot、資料抓取、六大守護者、分析流程全部塞在一起，沒有模組拆分。
+
+stock_hunter_v2
+
+我這邊的需求和決定如下：
+
+1. 關於 A / B 方案：選 B
+
+A) 把 filter_and_score_stocks() 獨立成新檔案 filters.py，然後修改 stock_hunter_v2.py 引用它？
+
+B) 直接在 stock_hunter_v2.py 裡面重寫 quick_filter_stock() 和相關邏輯？
+
+先選 B 比較單純：
+
+暫時 不要新增 filters.py 檔案
+
+請你 直接在 stock_hunter_v2.py 裡重寫 quick_filter_stock()（必要時可以加 1～2 個輔助函式，但都放在同一檔）
+
+其它部分（LINE webhook、Gemini、排程、記錄檔）全部維持不動
+
+之後如果這套穩定再考慮拆檔。
+
+2. 資料結構：請保留現有格式
+
+你看到的這段結構是對的，請維持這種 schema：
+
+stock_data = {
+    'ticker': '2330',
+    'price': 580,
+    'ma20': 565,
+    'ma60': 550,
+    'ma120': 520,
+    'avg_volume_5d': 25000,
+    'avg_turnover_5d': 145_000_000,
+    'today_volume': 28000,
+}
+
+chips_data = {
+    'foreign': {'buy_days': 5, 'today_amount': 150_000_000, 'today_ratio': 0.08},
+    'trust': {...},
+    'dealer': {...},
+}
+
+
+補充說明：
+
+avg_volume_5d 是「股數」，不是「張」
+
+如果規格寫「2000 張」，請在程式裡換算成 2_000_000 股
+
+avg_turnover_5d 現在是用 avg_volume_5d * price * 1000 算出來
+
+先不要去大改這個計算，直接把它當成「流動性大小指標」來用就好
+
+👉 總結：結構不改，只在邏輯層調整門檻與評分方式。
+
+3. 產業資料：先當成「資訊用」，不硬塞進篩選
+
+現在 get_industry_mapping() 已經會回傳 ticker -> 產業別，
+在 scan_all_stocks() 裡也有用來計算「各產業平均漲跌」並輸出成 top / bottom 產業。
+
+這一版你可以先這樣處理：
+
+在 第一階段快速篩選 / quick_filter_stock() 裡，不強制一定要用到「產業平均漲幅」當條件
+
+如果你覺得方便，可以：
+
+只要「該股票有產業資料」就 不扣分
+
+若之後好處理，再加「熱門產業 +1 分」這種 soft bonus
+
+但不要為了產業平均漲跌去大改資料流或重抓一輪資料，
+這版的重點是：先讓每天不再選出 0 檔股票。
+
+4. 新聞情緒分數：第一階段沒有，維持「第二階段才看新聞」
+
+目前流程是：
+
+第一階段：quick_filter_stock()
+
+只看：股價 / 均線 / 成交量 / 流動性 / 法人籌碼 / 當沖潛力
+
+不看新聞，不呼叫 Gemini
+
+第二階段：deep_analyze_candidate()
+
+呼叫 guardian_0_news_sentiment()（Gemini）
+
+依據新聞情緒加減分，再決定 BUY / SHORT / PASS
+
+請你在重寫時：
+
+第一階段不要假設有 news_score 或 sentiment 欄位
+
+新聞情緒依舊只在 deep_analyze_candidate() 裡處理即可
+
+5. 市場狀態資料：維持用 guardian_1_market_check() 的結果，不塞進硬過濾
+
+你的推論是對的——
+
+市場資料來自 guardian_1_market_check()
+
+scan_all_stocks() 已經有在最前面呼叫，然後回傳 market_status 給後續流程用
+
+目前程式的做法是：
+
+若 market_status['status'] == 'SAFE' 才會把 BUY 放進 buy_list
+
+SHORT 不受這個限制
+
+這一版先 不要把「大盤狀態」變成第一階段的硬過濾條件，避免又刷成 0 檔。
+如果你想優化，可以在第二階段 final_score 裡：
+
+市場不佳時（例如 status == 'DANGER'）對所有股票 score -= 1 或類似邏輯
+
+但這是「加減分」，不是直接全部砍掉
+
+6. 這次調整的具體目標（重寫 quick_filter_stock）
+
+請你在 stock_hunter_v2.py 裡重寫 quick_filter_stock()，
+讓它符合下面這種「v3.0 精簡版」邏輯：
+
+6-1. 第一層：硬過濾（真的不合格才剔除）
+
+對每一檔股票：
+
+取得 stock_data = get_stock_data_yahoo(ticker)
+
+抓不到資料 → 直接 return None
+
+流動性條件（照現有欄位實作）：
+
+price >= 10
+
+avg_turnover_5d >= 30_000_000 （把原本 50M 稍微放鬆一點）
+
+avg_volume_5d >= 2_000_000 股（≈ 2000 張）
+
+不符合 → return None
+
+技術面基本條件：
+
+price > ma20
+
+ma20 >= ma60
+
+不符合 → return None
+（乖離率不要再當硬限制，只保留在技術資訊裡即可）
+
+籌碼基本條件（柔性條件）
+呼叫 get_institutional_investors() 拿到 chips_data 之後：
+
+至少有一方是近幾日買超即可，例如：
+
+外資近 3 日合計 > 0
+
+或投信近 3 日合計 > 0
+
+或自營商近 3 日合計 > 0
+
+👉 如果籌碼資料抓不到，可以「不加分，但不要直接剔除」
+
+6-2. 第二層：評分（score，只影響排名，不決定生死）
+
+在 quick_filter_stock() 裡，幫每檔股票算一個「初步分數」，可以沿用 / 改寫現在的 guardian_3_chips 結果，例如：
+
+外資連續買超 / 近 3 日合計買超 → +2
+
+投信連續買超 / 近 3 日合計買超 → +2
+
+三大法人總合買超 → +1
+
+價格 > MA60 → +1
+
+MA20 呈上彎（今天 > 昨天）→ +1
+
+爆量（量比 > 2）→ +1
+
+產業強勢（若你覺得好處理）→ +1
+
+重點：
+
+這個 score 是「排序用」，不要再使用像現在這種：
+if preliminary_score >= 2 才保留，否則丟掉 的寫法。
+
+只要通過第一層硬過濾，就可以變成候選股，
+然後把 score 放進回傳的 dict 裡交給後面用。
+
+6-3. 回傳格式維持類似現在的 candidate 結構
+
+目前 quick_filter_stock() 回傳大概是這樣：
+
+return {
+    'ticker': ticker,
+    'name': name,
+    'price': stock_data['price'],
+    'stock_data': stock_data,
+    'chips_data': chips_data,
+    'chips': chips,
+    'technical': technical,
+    'preliminary_score': preliminary_score,
+    'day_trade': day_trade_potential
+}
+
+
+你可以在這個基礎上：
+
+保留既有欄位
+
+把 preliminary_score 換成新的 score（或兩個都留著也行）
+
+只要 scan_all_stocks() 後面那段能順利讀到分數、排序、塞進 buy_list / short_list 就好
+
+7. 成功條件（這版優先目標）
+
+我這次的優先需求只有兩點：
+
+在正常交易日執行 scan_all_stocks() 時，
+第一階段不再出現「篩選出 0 支候選股票」
+
+第二階段仍然可以照原邏輯呼叫 Gemini 看新聞，
+並依 score + 新聞情緒 決定要不要推薦 BUY / SHORT
+
+如果你覺得有哪一段規格會再度把結果刷到 0，
+請在修改前先用文字提醒我，你建議的替代作法是什麼。

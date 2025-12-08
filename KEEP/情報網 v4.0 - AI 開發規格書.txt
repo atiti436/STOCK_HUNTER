@@ -1,0 +1,114 @@
+Role: You are a Senior Quantitative Developer and Python Expert. Task: Create a standalone Python script for a stock analysis bot named "Manpan v4.0". Constraint: Since the user cannot install external libraries locally, use Mock Data (Dummy Data) to demonstrate the logic. Do not use external APIs (like twstock or yfinance). Create a fake_data_loader function to simulate market conditions.
+
+1. System Architecture (The 6 Guardians)
+Implement the following 6 logic modules to filter and rank stocks.
+
+Guardian 1: Market Sentiment (The Circuit Breaker)
+
+Logic: Check the "Market Index".
+
+Condition: If index_price < ma60 (Below Quarterly Line) OR limit_down_count > 50 (Too many stocks hitting limit down).
+
+Action: Trigger SYSTEM_HALT. Stop all buy signals. Output "Market is Dangerous, cash is king."
+
+Guardian 2: Liquidity Gate
+
+Logic: Check individual stock volume.
+
+Condition: If average_volume_5days < 1000.
+
+Action: Mark as LIQUIDITY_FAIL. Ignore this stock.
+
+Guardian 3: Chips Consensus (The Score)
+
+Logic: Check Institutional Investors.
+
+Scoring:
+
+Foreign Buy + Investment Trust Buy: +3 points (Strong Consensus)
+
+Foreign Sell + Investment Trust Buy: +1 point (Mixed)
+
+Foreign Buy + Investment Trust Sell: +1 point (Mixed)
+
+Both Sell: -2 points (Avoid)
+
+Guardian 4: Technical Pattern (Bias Lock)
+
+Logic: Check Price Bias (Deviation from MA20).
+
+Formula: bias = (price - ma20) / ma20
+
+Condition: If bias > 0.2 (20%), mark as OVERHEATED (Do not buy).
+
+Guardian 5: The Reaper (Exit Strategy)
+
+Logic: Check current portfolio holdings.
+
+Condition:
+
+Stop Loss: current_price < cost_price * 0.9 OR current_price < ma20.
+
+Trailing Profit: current_price < max_recent_price * 0.9.
+
+Action: Signal SELL.
+
+Guardian 6: Position Sizing (Confidence Level)
+
+Logic: Based on the final score from Guardian 3.
+
+Output:
+
+Score >= 3: "High Confidence (20% Allocation)"
+
+Score > 0: "Medium Confidence (10% Allocation)"
+
+Score <= 0: "No Trade"
+
+2. Mock Data Requirements
+Create a get_mock_data() function that returns a list of dictionaries. Include test cases covering all scenarios:
+
+Stock A (The Perfect Buy): Good news, Foreign+Trust Buy, High Volume, Safe Bias.
+
+Stock B (The Trap): Good news, but Foreign Selling, Low Volume.
+
+Stock C (The Overheated): Everything good, but Bias > 25%.
+
+Stock D (The Zombie): Everything good, but Volume < 500.
+
+Market Status: Allow a variable mock_market_status to toggle between "Bull Market" and "Bear Market" to test Guardian 1.
+
+3. Output Format
+The script should print a structured report like this:
+
+Plaintext
+
+📊 Manpan Intelligence Network v4.0 - Daily Report
+=================================================
+🌍 Market Status: 🟢 Safe (Bullish) / 🔴 Danger (Halt)
+=================================================
+
+🔍 Stock Analysis:
+-------------------------------------------------
+1. [2330 TSMC]
+   - Liquidity: ✅ Pass
+   - Chips: ✅ Strong Consensus (Score: 3)
+   - Tech: ✅ Safe Bias (5%)
+   - Result: 🔥 STRONG BUY (20% Allocation)
+
+2. [3324 DoubleG]
+   - Liquidity: ✅ Pass
+   - Chips: ⚠️ Mixed (Score: 1)
+   - Tech: ❌ OVERHEATED (Bias: 25%)
+   - Result: 🚫 PASS (Too High)
+
+3. [9999 ZombieCorp]
+   - Result: 🚫 PASS (Liquidity Issue)
+
+=================================================
+📦 Portfolio Health Check (Exit Logic):
+-------------------------------------------------
+1. [2603 Evergreen] - Cost: 200, Now: 180
+   - Signal: ✂️ CUT LOSS (Drop > 10%)
+4. Code Structure
+Please write the code in clean, commented Python using functions for each Guardian.

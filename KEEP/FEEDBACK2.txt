@@ -1,0 +1,99 @@
+🚀 第一步：關鍵定義釐清 (回答報告 5.1 章節)
+為了讓程式碼能寫下去，我針對審查報告中的疑問做出以下定案：
+1. Guardian 1 (市場熔斷) 定義
+指數標的： 鎖定 「台灣加權指數 (TAIEX)」（最能代表大盤氣氛）。
+MA60 計算： 取加權指數近 60 個交易日的「收盤價平均」。
+跌停定義： 採用 「當日跌幅 > 9.5% 的股票家數 > 100 家」（比原訂 50 家更嚴謹，避免中小型股殺盤誤判）。
+2. Guardian 2 (流動性) 定義
+單位修正： 放棄張數，改用 「近 5 日平均成交金額 > 5000 萬台幣」。這樣能過濾掉「量大但股價 3 元」的殭屍股，也能保留「量少但股價 3000 元」的高價股。
+爆量偵測： 加入！設定 today_volume / avg_volume_5days > 5 為異常爆量警示。
+3. Guardian 3 (籌碼共識) 定義
+時間範圍： 鎖定 「連續 3 日」 買超。單日大買容易是隔日沖假象。
+金額門檻： 「買超金額佔當日成交金額 > 5%」。確保法人是真的用力在買，而不是只買幾張交差。
+法人範圍： 加入 「自營商 (避險)」，並觀察三大法人合計。
+ETF 濾網： 標記「投信買超」時，若當日為 0050/0056 等大型 ETF 調整日，權重減半。
+4. Guardian 5 (出場策略) - 重大修正
+成本價 (cost_price)： MVP 階段由 Mock Data 中的 portfolio 字典 提供。
+最高價 (max_recent_price)： 定義為 「買入成交後 ～ 至今 的最高收盤價」。
+停損機制： 採納建議。
+硬停損： 持有滿 3 天後，若 (現價 - 成本) / 成本 < -8% → 砍單。
+技術停損： 跌破 MA20 且 帳面虧損中 → 砍單。
+大盤連動： 若 Guardian 1 觸發熔斷，停損條件放寬至 -15% (避免恐慌殺盤被洗掉) 或 直接清倉 (視風險偏好，目前設為直接清倉)。
+🛠️ 第二步：系統架構修正 (對應方案 C)
+我將放棄單一腳本，改用模組化架構，以容納未來的新聞層與回測。
+專案目錄結構：
+code
+Text
+intelligence_network_v4/
+│
+├── config.py                 # 存放所有閾值 (MA60, 5000萬, 3天...)
+├── main.py                   # 啟動入口 (執行 MVP 流程)
+│
+├── data_provider/
+│   ├── mock_factory.py       # 產生測試用的假股票、假大盤數據
+│   └── fetcher.py            # (未來) 串接真實 API
+│
+├── guardians/                # 六大守護者邏輯
+│   ├── g1_market.py
+│   ├── g2_liquidity.py
+│   ├── g3_chips.py
+│   ├── g4_tech.py
+│   ├── g5_exit.py            # 重寫後的出場邏輯
+│   └── g6_position.py
+│
+├── intelligence/             # (Phase 2 新增)
+│   ├── news_sentiment.py     # Gemini API 串接
+│   └── industry_map.py       # 產業關聯表
+│
+└── backtest/                 # (Phase 3 新增)
+    └── engine.py             # 回測引擎
+💻 第三步：核心邏輯修正預覽 (Python)
+針對評分最低的 Guardian 5 (出場) 與 Guardian 3 (籌碼)，我修正後的邏輯如下：
+修正後的 Guardian 5 (The Reaper)
+code
+Python
+# guardians/g5_exit.py
+
+def check_exit(stock, position, market_status):
+    """
+    stock: 當前股票數據 (price, ma20...)
+    position: 持倉資訊 (cost, buy_date, max_price_since_buy)
+    market_status: Guardian 1 的結果 (SAFE / DANGER)
+    """
+    
+    current_price = stock['close']
+    holding_days = (stock['date'] - position['buy_date']).days
+    pnl_ratio = (current_price - position['cost']) / position['cost']
+    drawdown_from_peak = (position['max_price_since_buy'] - current_price) / position['max_price_since_buy']
+
+    # 1. 大盤熔斷機制 (最優先)
+    if market_status == "DANGER":
+        return "SELL_MARKET_CRASH", "大盤熔斷逃命"
+
+    # 2. 硬停損 (持有 > 3 天才啟動，避免剛買就被洗)
+    if holding_days >= 3 and pnl_ratio < -0.08:
+        return "SELL_STOP_LOSS", f"觸及硬停損 -8% (目前 {pnl_ratio:.1%})"
+
+    # 3. 技術停損 (破線且虧錢)
+    if current_price < stock['ma20'] and pnl_ratio < 0:
+        return "SELL_TECH_BREAK", "跌破月線且虧損"
+
+    # 4. 移動停利 (保住獲利)
+    # 只有當獲利曾經超過 10% 時，才啟動移動停利
+    highest_profit = (position['max_price_since_buy'] - position['cost']) / position['cost']
+    
+    if highest_profit > 0.10: 
+        if drawdown_from_peak > 0.10: # 從高點回吐 10%
+            return "SELL_TRAILING", f"移動停利觸發 (高點回吐 {drawdown_from_peak:.1%})"
+
+    # 5. 獲利了結 (達標出場)
+    if pnl_ratio > 0.30:
+        return "SELL_TAKE_PROFIT", "獲利達標 +30%"
+
+    return "HOLD", "續抱"
+📅 第四步：執行時程 (Timeboxing)
+我現在開始執行 Phase 1 (MVP)：
+T+0 ~ T+1小時：建立 config.py 與 mock_data.py (包含符合上述定義的假資料)。
+T+1 ~ T+3小時：實作 guardians/ 下的所有模組，特別是修正後的籌碼與出場邏輯。
+T+3 ~ T+4小時：撰寫 main.py 串接流程，並產出第一份文字報告（包含 emoji 訊號）。
+待 MVP 跑通後，我會立刻回報，並申請進入 Phase 2 (加入 Gemini 新聞情緒分析)，讓這套系統真正配得上「情報網」這個名字。

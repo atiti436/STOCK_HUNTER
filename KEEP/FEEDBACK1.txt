@@ -1,0 +1,119 @@
+Role: You are a Senior Quantitative Developer. Task: Create a standalone Python script for "Manpan v4.1" with Mock Data. Goal: Build a robust MVP that addresses "Institutional Grade" requirements.
+
+1. System Architecture (The 6 Guardians - Refined)
+Guardian 1: Market Circuit Breaker
+
+Input: Mock Market Index Data.
+
+Condition: If current_index < ma60 (Bear Market) OR limit_down_count > 100.
+
+Action: Set MARKET_STATUS = "HALT". Stop all buying.
+
+Guardian 2: Liquidity Gate (Value Check)
+
+Logic: Volume alone is misleading. Use Turnover.
+
+Condition: If daily_turnover (price * volume) < 50,000,000 (50 Million TWD).
+
+Action: Mark as LIQUIDITY_FAIL.
+
+Guardian 3: Chips Consensus (Consecutive Logic)
+
+Logic: Check consecutive actions.
+
+Scoring:
+
+Foreign Buy > 3 days + Trust Buy > 3 days: +3 points
+
+Foreign Buy + Trust Buy (Current Day only): +1 point
+
+Foreign Sell + Trust Sell: -2 points
+
+Guardian 4: Technical & News Mock (Bias Lock)
+
+Logic: Combine Price Bias and Mock News Sentiment.
+
+Condition:
+
+If bias = (price - ma60) / ma60 > 0.3: Mark OVERHEATED.
+
+If mock_news_score < 0 (Negative News): Mark NEWS_FAIL.
+
+Guardian 5: The Reaper (Exit Strategy)
+
+Input: Mock Portfolio (Holding stocks).
+
+Logic for EACH holding:
+
+Stop Loss: If current_price < cost_price * 0.92 (8% Loss) OR current_price < ma20.
+
+Take Profit: If current_price < recent_high * 0.9 (Trailing Stop 10%).
+
+Action: Generate SELL_SIGNAL.
+
+Guardian 6: Position Sizing (Confidence)
+
+Logic: Based on Score.
+
+Output:
+
+Score >= 3: "15% Allocation" (Conservative)
+
+Score > 0: "8% Allocation"
+
+Else: "No Trade"
+
+2. Mock Data Requirements (Crucial!)
+You must create a robust get_mock_data() function that returns:
+
+Market Data: index_price, ma60, limit_down_count.
+
+Stock List (Candidates):
+
+Stock A: Perfect (High Turnover, Chips consecutive buy, Positive News).
+
+Stock B: Liquidity Trap (Turnover < 50M).
+
+Stock C: Overheated (Bias > 30%).
+
+Stock D: Chips Divergence (Foreign Sell).
+
+Portfolio List (Current Holdings for Guardian 5):
+
+Holding A: Profit case (Price > Cost).
+
+Holding B: Stop Loss case (Price < Cost * 0.92).
+
+Note: Ensure cost_price and recent_high are included in Portfolio data.
+
+3. Output Report Format
+Print a professional report:
+
+Plaintext
+
+📊 Manpan v4.1 Institutional Report
+===================================
+🌍 Market: 🟢 Bullish (Index > MA60)
+===================================
+
+🔍 Watchlist Analysis:
+-----------------------------------
+1. [2330 TSMC]
+   - Liquidity: ✅ Pass (Turnover > 50M)
+   - Chips: 🔥 Strong (3-Day Buy)
+   - Result: 🛒 BUY (15% Allocation)
+
+2. [9999 GhostStock]
+   - Result: 🚫 FAIL (Liquidity < 50M)
+
+===================================
+📦 Portfolio Action (The Reaper):
+-----------------------------------
+1. [2603 Evergreen] Cost: 100 | Now: 91
+   - Action: ✂️ CUT LOSS (Hit -8% Stop)
+4. Constraints
+Use standard Python libraries only (random, datetime).
+
+No external API calls.
+
+Code must be ready to run in Google Colab/Local Python.
