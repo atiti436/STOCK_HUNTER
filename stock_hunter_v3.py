@@ -529,7 +529,263 @@ def analyze_industry_trend(stocks, industry_mapping):
     }
 
 
-# ==================== 篩選邏輯 ====================
+# ==================== 歷史資料&技術指標 ====================
+
+def get_stock_history(ticker, days=30):
+    """取得單支股票歷史資料 (最近 N 天)"""
+    try:
+        all_data = []
+        
+        # 抓取最近 2 個月資料
+        for i in range(2):
+            target_date = datetime.now() - timedelta(days=30*i)
+            date_str = target_date.strftime('%Y%m01')
+            
+            url = f"https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY"
+            params = {
+                'date': date_str,
+                'stockNo': ticker,
+                'response': 'json'
+            }
+            
+            response = requests.get(url, params=params, timeout=10, verify=False)
+            data = response.json()
+            
+            if data.get('stat') == 'OK' and data.get('data'):
+                for row in data['data']:
+                    try:
+                        # 日期, 成交股數, 成交金額, 開盤, 最高, 最低, 收盤, 漲跌, 成交筆數
+                        close = float(row[6].replace(',', ''))
+                        high = float(row[4].replace(',', ''))
+                        low = float(row[5].replace(',', ''))
+                        volume = int(row[1].replace(',', ''))
+                        
+                        all_data.append({
+                            'date': row[0],
+                            'close': close,
+                            'high': high,
+                            'low': low,
+                            'volume': volume
+                        })
+                    except:
+                        continue
+            
+            time.sleep(0.3)  # API 間隔
+        
+        # 按日期排序 (舊到新)
+        all_data.sort(key=lambda x: x['date'])
+        
+        # 回傳最近 N 天
+        return all_data[-days:] if len(all_data) >= days else all_data
+        
+    except Exception as e:
+        return []
+
+
+def calculate_ma(closes, period):
+    """計算移動平均線"""
+    if len(closes) < period:
+        return None
+    return round(sum(closes[-period:]) / period, 2)
+
+
+def calculate_rsi(closes, period=14):
+    """計算 RSI"""
+    if len(closes) < period + 1:
+        return None
+    
+    gains = []
+    losses = []
+    
+    for i in range(1, len(closes)):
+        change = closes[i] - closes[i-1]
+        if change > 0:
+            gains.append(change)
+            losses.append(0)
+        else:
+            gains.append(0)
+            losses.append(abs(change))
+    
+    # 取最近 period 天
+    recent_gains = gains[-period:]
+    recent_losses = losses[-period:]
+    
+    avg_gain = sum(recent_gains) / period
+    avg_loss = sum(recent_losses) / period
+    
+    if avg_loss == 0:
+        return 100
+    
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    return round(rsi, 1)
+
+
+def calculate_kd(highs, lows, closes, period=9):
+    """計算 KD 指標"""
+    if len(closes) < period:
+        return None, None
+    
+    # 最近 period 天的最高最低
+    highest = max(highs[-period:])
+    lowest = min(lows[-period:])
+    
+    if highest == lowest:
+        return 50, 50
+    
+    # RSV
+    rsv = (closes[-1] - lowest) / (highest - lowest) * 100
+    
+    # K = 前日K * 2/3 + 今日RSV * 1/3 (簡化版用 RSV)
+    k = round(rsv, 1)
+    d = round(rsv * 0.67, 1)  # 簡化版
+    
+    return k, d
+
+
+def calculate_volume_ratio(volumes):
+    """計算量比 (今日成交量 / 5日均量)"""
+    if len(volumes) < 5:
+        return 1.0
+    
+    avg_5d = sum(volumes[-6:-1]) / 5  # 不含今日
+    if avg_5d == 0:
+        return 1.0
+    
+    return round(volumes[-1] / avg_5d, 2)
+
+
+def calculate_cdp(high, low, close):
+    """計算 CDP (當沖價位)"""
+    pt = high - low
+    cdp = (high + low + 2 * close) / 4
+    
+    return {
+        'ah': round(cdp + pt, 2),        # 最高價
+        'nh': round(cdp + 0.5 * pt, 2),  # 近高 (賣點)
+        'cdp': round(cdp, 2),            # 中軸
+        'nl': round(cdp - 0.5 * pt, 2),  # 近低 (買點)
+        'al': round(cdp - pt, 2)         # 最低價
+    }
+
+
+# ==================== 當沖&波段分析 ====================
+
+def analyze_day_trade(stock, history=None):
+    """
+    當沖分析
+    條件: 強勢 + 爆量 + 人氣旺
+    """
+    result = {
+        'suitable': False,
+        'score': 0,
+        'reasons': [],
+        'cdp': None
+    }
+    
+    # 條件1: 強勢 (漲幅 > 3%)
+    if stock['change_pct'] >= 3:
+        result['score'] += 2
+        result['reasons'].append(f"強勢漲{stock['change_pct']:.1f}%")
+    
+    # 條件2: 成交金額 > 5億
+    if stock['turnover'] >= 500_000_000:
+        result['score'] += 1
+        result['reasons'].append(f"成交{stock['turnover']/1e8:.1f}億")
+    
+    # 條件3: 量比 (需要歷史資料)
+    if history and len(history) >= 5:
+        volumes = [d['volume'] for d in history]
+        volumes.append(stock['volume'])
+        vol_ratio = calculate_volume_ratio(volumes)
+        
+        if vol_ratio >= 2:
+            result['score'] += 2
+            result['reasons'].append(f"爆量{vol_ratio:.1f}x")
+    
+    # 計算 CDP
+    result['cdp'] = calculate_cdp(stock['high'], stock['low'], stock['price'])
+    
+    # 判斷是否適合當沖
+    if result['score'] >= 3:
+        result['suitable'] = True
+    
+    return result
+
+
+def analyze_swing_trade(stock, history=None):
+    """
+    波段分析 (右側交易)
+    條件: 站上 MA20 + 法人買超 + MACD/KD 配合
+    """
+    result = {
+        'suitable': False,
+        'score': 0,
+        'reasons': [],
+        'ma5': None,
+        'ma20': None,
+        'rsi': None,
+        'k': None,
+        'd': None,
+        'stop_loss': None
+    }
+    
+    if not history or len(history) < 20:
+        # 無歷史資料,用簡化版
+        if stock['change_pct'] > 0:
+            result['score'] += 1
+            result['reasons'].append("今日上漲")
+        return result
+    
+    # 取得收盤價序列
+    closes = [d['close'] for d in history]
+    closes.append(stock['price'])  # 加入今日
+    
+    highs = [d['high'] for d in history]
+    lows = [d['low'] for d in history]
+    
+    # 計算技術指標
+    ma5 = calculate_ma(closes, 5)
+    ma20 = calculate_ma(closes, 20)
+    rsi = calculate_rsi(closes)
+    k, d = calculate_kd(highs, lows, closes)
+    
+    result['ma5'] = ma5
+    result['ma20'] = ma20
+    result['rsi'] = rsi
+    result['k'] = k
+    result['d'] = d
+    
+    # 條件1: 站上 MA20
+    if ma20 and stock['price'] > ma20:
+        result['score'] += 2
+        result['reasons'].append(f"站上MA20({ma20})")
+        result['stop_loss'] = ma20  # 停損設在 MA20
+    
+    # 條件2: 站上 MA5 (短線)
+    if ma5 and stock['price'] > ma5:
+        result['score'] += 1
+        result['reasons'].append(f"站上MA5")
+    
+    # 條件3: RSI 在合理區間 (30-70)
+    if rsi and 30 < rsi < 70:
+        result['score'] += 1
+        result['reasons'].append(f"RSI={rsi}")
+    
+    # 條件4: KD 多方 (K > D)
+    if k and d and k > d:
+        result['score'] += 1
+        result['reasons'].append(f"KD多方")
+    
+    # 判斷是否適合波段
+    if result['score'] >= 3 and result['stop_loss']:
+        result['suitable'] = True
+    
+    return result
+
+
+
 
 def quick_filter(stocks, institutional):
     """
@@ -628,64 +884,70 @@ def quick_filter(stocks, institutional):
 
 def deep_analyze(candidates):
     """
-    第二階段: 深度分析 Top N (呼叫 Gemini API 分析新聞)
+    第二階段: 深度分析 Top N
+    包含: 歷史資料、技術指標、當沖/波段分析、Gemini 新聞分析
     """
     top_n = CONFIG['TOP_N_FOR_DEEP_ANALYSIS']
     to_analyze = candidates[:top_n]
     
     print(f"\n🔬 第二階段: 深度分析 Top {len(to_analyze)} 支股票...", flush=True)
-    print(f"   (含 Gemini 新聞情緒分析)", flush=True)
+    print(f"   (含技術指標 + Gemini 新聞分析)", flush=True)
     
-    results = []
+    day_trade_list = []   # 當沖標的
+    swing_trade_list = [] # 波段標的
     
     for i, candidate in enumerate(to_analyze, 1):
         ticker = candidate['ticker']
         name = candidate['name']
         
         try:
-            # 抓取新聞
-            news_list = get_stock_news(ticker, name)
+            # 1. 抓取歷史資料 (30天)
+            history = get_stock_history(ticker, 30)
             
-            # Gemini 分析新聞情緒
+            # 2. 當沖分析
+            day_trade = analyze_day_trade(candidate, history)
+            
+            # 3. 波段分析
+            swing_trade = analyze_swing_trade(candidate, history)
+            
+            # 4. 抓取新聞 + Gemini 分析
+            news_list = get_stock_news(ticker, name)
             news_result = analyze_news_sentiment(ticker, name, news_list)
             
-            # 計算最終評分 = 基礎評分 + 新聞情緒加成
+            # 基礎評分 + 新聞加成
             base_score = candidate['score']
             sentiment = news_result.get('sentiment', 0)
-            
-            # 新聞加分/扣分
-            if sentiment > 0.3:
-                news_bonus = 1
-            elif sentiment < -0.3:
-                news_bonus = -1
-            else:
-                news_bonus = 0
-            
+            news_bonus = 1 if sentiment > 0.3 else (-1 if sentiment < -0.3 else 0)
             final_score = base_score + news_bonus
             
-            # 計算停損停利
-            price = candidate['price']
-            stop_loss = round(price * 0.92, 2)  # -8%
-            take_profit = round(price * 1.30, 2)  # +30%
-            
+            # 組合結果
             result = {
                 'rank': i,
                 'ticker': ticker,
                 'name': name,
-                'price': price,
+                'price': candidate['price'],
                 'change_pct': candidate['change_pct'],
                 'turnover': candidate['turnover'],
+                'high': candidate['high'],
+                'low': candidate['low'],
                 'score': final_score,
                 'base_score': base_score,
                 'reasons': candidate['reasons'],
                 'institutional': candidate['institutional'],
                 'news_summary': news_result.get('summary', ''),
                 'news_sentiment': sentiment,
-                'stop_loss': stop_loss,
-                'take_profit': take_profit
+                # 當沖資訊
+                'day_trade': day_trade,
+                # 波段資訊
+                'swing_trade': swing_trade
             }
             
-            results.append(result)
+            # 分類
+            if day_trade['suitable']:
+                day_trade_list.append(result)
+            
+            if swing_trade['suitable']:
+                swing_trade_list.append(result)
             
             if i % 10 == 0:
                 print(f"   進度: {i}/{len(to_analyze)}", flush=True)
@@ -693,20 +955,27 @@ def deep_analyze(candidates):
         except Exception as e:
             print(f"⚠️ {ticker} 分析失敗: {e}", flush=True)
     
-    # 過濾出推薦買入的 (score >= 2)
-    buy_recommendations = [r for r in results if r['score'] >= 2]
+    # 按評分排序
+    day_trade_list.sort(key=lambda x: x['day_trade']['score'], reverse=True)
+    swing_trade_list.sort(key=lambda x: x['swing_trade']['score'], reverse=True)
     
-    print(f"✅ 深度分析完成, 推薦買入: {len(buy_recommendations)} 支", flush=True)
+    print(f"✅ 深度分析完成:", flush=True)
+    print(f"   🔥 當沖標的: {len(day_trade_list)} 支", flush=True)
+    print(f"   📈 波段標的: {len(swing_trade_list)} 支", flush=True)
     
-    return buy_recommendations[:CONFIG['MAX_RECOMMENDATIONS']]
+    return {
+        'day_trade': day_trade_list[:5],    # 當沖 Top 5
+        'swing_trade': swing_trade_list[:CONFIG['MAX_RECOMMENDATIONS']]  # 波段 Top 10
+    }
 
 
 # ==================== 主流程 ====================
 
 def scan_all_stocks():
-    """掃描全台股 - 完整版 (含新聞AI+產業趨勢)"""
+    """掃描全台股 - 完整版 (含當沖/波段策略)"""
     print("\n" + "="*60, flush=True)
-    print("🚀 台股情報獵人 v3.1 - 開始掃描", flush=True)
+    print("🚀 台股情報獵人 v3.2 - 開始掃描", flush=True)
+    print("   (含當沖/波段雙策略)", flush=True)
     print("="*60, flush=True)
     
     start_time = time.time()
@@ -764,7 +1033,8 @@ def scan_all_stocks():
     print(f"✅ 掃描完成! 耗時: {result['execution_time']} 秒", flush=True)
     print(f"   總股票數: {result['total_stocks']}", flush=True)
     print(f"   通過篩選: {result['passed_filter']}", flush=True)
-    print(f"   推薦買入: {len(recommendations)}", flush=True)
+    print(f"   🔥 當沖標的: {len(recommendations.get('day_trade', []))} 支", flush=True)
+    print(f"   📈 波段標的: {len(recommendations.get('swing_trade', []))} 支", flush=True)
     print("="*60 + "\n", flush=True)
     
     return result
@@ -778,13 +1048,15 @@ def format_line_messages(result):
         return [f"❌ 錯誤: {result['error']}"]
     
     market = result['market']
-    recommendations = result['recommendations']
+    recommendations = result.get('recommendations', {})
+    day_trade_list = recommendations.get('day_trade', [])
+    swing_trade_list = recommendations.get('swing_trade', [])
     
     messages = []
     
     # 第一段: 大盤 + 國際新聞 + 產業趨勢
     msg1 = [
-        f"📊 台股情報獵人 v3.1",
+        f"📊 台股情報獵人 v3.2",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         ""
     ]
@@ -813,41 +1085,69 @@ def format_line_messages(result):
         msg1.append(f"❄️ 弱: {weak}")
         msg1.append("")
     
-    msg1.append(f"📈 今日推薦: {len(recommendations)} 檔")
-    msg1.append(f"⚡ 耗時: {result['execution_time']} 秒 | 分析: {result['total_stocks']} 支")
+    msg1.append(f"🔥 當沖標的: {len(day_trade_list)} 支")
+    msg1.append(f"📈 波段標的: {len(swing_trade_list)} 支")
+    msg1.append(f"⚡ 耗時: {result['execution_time']} 秒")
     
     messages.append("\n".join(msg1))
     
-    # 第二段起: 推薦清單 (每 5 檔一段)
-    for batch_start in range(0, len(recommendations), 5):
-        batch = recommendations[batch_start:batch_start+5]
+    # 第二段: 當沖標的
+    if day_trade_list:
+        msg2 = ["🔥 當沖觀察:", ""]
         
-        msg = [f"📈 推薦 ({batch_start+1}-{batch_start+len(batch)}):", ""]
+        for i, rec in enumerate(day_trade_list[:5], 1):
+            dt = rec.get('day_trade', {})
+            cdp = dt.get('cdp', {})
+            
+            msg2.append(f"{i}. {rec['ticker']} {rec['name']}")
+            msg2.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
+            msg2.append(f"   💡 {', '.join(dt.get('reasons', [])[:2])}")
+            
+            if cdp:
+                msg2.append(f"   📍 CDP 買點: ${cdp.get('nl', '')} / 賣點: ${cdp.get('nh', '')}")
+            msg2.append("")
         
-        for i, rec in enumerate(batch, batch_start + 1):
-            msg.append(f"{i}. {rec['ticker']} {rec['name']}")
-            msg.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
-            msg.append(f"   📊 評分: {rec['score']} 分")
+        messages.append("\n".join(msg2))
+    
+    # 第三段起: 波段標的
+    if swing_trade_list:
+        for batch_start in range(0, len(swing_trade_list), 5):
+            batch = swing_trade_list[batch_start:batch_start+5]
             
-            # 籌碼資訊
-            inst = rec.get('institutional', {})
-            if inst:
-                foreign = inst.get('foreign', 0)
-                trust = inst.get('trust', 0)
-                if foreign != 0 or trust != 0:
-                    msg.append(f"   🏦 外資:{foreign//1000:+}張 投信:{trust//1000:+}張")
+            msg = [f"📈 波段推薦 ({batch_start+1}-{batch_start+len(batch)}):", ""]
             
-            # 新聞摘要 (來自 Gemini)
-            news_summary = rec.get('news_summary', '')
-            if news_summary and news_summary not in ['無相關新聞', '分析失敗', '']:
-                msg.append(f"   📰 {news_summary}")
+            for i, rec in enumerate(batch, batch_start + 1):
+                sw = rec.get('swing_trade', {})
+                
+                msg.append(f"{i}. {rec['ticker']} {rec['name']}")
+                msg.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
+                msg.append(f"   📊 評分: {rec['score']} 分")
+                
+                # 技術指標
+                if sw.get('ma20'):
+                    msg.append(f"   📐 MA20: ${sw['ma20']} | RSI: {sw.get('rsi', '-')}")
+                
+                # 停損
+                if sw.get('stop_loss'):
+                    stop_loss_pct = (sw['stop_loss'] - rec['price']) / rec['price'] * 100
+                    msg.append(f"   🛑 停損: ${sw['stop_loss']} ({stop_loss_pct:.1f}%)")
+                
+                # 籌碼
+                inst = rec.get('institutional', {})
+                if inst:
+                    foreign = inst.get('foreign', 0)
+                    trust = inst.get('trust', 0)
+                    if foreign != 0 or trust != 0:
+                        msg.append(f"   🏦 外資:{foreign//1000:+}張 投信:{trust//1000:+}張")
+                
+                # 新聞
+                news = rec.get('news_summary', '')
+                if news and news not in ['無相關新聞', '分析失敗', '']:
+                    msg.append(f"   📰 {news}")
+                
+                msg.append("")
             
-            # 理由
-            if rec.get('reasons'):
-                msg.append(f"   💡 {', '.join(rec['reasons'][:2])}")
-            msg.append("")
-        
-        messages.append("\n".join(msg))
+            messages.append("\n".join(msg))
     
     return messages
 
