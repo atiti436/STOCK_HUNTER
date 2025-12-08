@@ -757,19 +757,22 @@ def analyze_swing_trade(stock, history=None):
     result['k'] = k
     result['d'] = d
     
-    # 條件1: 站上 MA20
+    # 條件1: 站上 MA20 (核心條件)
     if ma20 and stock['price'] > ma20:
         result['score'] += 2
         result['reasons'].append(f"站上MA20({ma20})")
         result['stop_loss'] = ma20  # 停損設在 MA20
+    elif ma20:
+        # 即使沒站上 MA20,但接近也給停損參考
+        result['stop_loss'] = round(stock['price'] * 0.95, 2)  # -5%
     
     # 條件2: 站上 MA5 (短線)
     if ma5 and stock['price'] > ma5:
         result['score'] += 1
         result['reasons'].append(f"站上MA5")
     
-    # 條件3: RSI 在合理區間 (30-70)
-    if rsi and 30 < rsi < 70:
+    # 條件3: RSI 在合理區間 (30-80 放寬)
+    if rsi and 30 < rsi < 80:
         result['score'] += 1
         result['reasons'].append(f"RSI={rsi}")
     
@@ -778,9 +781,23 @@ def analyze_swing_trade(stock, history=None):
         result['score'] += 1
         result['reasons'].append(f"KD多方")
     
-    # 判斷是否適合波段
-    if result['score'] >= 3 and result['stop_loss']:
+    # 條件5: 法人買超
+    inst = stock.get('institutional', {})
+    if inst:
+        foreign = inst.get('foreign', 0)
+        trust = inst.get('trust', 0)
+        if foreign > 0 and trust > 0:
+            result['score'] += 2
+            result['reasons'].append("外資投信雙買")
+        elif foreign > 0 or trust > 0:
+            result['score'] += 1
+            result['reasons'].append("法人買超")
+    
+    # 判斷是否適合波段 (降低門檻到 2 分)
+    if result['score'] >= 2:
         result['suitable'] = True
+        if not result['stop_loss']:
+            result['stop_loss'] = round(stock['price'] * 0.95, 2)
     
     return result
 
@@ -861,7 +878,8 @@ def quick_filter(stocks, institutional):
             'price': price,
             'change_pct': change_pct,
             'turnover': turnover,
-            'volume_lots': stock['volume_lots'],
+            'volume': stock['volume'],           # 成交股數
+            'volume_lots': stock['volume_lots'], # 成交張數
             'high': stock['high'],
             'low': stock['low'],
             'score': score,
