@@ -674,8 +674,8 @@ def round_to_tick(price):
         return round(price / 5) * 5  # 5
 
 
-# 當沖排除的產業
-EXCLUDE_DAY_TRADE_INDUSTRIES = ['金融保險業', '金融業', '銀行業', '保險業', '金控業']
+# 當沖排除的產業 (TWSE 產業代碼: 17 = 金融保險業)
+EXCLUDE_DAY_TRADE_INDUSTRIES = ['17', '金融保險業', '金融業', '銀行業', '保險業', '金控業']
 
 
 def calculate_cdp(high, low, close):
