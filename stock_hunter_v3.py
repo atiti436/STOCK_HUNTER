@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-台股情報獵人 v4.0 - AI 增強版
+台股情報獵人 v4.1 - 單股分析版
 
 改進重點:
 1. 使用 OpenAPI 一次取得所有股票資料
@@ -75,9 +75,18 @@ CACHE = {
     'all_stocks_time': None,      # 快取時間
     'institutional': {},          # 法人資料
     'institutional_time': None,   # 法人快取時間
+    'pe_ratio': {},               # 本益比資料
+    'pe_ratio_time': None,
+    'margin_trading': {},         # 融資融券資料
+    'margin_trading_time': None,
 }
 
 CACHE_EXPIRE_MINUTES = 30  # 快取 30 分鐘
+
+# ==================== 查詢次數限制 ====================
+
+USER_QUERY_COUNT = {}  # {user_id: {'date': '2024-12-10', 'count': 3}}
+DAILY_QUERY_LIMIT = 3  # 非管理員每日查詢上限
 
 def is_cache_valid(cache_time):
     """檢查快取是否有效"""
@@ -254,6 +263,117 @@ def get_institutional_data():
     
     print("⚠️ 無法取得法人資料", flush=True)
     return {}
+
+
+def get_pe_ratio_data():
+    """取得本益比資料 (P/E Ratio)"""
+    # 檢查快取
+    if is_cache_valid(CACHE['pe_ratio_time']) and CACHE['pe_ratio']:
+        return CACHE['pe_ratio']
+    
+    try:
+        url = "https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL"
+        response = requests.get(url, timeout=CONFIG['API_TIMEOUT'], verify=False)
+        data = response.json()
+        
+        result = {}
+        for item in data:
+            ticker = item.get('Code', '').strip()
+            if not ticker or not ticker.isdigit():
+                continue
+            
+            try:
+                pe_str = item.get('PEratio', '').strip()
+                pb_str = item.get('PBratio', '').strip()
+                dy_str = item.get('DividendYield', '').strip()
+                
+                result[ticker] = {
+                    'pe': float(pe_str) if pe_str and pe_str != '-' else None,
+                    'pb': float(pb_str) if pb_str and pb_str != '-' else None,
+                    'dividend_yield': float(dy_str) if dy_str and dy_str != '-' else None
+                }
+            except:
+                continue
+        
+        if result:
+            print(f"✅ 取得 {len(result)} 支股票本益比資料", flush=True)
+            CACHE['pe_ratio'] = result
+            CACHE['pe_ratio_time'] = datetime.now()
+        
+        return result
+    except Exception as e:
+        print(f"⚠️ 本益比資料取得失敗: {e}", flush=True)
+        return {}
+
+
+def get_margin_trading_data():
+    """取得融資融券資料"""
+    # 檢查快取
+    if is_cache_valid(CACHE['margin_trading_time']) and CACHE['margin_trading']:
+        return CACHE['margin_trading']
+    
+    try:
+        # 嘗試最近 7 天 (假日沒資料)
+        for days_ago in range(7):
+            target_date = datetime.now() - timedelta(days=days_ago)
+            date_str = target_date.strftime('%Y%m%d')
+            
+            url = "https://www.twse.com.tw/rwd/zh/marginTrading/MI_MARGN"
+            params = {
+                'date': date_str,
+                'selectType': 'ALL',
+                'response': 'json'
+            }
+            
+            try:
+                response = requests.get(url, params=params, timeout=CONFIG['API_TIMEOUT'], verify=False)
+                data = response.json()
+                
+                if data.get('stat') != 'OK' or not data.get('tables'):
+                    continue
+                
+                # 找到個股融資融券資料表
+                result = {}
+                for table in data.get('tables', []):
+                    if '融資' in table.get('title', '') or not table.get('data'):
+                        # 這個表格可能是個股資料
+                        for item in table.get('data', []):
+                            try:
+                                if len(item) < 12:
+                                    continue
+                                ticker = item[0].strip()
+                                if not ticker.isdigit() or len(ticker) != 4:
+                                    continue
+                                
+                                # 融資餘額 (張)
+                                margin_buy = int(item[3].replace(',', '')) if item[3] != '-' else 0
+                                # 融券餘額 (張)  
+                                short_sell = int(item[9].replace(',', '')) if item[9] != '-' else 0
+                                
+                                # 券資比
+                                ratio = round(short_sell / margin_buy * 100, 1) if margin_buy > 0 else 0
+                                
+                                result[ticker] = {
+                                    'margin_buy': margin_buy,
+                                    'short_sell': short_sell,
+                                    'ratio': ratio
+                                }
+                            except:
+                                continue
+                
+                if result:
+                    print(f"✅ 取得 {len(result)} 支股票融資融券資料 (日期: {date_str})", flush=True)
+                    CACHE['margin_trading'] = result
+                    CACHE['margin_trading_time'] = datetime.now()
+                    return result
+            except:
+                continue
+        
+        print("⚠️ 無法取得融資融券資料", flush=True)
+        return {}
+    except Exception as e:
+        print(f"⚠️ 融資融券資料取得失敗: {e}", flush=True)
+        return {}
 
 
 def get_market_index():
@@ -1040,6 +1160,211 @@ def deep_analyze(candidates, industry_mapping=None):
     }
 
 
+# ==================== 查詢次數控制 ====================
+
+def check_query_limit(user_id):
+    """檢查用戶是否超過每日查詢限制"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    if user_id not in USER_QUERY_COUNT:
+        USER_QUERY_COUNT[user_id] = {'date': today, 'count': 0}
+    
+    user_data = USER_QUERY_COUNT[user_id]
+    
+    # 日期不同，重置計數
+    if user_data['date'] != today:
+        USER_QUERY_COUNT[user_id] = {'date': today, 'count': 0}
+        return True, 0
+    
+    return user_data['count'] < DAILY_QUERY_LIMIT, user_data['count']
+
+
+def increment_query_count(user_id):
+    """增加用戶查詢次數"""
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    if user_id not in USER_QUERY_COUNT:
+        USER_QUERY_COUNT[user_id] = {'date': today, 'count': 0}
+    
+    if USER_QUERY_COUNT[user_id]['date'] != today:
+        USER_QUERY_COUNT[user_id] = {'date': today, 'count': 0}
+    
+    USER_QUERY_COUNT[user_id]['count'] += 1
+    return USER_QUERY_COUNT[user_id]['count']
+
+
+# ==================== 單股分析 ====================
+
+def analyze_single_stock(ticker):
+    """分析單一股票，回傳完整報告"""
+    print(f"\n🔍 開始分析 {ticker}...", flush=True)
+    
+    try:
+        # 1. 取得今日所有股票資料
+        all_stocks = get_all_stocks_data()
+        stock_data = None
+        for s in all_stocks:
+            if s['ticker'] == ticker:
+                stock_data = s
+                break
+        
+        if not stock_data:
+            return {'error': f'找不到股票 {ticker}'}
+        
+        # 2. 取得法人資料
+        institutional = get_institutional_data()
+        stock_data['institutional'] = institutional.get(ticker, {})
+        
+        # 3. 取得本益比資料
+        pe_data = get_pe_ratio_data()
+        stock_pe = pe_data.get(ticker, {})
+        
+        # 4. 取得融資融券資料
+        margin_data = get_margin_trading_data()
+        stock_margin = margin_data.get(ticker, {})
+        
+        # 5. 取得歷史資料
+        history = get_stock_history(ticker, 30)
+        
+        # 6. 技術指標分析
+        swing_trade = analyze_swing_trade(stock_data, history)
+        
+        # 7. 取得產業分類
+        industry_mapping = get_industry_mapping()
+        industry = industry_mapping.get(ticker, '')
+        
+        # 8. 當沖分析
+        day_trade = analyze_day_trade(stock_data, history, industry)
+        
+        # 9. 新聞分析
+        news_list = get_stock_news(ticker, stock_data['name'])
+        news_result = analyze_news_sentiment(ticker, stock_data['name'], news_list)
+        
+        # 組合結果
+        result = {
+            'ticker': ticker,
+            'name': stock_data['name'],
+            'price': stock_data['price'],
+            'change_pct': stock_data['change_pct'],
+            'volume': stock_data['volume'],
+            'turnover': stock_data['turnover'],
+            'institutional': stock_data.get('institutional', {}),
+            'pe_ratio': stock_pe,
+            'margin_trading': stock_margin,
+            'swing_trade': swing_trade,
+            'day_trade': day_trade,
+            'news_summary': news_result.get('summary', ''),
+            'news_sentiment': news_result.get('sentiment', 0),
+        }
+        
+        print(f"✅ {ticker} {stock_data['name']} 分析完成", flush=True)
+        return result
+        
+    except Exception as e:
+        print(f"❌ {ticker} 分析失敗: {e}", flush=True)
+        return {'error': str(e)}
+
+
+def format_single_stock_message(result):
+    """格式化單股分析訊息"""
+    if 'error' in result:
+        return f"❌ 分析失敗: {result['error']}"
+    
+    ticker = result['ticker']
+    name = result['name']
+    price = result['price']
+    change_pct = result['change_pct']
+    volume = result['volume']
+    
+    # 計算量比
+    sw = result.get('swing_trade', {})
+    dt = result.get('day_trade', {})
+    inst = result.get('institutional', {})
+    pe_info = result.get('pe_ratio', {})
+    margin_info = result.get('margin_trading', {})
+    
+    msg = [
+        f"📊 {ticker} {name} 分析報告",
+        "══════════════════════",
+        "",
+        f"💰 價格: ${price} ({change_pct:+.1f}%)",
+        f"📈 成交: {volume:,} 張",
+        "",
+    ]
+    
+    # 技術指標
+    msg.append("┌─ 技術指標 ────────┐")
+    if sw.get('ma5') and sw.get('ma20'):
+        msg.append(f"│ MA5: ${sw['ma5']} | MA20: ${sw['ma20']}")
+    if sw.get('rsi') and sw.get('k'):
+        msg.append(f"│ RSI: {sw['rsi']} | KD: K{sw['k']}/D{sw['d']}")
+    msg.append("└───────────────────┘")
+    msg.append("")
+    
+    # 基本面
+    if pe_info:
+        msg.append("┌─ 基本面 ──────────┐")
+        if pe_info.get('pe'):
+            msg.append(f"│ 📊 本益比: {pe_info['pe']:.1f} 倍")
+        if pe_info.get('pb'):
+            msg.append(f"│ 📈 股價淨值比: {pe_info['pb']:.2f}")
+        if pe_info.get('dividend_yield'):
+            msg.append(f"│ 💰 殖利率: {pe_info['dividend_yield']:.2f}%")
+        msg.append("└───────────────────┘")
+        msg.append("")
+    
+    # 籌碼面
+    msg.append("┌─ 籌碼面 ──────────┐")
+    if inst:
+        foreign = inst.get('foreign', 0)
+        trust = inst.get('trust', 0)
+        msg.append(f"│ 🏦 外資: {foreign//1000:+,}張")
+        msg.append(f"│ 🏦 投信: {trust//1000:+,}張")
+    if margin_info:
+        margin_buy = margin_info.get('margin_buy', 0)
+        short_sell = margin_info.get('short_sell', 0)
+        ratio = margin_info.get('ratio', 0)
+        msg.append(f"│ 💳 融資: {margin_buy:,}張")
+        msg.append(f"│ 💳 融券: {short_sell:,}張 (券資比{ratio}%)")
+    msg.append("└───────────────────┘")
+    msg.append("")
+    
+    # 波段評分
+    swing_score = sw.get('score', 0)
+    msg.append(f"📈 波段評分: {swing_score} 分")
+    if sw.get('reasons'):
+        msg.append(f"   {' | '.join(sw['reasons'][:3])}")
+    if sw.get('stop_loss'):
+        stop_pct = (sw['stop_loss'] - price) / price * 100
+        msg.append(f"   🛑 停損: ${sw['stop_loss']} ({stop_pct:.1f}%)")
+    if sw.get('take_profit'):
+        profit_pct = (sw['take_profit'] - price) / price * 100
+        msg.append(f"   🎯 停利: ${sw['take_profit']} (+{profit_pct:.1f}%)")
+    if sw.get('risk_reward'):
+        msg.append(f"   📐 風報比: 1:{sw['risk_reward']}")
+    msg.append("")
+    
+    # 當沖評分
+    day_score = dt.get('score', 0)
+    msg.append(f"🔥 當沖評分: {day_score} 分")
+    if dt.get('reasons'):
+        msg.append(f"   {' | '.join(dt['reasons'][:3])}")
+    if dt.get('cdp'):
+        cdp = dt['cdp']
+        msg.append(f"   📍 買點: ${cdp.get('nl')} | 賣點: ${cdp.get('nh')}")
+    if not dt.get('suitable'):
+        if '金融' in str(dt.get('reasons', [])):
+            msg.append("   ⚠️ 金融股不建議當沖")
+    msg.append("")
+    
+    # 新聞
+    news = result.get('news_summary', '')
+    if news and news not in ['無相關新聞', '分析失敗', '']:
+        msg.append(f"📰 新聞: {news}")
+    
+    return "\n".join(msg)
+
+
 # ==================== 主流程 ====================
 
 def scan_all_stocks():
@@ -1313,6 +1638,38 @@ def handle_message(event):
             error_msg = f"❌ 分析失敗: {str(e)[:100]}"
             line_bot_api.push_message(user_id, TextSendMessage(text=error_msg))
         return
+    
+    # 單股分析 (輸入 4 碼數字)
+    if text.isdigit() and len(text) == 4:
+        ticker = text
+        
+        # 管理員無限制，其他人檢查次數
+        if ADMIN_USER_ID and user_id != ADMIN_USER_ID:
+            can_query, current_count = check_query_limit(user_id)
+            if not can_query:
+                reply = f"⚠️ 今日查詢已達上限 ({DAILY_QUERY_LIMIT}/{DAILY_QUERY_LIMIT})\n📢 請等待明日重置\n💡 或等待每日 8:00 推播"
+                line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+                return
+        
+        reply = f"🔍 分析 {ticker} 中,請稍候..."
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        
+        try:
+            # 執行單股分析
+            result = analyze_single_stock(ticker)
+            msg = format_single_stock_message(result)
+            
+            # 增加查詢次數 (管理員不計算)
+            if not (ADMIN_USER_ID and user_id == ADMIN_USER_ID):
+                new_count = increment_query_count(user_id)
+                remaining = DAILY_QUERY_LIMIT - new_count
+                msg += f"\n\n📊 今日剩餘查詢次數: {remaining}/{DAILY_QUERY_LIMIT}"
+            
+            line_bot_api.push_message(user_id, TextSendMessage(text=msg))
+        except Exception as e:
+            error_msg = f"❌ 分析失敗: {str(e)[:100]}"
+            line_bot_api.push_message(user_id, TextSendMessage(text=error_msg))
+        return
         
     # 大盤狀態 (所有人可用)
     if text == '狀態':
@@ -1323,9 +1680,9 @@ def handle_message(event):
     
     # 顯示指令說明
     if ADMIN_USER_ID and user_id == ADMIN_USER_ID:
-        reply = "📋 管理員指令:\n• 分析 - 執行完整分析\n• 狀態 - 查看大盤\n• 我的ID - 查看 User ID"
+        reply = "📋 管理員指令:\n• 分析 - 執行完整分析\n• 股票代碼 - 單股分析 (如 2330)\n• 狀態 - 查看大盤\n• 我的ID - 查看 User ID"
     else:
-        reply = "📋 指令:\n• 狀態 - 查看大盤\n• 我的ID - 查看 User ID\n\n📢 每日 8:00 自動推播分析結果"
+        reply = f"📋 指令:\n• 股票代碼 - 單股分析 (如 2330)\n• 狀態 - 查看大盤\n• 我的ID - 查看 User ID\n\n📊 每日可查詢 {DAILY_QUERY_LIMIT} 次\n📢 每日 8:00 自動推播分析結果"
     line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 
