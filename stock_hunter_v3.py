@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-台股情報獵人 v3.0 - 優化版
+台股情報獵人 v4.0 - AI 增強版
 
 改進重點:
-1. 使用 OpenAPI 一次取得所有股票資料 (1 次請求)
-2. 分兩階段: 快速篩選 + 深度分析 Top 50
-3. 減少 API 呼叫次數 (從 6000+ 降到 ~100)
-4. 加入 Cache 機制
-5. 更好的錯誤處理
+1. 使用 OpenAPI 一次取得所有股票資料
+2. 分兩階段: 快速篩選 + 深度分析 Top 15
+3. 升級 Gemini 2.5 Pro 智能分析
+4. 新增停利目標 + 風報比計算
+5. CDP 價格對齊 tick size
+6. 當沖排除金融股
+7. 管理員權限控制
 """
 
 import os
@@ -32,7 +34,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'YOUR_TOKEN')
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', 'YOUR_SECRET')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_KEY')
-LINE_USER_ID = os.getenv('LINE_USER_ID', 'YOUR_USER_ID')
+ADMIN_USER_ID = os.getenv('ADMIN_USER_ID', '')  # 管理員 LINE User ID，只有管理員能用「分析」
 
 # 初始化
 app = Flask(__name__)
@@ -63,7 +65,7 @@ CONFIG = {
     "API_DELAY": 1.0,          # API 間隔 1 秒
     
     # Top N 進入深度分析
-    "TOP_N_FOR_DEEP_ANALYSIS": 50,
+    "TOP_N_FOR_DEEP_ANALYSIS": 15,  # 從 50 改為 15，減少 API 成本
 }
 
 # ==================== 快取 ====================
@@ -437,7 +439,7 @@ def analyze_news_sentiment(ticker, name, news_list):
         return {'sentiment': 0, 'summary': '無相關新聞'}
     
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
+        model = genai.GenerativeModel('gemini-2.5-pro')  # 升級為 2.5 Pro
         
         news_text = "\n".join([f"{i+1}. {news}" for i, news in enumerate(news_list)])
         
@@ -656,33 +658,62 @@ def calculate_volume_ratio(volumes):
     return round(volumes[-1] / avg_5d, 2)
 
 
+def round_to_tick(price):
+    """依股價對齊到正確的跳動單位 (台股規則)"""
+    if price < 10:
+        return round(price, 2)  # 0.01
+    elif price < 50:
+        return round(price * 20) / 20  # 0.05
+    elif price < 100:
+        return round(price * 10) / 10  # 0.1
+    elif price < 500:
+        return round(price * 2) / 2  # 0.5
+    elif price < 1000:
+        return round(price)  # 1
+    else:
+        return round(price / 5) * 5  # 5
+
+
+# 當沖排除的產業
+EXCLUDE_DAY_TRADE_INDUSTRIES = ['金融保險業', '金融業', '銀行業', '保險業', '金控業']
+
+
 def calculate_cdp(high, low, close):
-    """計算 CDP (當沖價位)"""
+    """計算 CDP (當沖價位) - 已對齊 tick size"""
     pt = high - low
     cdp = (high + low + 2 * close) / 4
     
     return {
-        'ah': round(cdp + pt, 2),        # 最高價
-        'nh': round(cdp + 0.5 * pt, 2),  # 近高 (賣點)
-        'cdp': round(cdp, 2),            # 中軸
-        'nl': round(cdp - 0.5 * pt, 2),  # 近低 (買點)
-        'al': round(cdp - pt, 2)         # 最低價
+        'ah': round_to_tick(cdp + pt),        # 最高價
+        'nh': round_to_tick(cdp + 0.5 * pt),  # 近高 (賣點)
+        'cdp': round_to_tick(cdp),            # 中軸
+        'nl': round_to_tick(cdp - 0.5 * pt),  # 近低 (買點)
+        'al': round_to_tick(cdp - pt)         # 最低價
     }
 
 
 # ==================== 當沖&波段分析 ====================
 
-def analyze_day_trade(stock, history=None):
+def analyze_day_trade(stock, history=None, industry=None):
     """
     當沖分析
     條件: 強勢 + 爆量 + 人氣旺
+    排除: 金融股
     """
     result = {
         'suitable': False,
         'score': 0,
         'reasons': [],
-        'cdp': None
+        'cdp': None,
+        'excluded': False,
+        'exclude_reason': ''
     }
+    
+    # 排除金融股
+    if industry and industry in EXCLUDE_DAY_TRADE_INDUSTRIES:
+        result['excluded'] = True
+        result['exclude_reason'] = f'金融股({industry})不適合當沖'
+        return result
     
     # 條件1: 強勢 (漲幅 > 3%)
     if stock['change_pct'] >= 3:
@@ -718,6 +749,7 @@ def analyze_swing_trade(stock, history=None):
     """
     波段分析 (右側交易)
     條件: 站上 MA20 + 法人買超 + MACD/KD 配合
+    新增: 停利目標 + 風報比計算
     """
     result = {
         'suitable': False,
@@ -728,7 +760,9 @@ def analyze_swing_trade(stock, history=None):
         'rsi': None,
         'k': None,
         'd': None,
-        'stop_loss': None
+        'stop_loss': None,
+        'take_profit': None,   # 新增: 停利目標
+        'risk_reward': None    # 新增: 風報比
     }
     
     if not history or len(history) < 20:
@@ -798,6 +832,21 @@ def analyze_swing_trade(stock, history=None):
         result['suitable'] = True
         if not result['stop_loss']:
             result['stop_loss'] = round(stock['price'] * 0.95, 2)
+    
+    # 計算停利目標和風報比 (1:2 風報比)
+    if result['stop_loss'] and result['stop_loss'] > 0:
+        price = stock['price']
+        stop_loss = result['stop_loss']
+        risk = price - stop_loss  # 風險 (可能虧損)
+        
+        if risk > 0:
+            # 停利目標 = 現價 + 2倍風險 (1:2 風報比)
+            take_profit = round_to_tick(price + risk * 2)
+            result['take_profit'] = take_profit
+            
+            # 風報比 = 潛在報酬 / 風險
+            reward = take_profit - price
+            result['risk_reward'] = round(reward / risk, 1)
     
     return result
 
@@ -900,7 +949,7 @@ def quick_filter(stocks, institutional):
     return candidates
 
 
-def deep_analyze(candidates):
+def deep_analyze(candidates, industry_mapping=None):
     """
     第二階段: 深度分析 Top N
     包含: 歷史資料、技術指標、當沖/波段分析、Gemini 新聞分析
@@ -909,21 +958,25 @@ def deep_analyze(candidates):
     to_analyze = candidates[:top_n]
     
     print(f"\n🔬 第二階段: 深度分析 Top {len(to_analyze)} 支股票...", flush=True)
-    print(f"   (含技術指標 + Gemini 新聞分析)", flush=True)
+    print(f"   (含技術指標 + Gemini 2.5 Pro 新聞分析)", flush=True)
     
     day_trade_list = []   # 當沖標的
     swing_trade_list = [] # 波段標的
     
+    if industry_mapping is None:
+        industry_mapping = {}
+    
     for i, candidate in enumerate(to_analyze, 1):
         ticker = candidate['ticker']
         name = candidate['name']
+        industry = industry_mapping.get(ticker, '')
         
         try:
             # 1. 抓取歷史資料 (30天)
             history = get_stock_history(ticker, 30)
             
-            # 2. 當沖分析
-            day_trade = analyze_day_trade(candidate, history)
+            # 2. 當沖分析 (傳入產業以排除金融股)
+            day_trade = analyze_day_trade(candidate, history, industry)
             
             # 3. 波段分析
             swing_trade = analyze_swing_trade(candidate, history)
@@ -992,8 +1045,8 @@ def deep_analyze(candidates):
 def scan_all_stocks():
     """掃描全台股 - 完整版 (含當沖/波段策略)"""
     print("\n" + "="*60, flush=True)
-    print("🚀 台股情報獵人 v3.2 - 開始掃描", flush=True)
-    print("   (含當沖/波段雙策略)", flush=True)
+    print("🚀 台股情報獵人 v4.0 - 開始掃描", flush=True)
+    print("   (含當沖/波段雙策略 + Gemini 2.5 Pro)", flush=True)
     print("="*60, flush=True)
     
     start_time = time.time()
@@ -1030,8 +1083,8 @@ def scan_all_stocks():
     # Step 6: 快速篩選
     candidates = quick_filter(stocks, institutional)
     
-    # Step 7: 深度分析 (含 Gemini 新聞 AI)
-    recommendations = deep_analyze(candidates)
+    # Step 7: 深度分析 (含 Gemini 2.5 Pro 新聞 AI)
+    recommendations = deep_analyze(candidates, industry_mapping)
     
     end_time = time.time()
     
@@ -1074,7 +1127,7 @@ def format_line_messages(result):
     
     # 第一段: 大盤 + 國際新聞 + 產業趨勢
     msg1 = [
-        f"📊 台股情報獵人 v3.2",
+        f"📊 台股情報獵人 v4.0",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         ""
     ]
@@ -1145,10 +1198,14 @@ def format_line_messages(result):
                 if sw.get('ma20'):
                     msg.append(f"   📐 MA20: ${sw['ma20']} | RSI: {sw.get('rsi', '-')}")
                 
-                # 停損
+                # 停損 + 停利 + 風報比
                 if sw.get('stop_loss'):
                     stop_loss_pct = (sw['stop_loss'] - rec['price']) / rec['price'] * 100
                     msg.append(f"   🛑 停損: ${sw['stop_loss']} ({stop_loss_pct:.1f}%)")
+                
+                if sw.get('take_profit') and sw.get('risk_reward'):
+                    take_profit_pct = (sw['take_profit'] - rec['price']) / rec['price'] * 100
+                    msg.append(f"   🎯 停利: ${sw['take_profit']} (+{take_profit_pct:.1f}%) | 風報比 1:{sw['risk_reward']}")
                 
                 # 籌碼
                 inst = rec.get('institutional', {})
@@ -1225,32 +1282,56 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     text = event.message.text.strip()
+    user_id = event.source.user_id
     
+    # 查詢自己的 User ID
+    if text in ['我的ID', 'myid', 'ID']:
+        reply = f"📱 您的 User ID:\n{user_id}"
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        return
+    
+    # 分析指令 (管理員限定)
     if text in ['分析', '掃描', '今日推薦']:
-        reply = "🔄 開始分析,請稍候..."
+        # 檢查管理員權限
+        if ADMIN_USER_ID and user_id != ADMIN_USER_ID:
+            reply = "⚠️ 此功能僅限管理員使用\n📢 請等待每日 8:00 自動推播"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+            return
+        
+        reply = "🔄 開始分析,請稍候...(約 1-2 分鐘)"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
         
-        # 執行分析 (背景)
-        result = scan_all_stocks()
-        messages = format_line_messages(result)
-        # 分段發送
-        for msg in messages:
-            line_bot_api.push_message(event.source.user_id, TextSendMessage(text=msg))
-            time.sleep(0.5)
+        try:
+            # 執行分析
+            result = scan_all_stocks()
+            messages = format_line_messages(result)
+            # 分段發送
+            for msg in messages:
+                line_bot_api.push_message(user_id, TextSendMessage(text=msg))
+                time.sleep(0.5)
+        except Exception as e:
+            error_msg = f"❌ 分析失敗: {str(e)[:100]}"
+            line_bot_api.push_message(user_id, TextSendMessage(text=error_msg))
+        return
         
-    elif text == '狀態':
+    # 大盤狀態 (所有人可用)
+    if text == '狀態':
         market = get_market_status()
         reply = f"🌍 大盤狀態: {market['status']}\n{market['reason']}"
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
-        
+        return
+    
+    # 顯示指令說明
+    if ADMIN_USER_ID and user_id == ADMIN_USER_ID:
+        reply = "📋 管理員指令:\n• 分析 - 執行完整分析\n• 狀態 - 查看大盤\n• 我的ID - 查看 User ID"
     else:
-        reply = "指令: 分析 | 狀態"
-        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        reply = "📋 指令:\n• 狀態 - 查看大盤\n• 我的ID - 查看 User ID\n\n📢 每日 8:00 自動推播分析結果"
+    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
 
 
 @app.route("/")
 def index():
-    return "台股情報獵人 v3.0 運行中"
+    return "台股情報獵人 v4.0 運行中"
 
 
 @app.route("/manual")
@@ -1267,7 +1348,7 @@ if __name__ == "__main__":
     try:
         port = int(os.environ.get('PORT', 8080))
         print("\n" + "="*60, flush=True)
-        print("🚀 台股情報獵人 v3.0 啟動", flush=True)
+        print("🚀 台股情報獵人 v4.0 啟動", flush=True)
         print("="*60, flush=True)
         print(f"📡 監聽端口: {port}", flush=True)
         print(f"⏰ 定時任務: 每日 08:00", flush=True)
