@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-台股情報獵人 v4.1 - 單股分析版
+台股情報獵人 v4.2 - AI 建議版
 
 改進重點:
 1. 使用 OpenAPI 一次取得所有股票資料
@@ -1266,7 +1266,7 @@ def analyze_single_stock(ticker):
 
 
 def format_single_stock_message(result):
-    """格式化單股分析訊息"""
+    """格式化單股分析訊息 - 精簡版含 AI 建議"""
     if 'error' in result:
         return f"❌ 分析失敗: {result['error']}"
     
@@ -1276,91 +1276,167 @@ def format_single_stock_message(result):
     change_pct = result['change_pct']
     volume = result['volume']
     
-    # 計算量比
     sw = result.get('swing_trade', {})
     dt = result.get('day_trade', {})
     inst = result.get('institutional', {})
     pe_info = result.get('pe_ratio', {})
     margin_info = result.get('margin_trading', {})
     
+    # ===== 趨勢判斷 =====
+    trend_signals = []
+    trend_warnings = []
+    
+    ma5 = sw.get('ma5')
+    ma20 = sw.get('ma20')
+    rsi = sw.get('rsi')
+    
+    if ma20 and price > ma20:
+        trend_signals.append("站穩MA20 ✅")
+    elif ma20:
+        trend_warnings.append("跌破MA20 ⚠️")
+    
+    if ma5 and price > ma5:
+        trend_signals.append("站上MA5 ✅")
+    
+    if rsi:
+        if rsi >= 80:
+            trend_warnings.append(f"RSI {rsi} 過熱 ⚠️")
+        elif rsi >= 70:
+            trend_warnings.append(f"RSI {rsi} 偏高")
+        elif rsi <= 30:
+            trend_signals.append(f"RSI {rsi} 超賣 💡")
+        else:
+            trend_signals.append(f"RSI {rsi} 正常")
+    
+    # 趨勢總結
+    if len(trend_signals) >= 2 and len(trend_warnings) == 0:
+        trend_summary = "多方健康"
+    elif len(trend_signals) >= 2:
+        trend_summary = "多方偏熱"
+    elif len(trend_warnings) >= 2:
+        trend_summary = "偏空或過熱"
+    else:
+        trend_summary = "中性整理"
+    
+    # ===== 籌碼判斷 =====
+    foreign = inst.get('foreign', 0)
+    trust = inst.get('trust', 0)
+    
+    chip_signals = []
+    if foreign > 0:
+        chip_signals.append(f"外資買{foreign//1000:+}K ✅")
+    elif foreign < 0:
+        chip_signals.append(f"外資賣{foreign//1000:+}K ⚠️")
+    
+    if trust > 0:
+        chip_signals.append(f"投信買{trust//1000:+}K ✅")
+    elif trust < 0:
+        chip_signals.append(f"投信賣{trust//1000:+}K ⚠️")
+    
+    if foreign > 0 and trust > 0:
+        chip_summary = "法人買進中"
+    elif foreign < 0 and trust < 0:
+        chip_summary = "法人賣出中"
+    else:
+        chip_summary = "法人分歧"
+    
+    # ===== 估值判斷 =====
+    pe = pe_info.get('pe')
+    pe_judgment = ""
+    if pe:
+        if pe > 30:
+            pe_judgment = f"PE {pe:.0f} ⚠️ 偏高"
+        elif pe > 20:
+            pe_judgment = f"PE {pe:.0f} 中等"
+        elif pe > 0:
+            pe_judgment = f"PE {pe:.0f} ✅ 合理"
+    
+    # ===== 關鍵價位 =====
+    stop_loss = sw.get('stop_loss')
+    take_profit = sw.get('take_profit')
+    
+    # ===== AI 總結 =====
+    # 綜合判斷
+    bullish_count = len([s for s in trend_signals if '✅' in s]) + (1 if foreign > 0 else 0) + (1 if trust > 0 else 0)
+    warning_count = len(trend_warnings) + (1 if foreign < 0 else 0) + (1 if pe and pe > 25 else 0)
+    
+    if bullish_count >= 4 and warning_count <= 1:
+        ai_summary = "趨勢健康，法人買進"
+        hold_advice = "✅ 續抱"
+        buy_advice = "✅ 可進場"
+    elif bullish_count >= 3 and warning_count >= 2:
+        ai_summary = "多方但有風險訊號"
+        hold_advice = "✅ 續抱，留意回檔"
+        buy_advice = "⚠️ 小量試單"
+    elif bullish_count >= 2:
+        ai_summary = "趨勢中性，觀望為主"
+        hold_advice = "⚠️ 設好停損"
+        buy_advice = "⚠️ 等拉回再接"
+    else:
+        ai_summary = "訊號偏空，謹慎操作"
+        hold_advice = "⚠️ 考慮減碼"
+        buy_advice = "❌ 不建議"
+    
+    # ===== 組合訊息 =====
     msg = [
-        f"📊 {ticker} {name} 分析報告",
-        "══════════════════════",
+        f"📊 {ticker} {name}",
+        "══════════════════",
         "",
-        f"💰 價格: ${price} ({change_pct:+.1f}%)",
-        f"📈 成交: {volume:,} 張",
+        f"💰 ${price} ({change_pct:+.1f}%) | {volume//1000}K張",
         "",
+        f"📈 趨勢: {trend_summary}",
     ]
     
-    # 技術指標
-    msg.append("┌─ 技術指標 ────────┐")
-    if sw.get('ma5') and sw.get('ma20'):
-        msg.append(f"│ MA5: ${sw['ma5']} | MA20: ${sw['ma20']}")
-    if sw.get('rsi') and sw.get('k'):
-        msg.append(f"│ RSI: {sw['rsi']} | KD: K{sw['k']}/D{sw['d']}")
-    msg.append("└───────────────────┘")
+    # 趨勢細節 (選前2個)
+    trend_details = (trend_signals + trend_warnings)[:2]
+    if trend_details:
+        msg.append(f"   {' | '.join(trend_details)}")
+    
     msg.append("")
+    msg.append(f"🏦 籌碼: {chip_summary}")
+    if chip_signals:
+        msg.append(f"   {' | '.join(chip_signals[:2])}")
     
-    # 基本面
-    if pe_info:
-        msg.append("┌─ 基本面 ──────────┐")
-        if pe_info.get('pe'):
-            msg.append(f"│ 📊 本益比: {pe_info['pe']:.1f} 倍")
-        if pe_info.get('pb'):
-            msg.append(f"│ 📈 股價淨值比: {pe_info['pb']:.2f}")
-        if pe_info.get('dividend_yield'):
-            msg.append(f"│ 💰 殖利率: {pe_info['dividend_yield']:.2f}%")
-        msg.append("└───────────────────┘")
-        msg.append("")
-    
-    # 籌碼面
-    msg.append("┌─ 籌碼面 ──────────┐")
-    if inst:
-        foreign = inst.get('foreign', 0)
-        trust = inst.get('trust', 0)
-        msg.append(f"│ 🏦 外資: {foreign//1000:+,}張")
-        msg.append(f"│ 🏦 投信: {trust//1000:+,}張")
+    # 融資融券
     if margin_info:
-        margin_buy = margin_info.get('margin_buy', 0)
-        short_sell = margin_info.get('short_sell', 0)
         ratio = margin_info.get('ratio', 0)
-        msg.append(f"│ 💳 融資: {margin_buy:,}張")
-        msg.append(f"│ 💳 融券: {short_sell:,}張 (券資比{ratio}%)")
-    msg.append("└───────────────────┘")
-    msg.append("")
+        if ratio > 10:
+            msg.append(f"   💳 券資比 {ratio}% ⚠️ 軋空機會")
+        elif ratio > 0:
+            msg.append(f"   💳 券資比 {ratio}%")
     
-    # 波段評分
-    swing_score = sw.get('score', 0)
-    msg.append(f"📈 波段評分: {swing_score} 分")
-    if sw.get('reasons'):
-        msg.append(f"   {' | '.join(sw['reasons'][:3])}")
-    if sw.get('stop_loss'):
-        stop_pct = (sw['stop_loss'] - price) / price * 100
-        msg.append(f"   🛑 停損: ${sw['stop_loss']} ({stop_pct:.1f}%)")
-    if sw.get('take_profit'):
-        profit_pct = (sw['take_profit'] - price) / price * 100
-        msg.append(f"   🎯 停利: ${sw['take_profit']} (+{profit_pct:.1f}%)")
-    if sw.get('risk_reward'):
-        msg.append(f"   📐 風報比: 1:{sw['risk_reward']}")
     msg.append("")
+    if pe_judgment:
+        msg.append(f"📊 估值: {pe_judgment}")
     
-    # 當沖評分
-    day_score = dt.get('score', 0)
-    msg.append(f"🔥 當沖評分: {day_score} 分")
-    if dt.get('reasons'):
-        msg.append(f"   {' | '.join(dt['reasons'][:3])}")
-    if dt.get('cdp'):
-        cdp = dt['cdp']
-        msg.append(f"   📍 買點: ${cdp.get('nl')} | 賣點: ${cdp.get('nh')}")
-    if not dt.get('suitable'):
-        if '金融' in str(dt.get('reasons', [])):
-            msg.append("   ⚠️ 金融股不建議當沖")
+    # 關鍵價位
+    if stop_loss or take_profit:
+        msg.append("")
+        msg.append("🎯 關鍵價:")
+        if take_profit:
+            msg.append(f"   壓力 ${take_profit}")
+        if stop_loss:
+            msg.append(f"   支撐 ${stop_loss}")
+    
+    # AI 分隔線
     msg.append("")
+    msg.append("━━━━━━━━━━━━━━━━━━━━")
+    msg.append("")
+    msg.append(f"🤖 AI: {ai_summary}")
+    msg.append("")
+    msg.append("💡 建議:")
+    if stop_loss:
+        stop_pct = abs((stop_loss - price) / price * 100)
+        msg.append(f"   持有: {hold_advice}，${stop_loss}停損")
+    else:
+        msg.append(f"   持有: {hold_advice}")
+    msg.append(f"   想買: {buy_advice}")
     
     # 新聞
     news = result.get('news_summary', '')
     if news and news not in ['無相關新聞', '分析失敗', '']:
-        msg.append(f"📰 新聞: {news}")
+        msg.append("")
+        msg.append(f"📰 {news}")
     
     return "\n".join(msg)
 
