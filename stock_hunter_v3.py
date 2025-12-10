@@ -1063,6 +1063,31 @@ def analyze_swing_trade(stock, history=None):
         result['score'] -= 1  # 小扣分
         result['warnings'].append(f"⚠️近期已漲(5日{gain_5d:+.1f}%)")
     
+    # ===== v4.3 新增: PE 評分 =====
+    pe_data = stock.get('pe_ratio', {})
+    pe_value = pe_data.get('pe') if isinstance(pe_data, dict) else None
+    if pe_value is not None:
+        pe_pts, pe_reason = pe_score(pe_value)
+        result['score'] += pe_pts
+        if pe_pts > 0:
+            result['reasons'].append(pe_reason)
+        elif pe_pts < 0:
+            result['warnings'].append(pe_reason)
+        result['pe'] = pe_value
+    
+    # ===== v4.3 新增: 新聞情緒評分 =====
+    # 新聞情緒從 deep_analyze 傳入
+    sentiment = stock.get('news_sentiment', 0)
+    news_summary = stock.get('news_summary', '')
+    if sentiment > 0.3:
+        result['score'] += 1
+        if news_summary:
+            result['reasons'].append(f"📰{news_summary}")
+    elif sentiment < -0.3:
+        result['score'] -= 1
+        if news_summary:
+            result['warnings'].append(f"⚠️{news_summary}")
+    
     # 判斷是否適合波段（v4.3: 門檻提高到 4 分）
     if result['score'] >= CONFIG.get('MIN_SCORE_RECOMMEND', 4):
         result['suitable'] = True
@@ -1224,18 +1249,27 @@ def deep_analyze(candidates, industry_mapping=None):
             # 2. 當沖分析 (傳入產業以排除金融股)
             day_trade = analyze_day_trade(candidate, history, industry)
             
-            # 3. 波段分析
-            swing_trade = analyze_swing_trade(candidate, history)
-            
-            # 4. 抓取新聞 + Gemini 分析
+            # 3. 抓取新聞 + Gemini 分析 (v4.3: 移到波段分析之前)
             news_list = get_stock_news(ticker, name)
             news_result = analyze_news_sentiment(ticker, name, news_list)
-            
-            # 基礎評分 + 新聞加成
-            base_score = candidate['score']
             sentiment = news_result.get('sentiment', 0)
-            news_bonus = 1 if sentiment > 0.3 else (-1 if sentiment < -0.3 else 0)
-            final_score = base_score + news_bonus
+            news_summary = news_result.get('summary', '')
+            
+            # 4. 取得 PE 資料
+            pe_data = get_pe_ratio_data()
+            stock_pe = pe_data.get(ticker, {})
+            
+            # 5. 波段分析 (v4.3: 傳入 PE 和新聞資料)
+            candidate_with_extra = candidate.copy()
+            candidate_with_extra['pe_ratio'] = stock_pe
+            candidate_with_extra['news_sentiment'] = sentiment
+            candidate_with_extra['news_summary'] = news_summary
+            swing_trade = analyze_swing_trade(candidate_with_extra, history)
+            
+            # 基礎評分 (快速篩選的分數)
+            base_score = candidate['score']
+            # 波段評分 = swing_trade 的評分 (已包含 PE 和新聞)
+            final_score = swing_trade['score']
             
             # 組合結果
             result = {
@@ -1251,7 +1285,7 @@ def deep_analyze(candidates, industry_mapping=None):
                 'base_score': base_score,
                 'reasons': candidate['reasons'],
                 'institutional': candidate['institutional'],
-                'news_summary': news_result.get('summary', ''),
+                'news_summary': news_summary,
                 'news_sentiment': sentiment,
                 # 當沖資訊
                 'day_trade': day_trade,
