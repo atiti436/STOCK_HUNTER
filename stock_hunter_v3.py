@@ -47,9 +47,9 @@ genai.configure(api_key=GEMINI_API_KEY)
 CONFIG = {
     # 篩選條件 (v4.3 優化)
     "MIN_PRICE": 10,           # 最低股價
-    "MAX_PRICE": 200,          # 最高股價 ← 新增：過濾高價股
+    "MAX_PRICE": 200,          # 最高股價：過濾高價股
     "MIN_TURNOVER": 5_000_000, # 最低成交金額 500萬
-    "MIN_VOLUME": 300,         # 最低成交量 300張 ← 新增
+    "MIN_VOLUME": 300,         # 最低成交量 300張
     
     # 爆量判斷
     "VOLUME_SPIKE_RATIO": 2.0,
@@ -58,14 +58,15 @@ CONFIG = {
     "UP_THRESHOLD": 3.0,       # 漲幅 > 3% 視為強勢
     "DOWN_THRESHOLD": -3.0,    # 跌幅 > 3% 視為弱勢
     
-    # 位階過濾 ← 新增
+    # 位階過濾
     "MAX_5D_GAIN": 10,         # 5日漲幅上限 10%
     "MAX_10D_GAIN": 15,        # 10日漲幅上限 15%
     
-    # 推薦數量
-    "MAX_RECOMMENDATIONS": 10,
+    # 推薦數量 (v4.3c 調整)
+    "DAY_TRADE_MAX": 3,        # 當沖最多顯示 3 檔
+    "SWING_TRADE_MAX": 5,      # 波段最多顯示 5 檔
     
-    # 評分門檻 ← 新增
+    # 評分門檻
     "MIN_SCORE_RECOMMEND": 4,  # ≥4分才推薦
     
     # API 設定
@@ -73,8 +74,8 @@ CONFIG = {
     "API_RETRY": 3,
     "API_DELAY": 1.0,          # API 間隔 1 秒
     
-    # Top N 進入深度分析
-    "TOP_N_FOR_DEEP_ANALYSIS": 15,
+    # Top N 進入深度分析 (v4.3c: 從 15 降到 8，減少 API 呼叫)
+    "TOP_N_FOR_DEEP_ANALYSIS": 8,
 }
 
 # ==================== 快取 ====================
@@ -1315,8 +1316,8 @@ def deep_analyze(candidates, industry_mapping=None):
     print(f"   📈 波段標的: {len(swing_trade_list)} 支", flush=True)
     
     return {
-        'day_trade': day_trade_list[:5],    # 當沖 Top 5
-        'swing_trade': swing_trade_list[:CONFIG['MAX_RECOMMENDATIONS']]  # 波段 Top 10
+        'day_trade': day_trade_list[:CONFIG.get('DAY_TRADE_MAX', 3)],      # 當沖 Top 3
+        'swing_trade': swing_trade_list[:CONFIG.get('SWING_TRADE_MAX', 5)]  # 波段 Top 5
     }
 
 
