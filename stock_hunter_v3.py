@@ -26,6 +26,7 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from apscheduler.schedulers.background import BackgroundScheduler
 import google.generativeai as genai
 import urllib3
+import yfinance as yf
 
 # 關閉 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -868,6 +869,69 @@ def get_stock_history(ticker, days=30):
         return []
 
 
+def check_ma60_with_yfinance(ticker):
+    """
+    用 yfinance 抓取 1 年資料，計算 MA60/MA120
+    
+    Args:
+        ticker: 股票代碼 (例如 "2330")
+    
+    Returns:
+        成功且站上 MA60: {'ma60': 150.0, 'ma120': 145.0, 'above_ma60': True, 'above_ma120': True, 'bonus': 2或3}
+        失敗或跌破 MA60: None
+    """
+    try:
+        # 用 yfinance 抓取 1 年資料
+        yf_ticker = f"{ticker}.TW"
+        stock = yf.Ticker(yf_ticker)
+        hist = stock.history(period="1y")
+        
+        # 檢查資料是否足夠 (至少需要 60 天)
+        if hist is None or len(hist) < 60:
+            print(f"⚠️ {ticker} yfinance 資料不足 (僅 {len(hist) if hist is not None else 0} 天)，跳過", flush=True)
+            return None
+        
+        # 取得收盤價序列
+        closes = hist['Close'].tolist()
+        current_price = closes[-1]
+        
+        # 計算 MA60 (季線)
+        ma60 = sum(closes[-60:]) / 60
+        
+        # 計算 MA120 (半年線)
+        ma120 = None
+        if len(closes) >= 120:
+            ma120 = sum(closes[-120:]) / 120
+        
+        # 檢查是否站上 MA60 (一票否決)
+        if current_price < ma60:
+            print(f"❌ {ticker} 跌破季線 (現價 {current_price:.2f} < MA60 {ma60:.2f})，排除", flush=True)
+            return None
+        
+        # 計算加分
+        bonus = 2  # 站上 MA60 基本 +2 分
+        above_ma120 = False
+        
+        if ma120 and current_price > ma120:
+            bonus += 1  # 站上 MA120 額外 +1 分
+            above_ma120 = True
+        
+        print(f"✅ {ticker} 站穩季線 (MA60={ma60:.2f}, MA120={ma120:.2f if ma120 else 'N/A'}) +{bonus}分", flush=True)
+        
+        return {
+            'ma60': round(ma60, 2),
+            'ma120': round(ma120, 2) if ma120 else None,
+            'current_price': round(current_price, 2),
+            'above_ma60': True,
+            'above_ma120': above_ma120,
+            'bonus': bonus
+        }
+        
+    except Exception as e:
+        print(f"⚠️ {ticker} yfinance 抓取失敗: {e}，跳過", flush=True)
+        return None
+
+
 def calculate_ma(closes, period):
     """計算移動平均線"""
     if len(closes) < period:
@@ -1398,6 +1462,17 @@ def deep_analyze(candidates, industry_mapping=None):
         industry = industry_mapping.get(ticker, '')
         
         try:
+            # ===== v4.5: MA60 季線檢查 (一票否決) =====
+            ma60_result = check_ma60_with_yfinance(ticker)
+            if ma60_result is None:
+                # 資料不足或跌破季線，直接跳過
+                continue
+            
+            # 記錄 MA60 資訊供後續使用
+            ma60_bonus = ma60_result.get('bonus', 0)
+            candidate['ma60_info'] = ma60_result
+            # ==========================================
+            
             # 1. 抓取歷史資料 (30天)
             history = get_stock_history(ticker, 30)
             
@@ -1423,8 +1498,8 @@ def deep_analyze(candidates, industry_mapping=None):
             
             # 基礎評分 (快速篩選的分數)
             base_score = candidate['score']
-            # 波段評分 = swing_trade 的評分 (已包含 PE 和新聞)
-            final_score = swing_trade['score']
+            # 波段評分 = swing_trade 的評分 + MA60 加分 (v4.5)
+            final_score = swing_trade['score'] + ma60_bonus
             
             # 組合結果
             result = {
@@ -1445,7 +1520,9 @@ def deep_analyze(candidates, industry_mapping=None):
                 # 當沖資訊
                 'day_trade': day_trade,
                 # 波段資訊
-                'swing_trade': swing_trade
+                'swing_trade': swing_trade,
+                # v4.5: MA60 資訊
+                'ma60_info': ma60_result
             }
             
             # 分類
@@ -1894,9 +1971,11 @@ def format_line_messages(result):
             for i, rec in enumerate(batch, batch_start + 1):
                 sw = rec.get('swing_trade', {})
                 
-                msg.append(f"{i}. {rec['ticker']} {rec['name']}")
-                msg.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
-                msg.append(f"   📊 評分: {rec['score']} 分")
+                msg.append(f"{rec['ticker']} {rec['name']}")
+                msg.append(f"💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
+                # v4.5: 加入季線標示
+                ma60_flag = " (季線✅)" if rec.get('ma60_info') else ""
+                msg.append(f"📊 評分: {rec['score']} 分{ma60_flag}")
                 
                 # 技術指標 + MA20 距離
                 if sw.get('ma20'):
