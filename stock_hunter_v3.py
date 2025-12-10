@@ -45,9 +45,11 @@ genai.configure(api_key=GEMINI_API_KEY)
 # ==================== 設定參數 ====================
 
 CONFIG = {
-    # 篩選條件
+    # 篩選條件 (v4.3 優化)
     "MIN_PRICE": 10,           # 最低股價
+    "MAX_PRICE": 200,          # 最高股價 ← 新增：過濾高價股
     "MIN_TURNOVER": 5_000_000, # 最低成交金額 500萬
+    "MIN_VOLUME": 300,         # 最低成交量 300張 ← 新增
     
     # 爆量判斷
     "VOLUME_SPIKE_RATIO": 2.0,
@@ -56,8 +58,15 @@ CONFIG = {
     "UP_THRESHOLD": 3.0,       # 漲幅 > 3% 視為強勢
     "DOWN_THRESHOLD": -3.0,    # 跌幅 > 3% 視為弱勢
     
+    # 位階過濾 ← 新增
+    "MAX_5D_GAIN": 10,         # 5日漲幅上限 10%
+    "MAX_10D_GAIN": 15,        # 10日漲幅上限 15%
+    
     # 推薦數量
     "MAX_RECOMMENDATIONS": 10,
+    
+    # 評分門檻 ← 新增
+    "MIN_SCORE_RECOMMEND": 4,  # ≥4分才推薦
     
     # API 設定
     "API_TIMEOUT": 15,
@@ -65,7 +74,7 @@ CONFIG = {
     "API_DELAY": 1.0,          # API 間隔 1 秒
     
     # Top N 進入深度分析
-    "TOP_N_FOR_DEEP_ANALYSIS": 15,  # 從 50 改為 15，減少 API 成本
+    "TOP_N_FOR_DEEP_ANALYSIS": 15,
 }
 
 # ==================== 快取 ====================
@@ -793,9 +802,44 @@ def round_to_tick(price):
     else:
         return round(price / 5) * 5  # 5
 
-
 # 當沖排除的產業 (TWSE 產業代碼: 17 = 金融保險業)
 EXCLUDE_DAY_TRADE_INDUSTRIES = ['17', '金融保險業', '金融業', '銀行業', '保險業', '金控業']
+
+
+# ==================== v4.3 新增函數 ====================
+
+def get_chip_threshold(volume_lots):
+    """根據成交量動態調整籌碼門檻（張數）"""
+    if volume_lots < 500:
+        return {'foreign': 50, 'trust': 30}
+    elif volume_lots < 2000:
+        return {'foreign': 150, 'trust': 80}
+    elif volume_lots < 5000:
+        return {'foreign': 300, 'trust': 150}
+    else:
+        return {'foreign': 500, 'trust': 200}
+
+
+def pe_score(pe):
+    """PE 評分"""
+    if pe is None or pe <= 0:
+        return -1, "⚠️虧損公司"
+    if pe > 50:
+        return -1, f"⚠️PE={pe:.0f}過高"
+    elif pe > 30:
+        return 0, f"PE={pe:.0f}偏高"
+    elif pe > 15:
+        return 1, f"PE={pe:.0f}合理"
+    else:
+        return 1, f"PE={pe:.0f}便宜"
+
+
+def calculate_n_day_gain(closes, n):
+    """計算 N 日漲幅百分比"""
+    if len(closes) < n + 1:
+        return 0
+    return round((closes[-1] - closes[-(n+1)]) / closes[-(n+1)] * 100, 1)
+
 
 
 def calculate_cdp(high, low, close):
@@ -972,25 +1016,55 @@ def analyze_swing_trade(stock, history=None):
             result['score'] += 1
             result['reasons'].append(f"RSI={rsi}超賣")
     
-    # 條件: KD 多方 (K > D)
-    if k and d and k > d:
-        result['score'] += 1
-        result['reasons'].append(f"KD多方")
+    # 條件: KD (v4.3 修正：>80 視為高檔鈍化，扣分)
+    if k and d:
+        if k > d and k < 80:
+            result['score'] += 1
+            result['reasons'].append(f"KD多方")
+        elif k >= 80:
+            result['score'] -= 1
+            result['warnings'].append(f"⚠️KD={k:.0f}高檔鈍化")
     
-    # 條件: 法人買超
+    # 條件: 法人買超 (v4.3 改進：使用動態門檻)
     inst = stock.get('institutional', {})
+    volume_lots = stock.get('volume_lots', 0)
+    threshold = get_chip_threshold(volume_lots)
+    
     if inst:
         foreign = inst.get('foreign', 0)
         trust = inst.get('trust', 0)
-        if foreign > 0 and trust > 0:
+        
+        foreign_meaningful = abs(foreign) >= threshold['foreign']
+        trust_meaningful = abs(trust) >= threshold['trust']
+        
+        if foreign_meaningful and trust_meaningful and foreign > 0 and trust > 0:
             result['score'] += 2
-            result['reasons'].append("外資投信雙買")
-        elif foreign > 0 or trust > 0:
+            result['reasons'].append(f"外資投信雙買(+{foreign//1000}K/+{trust//1000}K)")
+        elif foreign_meaningful and foreign > 0:
             result['score'] += 1
-            result['reasons'].append("法人買超")
+            result['reasons'].append(f"外資買{foreign//1000}K")
+        elif trust_meaningful and trust > 0:
+            result['score'] += 1
+            result['reasons'].append(f"投信買{trust//1000}K")
+        elif foreign_meaningful and foreign < 0:
+            result['score'] -= 1
+            result['warnings'].append(f"⚠️外資賣{abs(foreign)//1000}K")
     
-    # 判斷是否適合波段（需要 >= 3 分，提高門檻）
-    if result['score'] >= 3:
+    # ===== v4.3 新增: 5日/10日漲幅過濾 =====
+    gain_5d = calculate_n_day_gain(closes, 5)
+    gain_10d = calculate_n_day_gain(closes, 10)
+    result['gain_5d'] = gain_5d
+    result['gain_10d'] = gain_10d
+    
+    if gain_5d > CONFIG['MAX_5D_GAIN'] or gain_10d > CONFIG['MAX_10D_GAIN']:
+        result['score'] -= 2  # 大扣分
+        result['warnings'].append(f"⚠️已漲一段(5日{gain_5d:+.1f}%/10日{gain_10d:+.1f}%)")
+    elif gain_5d > 6:
+        result['score'] -= 1  # 小扣分
+        result['warnings'].append(f"⚠️近期已漲(5日{gain_5d:+.1f}%)")
+    
+    # 判斷是否適合波段（v4.3: 門檻提高到 4 分）
+    if result['score'] >= CONFIG.get('MIN_SCORE_RECOMMEND', 4):
         result['suitable'] = True
     
     # 計算停利目標和風報比 (1:2 風報比)
@@ -1022,7 +1096,9 @@ def quick_filter(stocks, institutional):
     candidates = []
     stats = {
         'low_price': 0,
+        'high_price': 0,      # v4.3 新增
         'low_turnover': 0,
+        'low_volume': 0,      # v4.3 新增
         'passed': 0
     }
     
@@ -1030,6 +1106,7 @@ def quick_filter(stocks, institutional):
         ticker = stock['ticker']
         price = stock['price']
         turnover = stock['turnover']
+        volume_lots = stock.get('volume_lots', 0)
         change_pct = stock['change_pct']
         
         # 過濾: 價格太低
@@ -1037,9 +1114,19 @@ def quick_filter(stocks, institutional):
             stats['low_price'] += 1
             continue
         
+        # v4.3 新增: 過濾價格太高（避免雞蛋股）
+        if price > CONFIG.get('MAX_PRICE', 200):
+            stats['high_price'] += 1
+            continue
+        
         # 過濾: 成交金額太低
         if turnover < CONFIG['MIN_TURNOVER']:
             stats['low_turnover'] += 1
+            continue
+        
+        # v4.3 新增: 過濾成交量太低（流動性不足）
+        if volume_lots < CONFIG.get('MIN_VOLUME', 300):
+            stats['low_volume'] += 1
             continue
         
         # 計算評分
