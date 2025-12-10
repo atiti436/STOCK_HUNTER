@@ -7,10 +7,10 @@ ENV TZ=Asia/Taipei
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # 複製依賴檔案
-COPY requirements_v2.txt .
+COPY requirements.txt .
 
 # 安裝依賴
-RUN pip install --no-cache-dir -r requirements_v2.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 複製所有檔案
 COPY . .
