@@ -34,7 +34,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'YOUR_TOKEN')
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', 'YOUR_SECRET')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_KEY')
-ADMIN_USER_ID = os.getenv('ADMIN_USER_ID', '')  # 管理員 LINE User ID，只有管理員能用「分析」
+ADMIN_USER_ID = os.getenv('ADMIN_USER_ID', 'U7130f999bd008719fe5058ef31059522')  # 環境變數優先，否則用預設
 
 # 初始化
 app = Flask(__name__)
@@ -45,7 +45,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 # ==================== 設定參數 ====================
 
 CONFIG = {
-    # 篩選條件 (v4.3 優化)
+    # 篩選條件 (v4.4)
     "MIN_PRICE": 10,           # 最低股價
     "MAX_PRICE": 200,          # 最高股價：過濾高價股
     "MIN_TURNOVER": 5_000_000, # 最低成交金額 500萬
@@ -62,19 +62,20 @@ CONFIG = {
     "MAX_5D_GAIN": 10,         # 5日漲幅上限 10%
     "MAX_10D_GAIN": 15,        # 10日漲幅上限 15%
     
-    # 推薦數量 (v4.3c 調整)
-    "DAY_TRADE_MAX": 3,        # 當沖最多顯示 3 檔
-    "SWING_TRADE_MAX": 5,      # 波段最多顯示 5 檔
+    # 推薦數量 (v4.4: 8:00 只推波段)
+    "DAY_TRADE_MAX": 3,        # 當沖最多顯示 3 檔（指令觸發）
+    "SWING_TRADE_MAX": 5,      # 波段最多顯示 5 檔（8:00 推播）
     
-    # 評分門檻
-    "MIN_SCORE_RECOMMEND": 4,  # ≥4分才推薦
+    # 評分門檻 (v4.4: 波段提高到 5 分)
+    "DAY_TRADE_SCORE_THRESHOLD": 4,   # 當沖 ≥4 分
+    "SWING_TRADE_SCORE_THRESHOLD": 5, # 波段 ≥5 分
     
     # API 設定
     "API_TIMEOUT": 15,
     "API_RETRY": 3,
-    "API_DELAY": 1.0,          # API 間隔 1 秒
+    "API_DELAY": 1.0,
     
-    # Top N 進入深度分析 (v4.3c: 從 15 降到 8，減少 API 呼叫)
+    # Top N 進入深度分析 (v4.4: 8 檔，批次 Gemini)
     "TOP_N_FOR_DEEP_ANALYSIS": 8,
 }
 
@@ -608,6 +609,159 @@ def analyze_news_sentiment(ticker, name, news_list):
         return {'sentiment': 0, 'summary': '分析失敗'}
 
 
+# ==================== v4.4: 批次 Gemini 分析 ====================
+
+def batch_gemini_analysis(stocks_data):
+    """
+    v4.4: 批次 Gemini 分析 - 一次呼叫分析多檔股票
+    取代原本的 1 檔 1 次呼叫
+    """
+    if not stocks_data:
+        return []
+    
+    try:
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        
+        # 準備股票資訊
+        stock_details = []
+        for i, stock in enumerate(stocks_data, 1):
+            detail = f"""【{i}. {stock['ticker']} {stock['name']}】
+價格: ${stock['price']} ({stock['change_pct']:+.1f}%)
+MA20距離: {stock.get('ma20_distance', 'N/A')}%
+RSI: {stock.get('rsi', 'N/A')}
+外資: {stock.get('foreign', 0)}張
+投信: {stock.get('trust', 0)}張
+新聞: {', '.join(stock.get('news', [])[:2]) or '無'}"""
+            stock_details.append(detail)
+        
+        stocks_text = "\n\n".join(stock_details)
+        
+        prompt = f"""你是專業台股分析師，請分析以下 {len(stocks_data)} 檔股票。
+
+{stocks_text}
+
+【分析要求】
+針對每檔股票評估:
+1. 適合波段操作? (✅適合/⚠️觀望/❌不適合)
+2. 主要風險? (10字內)
+3. 推薦理由? (15字內)
+4. 新聞情緒分數? (-1.0到+1.0)
+
+【重要】
+- 必須按股票順序回傳
+- 如果資訊不足，填"資訊不足"
+- sentiment必須是數字
+
+【JSON格式】
+[
+  {{
+    "code": "2330",
+    "suitable": "✅適合",
+    "risk": "漲多回檔",
+    "reason": "站穩MA20+法人買",
+    "sentiment": 0.5
+  }}
+]
+
+請只回傳 JSON，不要其他文字。"""
+        
+        response = model.generate_content(prompt)
+        result_text = response.text.strip()
+        
+        # 解析 JSON
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+        
+        results = json.loads(result_text)
+        
+        # 確保結果數量正確
+        if len(results) != len(stocks_data):
+            print(f"⚠️ Gemini 回傳數量不符: {len(results)} vs {len(stocks_data)}", flush=True)
+        
+        # 填補缺失欄位
+        for result in results:
+            if 'sentiment' not in result:
+                result['sentiment'] = 0.0
+            if 'suitable' not in result:
+                result['suitable'] = '⚠️觀望'
+            if 'risk' not in result:
+                result['risk'] = '資訊不足'
+            if 'reason' not in result:
+                result['reason'] = '資訊不足'
+        
+        print(f"✅ 批次 Gemini 分析完成: {len(results)} 檔", flush=True)
+        return results
+        
+    except json.JSONDecodeError as e:
+        print(f"❌ Gemini JSON 解析失敗: {e}", flush=True)
+        # 降級: 回傳預設值
+        return [{'code': s['ticker'], 'suitable': '⚠️觀望', 'risk': '分析失敗', 'reason': '分析失敗', 'sentiment': 0} for s in stocks_data]
+    except Exception as e:
+        print(f"❌ 批次 Gemini 分析失敗: {e}", flush=True)
+        return [{'code': s['ticker'], 'suitable': '⚠️觀望', 'risk': '分析失敗', 'reason': '分析失敗', 'sentiment': 0} for s in stocks_data]
+
+
+def analyze_market_and_risk(stocks_list, industry_trend):
+    """
+    v4.4: 市場趨勢 + 風險檢查 (合併為 1 次 API 呼叫)
+    """
+    if not stocks_list:
+        return {'market_summary': '', 'risk_warning': ''}
+    
+    try:
+        model = genai.GenerativeModel('gemini-2.5-pro')
+        
+        # 準備推薦股票清單
+        stock_names = [f"{s['ticker']} {s['name']}" for s in stocks_list[:5]]
+        stock_list_text = "\n".join([f"{i+1}. {name}" for i, name in enumerate(stock_names)])
+        
+        # 產業趨勢
+        strong = ", ".join([f"{i[0]}({i[1]:+.1f}%)" for i in industry_trend.get('strong', [])[:3]])
+        weak = ", ".join([f"{i[0]}({i[1]:+.1f}%)" for i in industry_trend.get('weak', [])[:3]])
+        
+        prompt = f"""你是專業股市分析師，請分析今日市場狀況。
+
+【今日強勢產業】{strong}
+【今日弱勢產業】{weak}
+
+【今日推薦股票】
+{stock_list_text}
+
+請給出:
+1. 今日市場趨勢 (20字內，說明偏好產業和情緒)
+2. 風險提示 (檢查推薦清單，20字內)
+
+JSON格式:
+{{
+  "market_summary": "AI概念股續強，資金偏好電子",
+  "risk_warning": "推薦分散良好，無明顯地雷"
+}}
+
+請只回傳 JSON。"""
+        
+        response = model.generate_content(prompt)
+        result_text = response.text.strip()
+        
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+        
+        result = json.loads(result_text)
+        
+        print(f"✅ 市場趨勢分析完成", flush=True)
+        return {
+            'market_summary': result.get('market_summary', ''),
+            'risk_warning': result.get('risk_warning', '')
+        }
+        
+    except Exception as e:
+        print(f"⚠️ 市場趨勢分析失敗: {e}", flush=True)
+        return {'market_summary': '', 'risk_warning': ''}
+
+
 # ==================== 產業趨勢 ====================
 
 def get_industry_mapping():
@@ -1089,8 +1243,8 @@ def analyze_swing_trade(stock, history=None):
         if news_summary:
             result['warnings'].append(f"⚠️{news_summary}")
     
-    # 判斷是否適合波段（v4.3: 門檻提高到 4 分）
-    if result['score'] >= CONFIG.get('MIN_SCORE_RECOMMEND', 4):
+    # 判斷是否適合波段（v4.4: 門檻提高到 5 分）
+    if result['score'] >= CONFIG.get('SWING_TRADE_SCORE_THRESHOLD', 5):
         result['suitable'] = True
     
     # 計算停利目標和風報比 (1:2 風報比)
@@ -1676,7 +1830,7 @@ def scan_all_stocks():
 # ==================== LINE 訊息格式 ====================
 
 def format_line_messages(result):
-    """格式化 LINE 推送訊息 (分段發送)"""
+    """格式化 LINE 推送訊息 (分段發送) - v4.4: 8:00 只推波段"""
     if 'error' in result:
         return [f"❌ 錯誤: {result['error']}"]
     
@@ -1689,7 +1843,7 @@ def format_line_messages(result):
     
     # 第一段: 大盤 + 國際新聞 + 產業趨勢
     msg1 = [
-        f"📊 台股情報獵人 v4.0",
+        f"📊 台股情報獵人 v4.4",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         ""
     ]
@@ -1718,29 +1872,17 @@ def format_line_messages(result):
         msg1.append(f"❄️ 弱: {weak}")
         msg1.append("")
     
-    msg1.append(f"🔥 當沖標的: {len(day_trade_list)} 支")
+    # v4.4: 8:00 推播不顯示當沖，改為提示可用指令
     msg1.append(f"📈 波段標的: {len(swing_trade_list)} 支")
+    if day_trade_list:
+        msg1.append(f"💡 輸入「當沖」可查看當沖觀察名單")
     msg1.append(f"⚡ 耗時: {result['execution_time']} 秒")
     
     messages.append("\n".join(msg1))
     
-    # 第二段: 當沖標的
-    if day_trade_list:
-        msg2 = ["🔥 當沖觀察:", ""]
-        
-        for i, rec in enumerate(day_trade_list[:5], 1):
-            dt = rec.get('day_trade', {})
-            cdp = dt.get('cdp', {})
-            
-            msg2.append(f"{i}. {rec['ticker']} {rec['name']}")
-            msg2.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
-            msg2.append(f"   💡 {', '.join(dt.get('reasons', [])[:2])}")
-            
-            if cdp:
-                msg2.append(f"   📍 CDP 買點: ${cdp.get('nl', '')} / 賣點: ${cdp.get('nh', '')}")
-            msg2.append("")
-        
-        messages.append("\n".join(msg2))
+    # v4.4: 移除當沖自動推播（改為指令觸發）
+    # 原本的當沖推播區塊已移除
+
     
     # 第三段起: 波段標的
     if swing_trade_list:
@@ -1878,6 +2020,47 @@ def handle_message(event):
             for msg in messages:
                 line_bot_api.push_message(user_id, TextSendMessage(text=msg))
                 time.sleep(0.5)
+        except Exception as e:
+            error_msg = f"❌ 分析失敗: {str(e)[:100]}"
+            line_bot_api.push_message(user_id, TextSendMessage(text=error_msg))
+        return
+    
+    # v4.4: 當沖觀察指令 (管理員限定)
+    if text in ['當沖', '當沖觀察']:
+        # 檢查管理員權限
+        if ADMIN_USER_ID and user_id != ADMIN_USER_ID:
+            reply = "⚠️ 此功能僅限管理員使用"
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+            return
+        
+        reply = "🔄 分析當沖標的中,請稍候..."
+        line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+        
+        try:
+            result = scan_all_stocks()
+            day_trade_list = result.get('recommendations', {}).get('day_trade', [])
+            
+            if not day_trade_list:
+                msg = "📭 今日無符合條件的當沖標的"
+            else:
+                msg_lines = ["🔥 當沖觀察名單:", ""]
+                
+                for i, rec in enumerate(day_trade_list[:CONFIG.get('DAY_TRADE_MAX', 3)], 1):
+                    dt = rec.get('day_trade', {})
+                    cdp = dt.get('cdp', {})
+                    
+                    msg_lines.append(f"{i}. {rec['ticker']} {rec['name']}")
+                    msg_lines.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
+                    msg_lines.append(f"   💡 {', '.join(dt.get('reasons', [])[:2])}")
+                    
+                    if cdp:
+                        msg_lines.append(f"   📍 CDP 買: ${cdp.get('nl', '')} / 賣: ${cdp.get('nh', '')}")
+                    msg_lines.append("")
+                
+                msg_lines.append("⚠️ 當沖風險高,請謹慎操作")
+                msg = "\n".join(msg_lines)
+            
+            line_bot_api.push_message(user_id, TextSendMessage(text=msg))
         except Exception as e:
             error_msg = f"❌ 分析失敗: {str(e)[:100]}"
             line_bot_api.push_message(user_id, TextSendMessage(text=error_msg))
