@@ -956,24 +956,36 @@ def get_stock_history(ticker, days=30):
 def check_ma60_with_yfinance(ticker):
     """
     用 yfinance 抓取 1 年資料，計算 MA60/MA120
+    只抓上市股 (.TW)，不含上櫃 (.TWO)
     
     Args:
         ticker: 股票代碼 (例如 "2330")
     
     Returns:
-        成功且站上 MA60: {'ma60': 150.0, 'ma120': 145.0, 'above_ma60': True, 'above_ma120': True, 'bonus': 2或3}
+        成功且站上 MA60: {'ma60': 150.0, 'ma120': 145.0, 'above_ma60': True, 'bonus': 2或3}
         失敗或跌破 MA60: None
+        yfinance 無法取得資料時: 回傳預設值讓分析繼續
     """
     try:
-        # 用 yfinance 抓取 1 年資料
+        # 只用 .TW (上市股)
         yf_ticker = f"{ticker}.TW"
         stock = yf.Ticker(yf_ticker)
         hist = stock.history(period="1y")
         
         # 檢查資料是否足夠 (至少需要 60 天)
         if hist is None or len(hist) < 60:
-            print(f"⚠️ {ticker} yfinance 資料不足 (僅 {len(hist) if hist is not None else 0} 天)，跳過", flush=True)
-            return None
+            # yfinance 無法取得資料（可能是非交易時間或 API 問題）
+            # 回傳預設值，讓分析繼續進行（不加也不扣分）
+            print(f"⚠️ {ticker} yfinance 無資料 (非交易時間?)，跳過 MA60 檢查", flush=True)
+            return {
+                'ma60': None,
+                'ma120': None,
+                'current_price': None,
+                'above_ma60': None,  # 未知
+                'above_ma120': None,
+                'bonus': 0,  # 無法判斷，不加分
+                'skipped': True
+            }
         
         # 取得收盤價序列
         closes = hist['Close'].tolist()
@@ -1008,12 +1020,22 @@ def check_ma60_with_yfinance(ticker):
             'current_price': round(current_price, 2),
             'above_ma60': True,
             'above_ma120': above_ma120,
-            'bonus': bonus
+            'bonus': bonus,
+            'skipped': False
         }
         
     except Exception as e:
-        print(f"⚠️ {ticker} yfinance 抓取失敗: {e}，跳過", flush=True)
-        return None
+        # API 失敗時，回傳預設值讓分析繼續
+        print(f"⚠️ {ticker} yfinance 失敗: {e}，跳過 MA60 檢查", flush=True)
+        return {
+            'ma60': None,
+            'ma120': None,
+            'current_price': None,
+            'above_ma60': None,
+            'above_ma120': None,
+            'bonus': 0,
+            'skipped': True
+        }
 
 
 def calculate_ma(closes, period):
@@ -1546,13 +1568,14 @@ def deep_analyze(candidates, industry_mapping=None):
         industry = industry_mapping.get(ticker, '')
         
         try:
-            # ===== v4.5: MA60 季線檢查 (一票否決) =====
+            # ===== v4.5: MA60 季線檢查 =====
             ma60_result = check_ma60_with_yfinance(ticker)
+            
+            # 跌破季線時 ma60_result 是 None，直接排除
             if ma60_result is None:
-                # 資料不足或跌破季線，直接跳過
                 continue
             
-            # 記錄 MA60 資訊供後續使用
+            # yfinance 失敗時 skipped=True，繼續分析但不加分
             ma60_bonus = ma60_result.get('bonus', 0)
             candidate['ma60_info'] = ma60_result
             # ==========================================
