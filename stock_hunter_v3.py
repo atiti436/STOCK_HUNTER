@@ -554,7 +554,7 @@ def get_stock_news(ticker, name):
         root = ET.fromstring(response.content)
         news_items = []
         
-        for item in root.findall('.//item')[:3]:
+        for item in root.findall('.//item')[:12]:  # v4.5: 擴大從 3 筆改為 12 筆
             title = item.find('title').text
             if ' - ' in title:
                 title = title.split(' - ')[0]
@@ -566,14 +566,15 @@ def get_stock_news(ticker, name):
 
 
 def analyze_news_sentiment(ticker, name, news_list):
-    """使用 Gemini API 分析新聞情緒"""
+    """使用 Gemini API 分析新聞情緒 (向下相容)"""
+    # 向下相容: 如果新版函數失敗,這個函數仍可用
     if not news_list:
         return {'sentiment': 0, 'summary': '無相關新聞'}
     
     try:
-        model = genai.GenerativeModel('gemini-2.5-pro')  # 升級為 2.5 Pro
+        model = genai.GenerativeModel('gemini-2.5-pro')  # 強制使用 2.5 Pro
         
-        news_text = "\n".join([f"{i+1}. {news}" for i, news in enumerate(news_list)])
+        news_text = "\n".join([f"{i+1}. {news}" for i, news in enumerate(news_list[:5])])
         
         prompt = f"""請分析以下新聞對「{name}（{ticker}）」股價的影響：
 
@@ -608,6 +609,89 @@ def analyze_news_sentiment(ticker, name, news_list):
     except Exception as e:
         print(f"⚠️ {ticker} 新聞分析失敗: {e}", flush=True)
         return {'sentiment': 0, 'summary': '分析失敗'}
+
+
+def analyze_stock_with_gemini(ticker, name, price, change_pct, ma60_status, institutional_data, news_titles):
+    """
+    v4.5: 使用 Gemini 2.5 Pro 進行綜合操盤建議
+    
+    Args:
+        ticker: 股票代碼
+        name: 股票名稱
+        price: 現價
+        change_pct: 漲跌幅
+        ma60_status: 是否站上季線 (True/False)
+        institutional_data: 籌碼資訊字串
+        news_titles: 新聞標題列表
+    
+    Returns:
+        {'gemini_score': 0.8, 'gemini_comment': '老公G的短評'}
+    """
+    try:
+        model = genai.GenerativeModel('gemini-2.5-pro')  # 強制使用 2.5 Pro！絕不降版！
+        
+        # 準備新聞文字
+        news_text = "\n".join([f"• {news}" for news in news_titles[:10]]) if news_titles else "無近期新聞"
+        
+        # 技術面狀態
+        tech_status = "股價站上生命線(季線)，趨勢偏多 ✅" if ma60_status else "股價跌破生命線(季線)，趨勢偏空 ❌"
+        
+        prompt = f"""角色：你是一位精明的台股波段交易員「老公G」，擅長結合技術面與題材面。
+任務：分析以下股票，判斷是否值得進場操作。
+
+【股票資訊】
+- 代號：{ticker} {name}
+- 現價：{price} (漲跌幅: {change_pct:+.1f}%)
+- 技術面：{tech_status}
+- 籌碼面：{institutional_data}
+
+【近期新聞標題】
+{news_text}
+
+【分析邏輯】
+1. 過濾雜訊：忽略股東會公告、除息等例行公事。
+2. 尋找題材：是否有 AI、矽光子、機器人、營收創高、漲價等關鍵利多？
+3. 綜合判斷：
+   - 如果技術面站上季線 + 有題材 = 強力推薦 (給高分 0.6~1.0)
+   - 如果技術面跌破季線 + 有題材 = 小心誘多 (給低分 -0.3~0.3)
+   - 如果沒題材 = 觀望 (給中性分數 0~0.3)
+
+【輸出格式】
+請回傳純 JSON 格式，不要有 Markdown 標記：
+{{
+    "sentiment_score": 0.8,
+    "comment": "站上季線且具CPO題材，建議波段操作"
+}}
+
+注意：comment 限 25 字以內，要犀利點評！"""
+
+        response = model.generate_content(prompt)
+        result_text = response.text.strip()
+        
+        # 解析 JSON
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+        
+        result = json.loads(result_text)
+        
+        gemini_score = float(result.get('sentiment_score', 0))
+        gemini_comment = result.get('comment', '暫無評論')
+        
+        print(f"🧠 {ticker} 老公G短評: {gemini_comment} (分數: {gemini_score:.2f})", flush=True)
+        
+        return {
+            'gemini_score': gemini_score,
+            'gemini_comment': gemini_comment
+        }
+        
+    except json.JSONDecodeError as e:
+        print(f"⚠️ {ticker} Gemini JSON 解析失敗: {e}", flush=True)
+        return {'gemini_score': 0, 'gemini_comment': '暫無 AI 分析'}
+    except Exception as e:
+        print(f"⚠️ {ticker} Gemini 分析失敗: {e}", flush=True)
+        return {'gemini_score': 0, 'gemini_comment': '暫無 AI 分析'}
 
 
 # ==================== v4.4: 批次 Gemini 分析 ====================
@@ -1479,11 +1563,31 @@ def deep_analyze(candidates, industry_mapping=None):
             # 2. 當沖分析 (傳入產業以排除金融股)
             day_trade = analyze_day_trade(candidate, history, industry)
             
-            # 3. 抓取新聞 + Gemini 分析 (v4.3: 移到波段分析之前)
+            # 3. 抓取新聞 + Gemini 綜合分析 (v4.5: 升級為操盤建議)
             news_list = get_stock_news(ticker, name)
-            news_result = analyze_news_sentiment(ticker, name, news_list)
-            sentiment = news_result.get('sentiment', 0)
-            news_summary = news_result.get('summary', '')
+            
+            # 準備籌碼資訊字串
+            inst = candidate['institutional']
+            foreign = inst.get('foreign', 0)
+            trust = inst.get('trust', 0)
+            inst_str = f"外資{'買超' if foreign > 0 else '賣超'}{abs(foreign)}張, 投信{'買超' if trust > 0 else '賣超'}{abs(trust)}張"
+            
+            # v4.5: 使用新版 Gemini 綜合分析
+            gemini_result = analyze_stock_with_gemini(
+                ticker=ticker,
+                name=name,
+                price=candidate['price'],
+                change_pct=candidate['change_pct'],
+                ma60_status=True,  # 已通過 MA60 檢查
+                institutional_data=inst_str,
+                news_titles=news_list
+            )
+            gemini_score = gemini_result.get('gemini_score', 0)
+            gemini_comment = gemini_result.get('gemini_comment', '')
+            
+            # 向下相容: 轉換為舊版 sentiment 格式
+            sentiment = gemini_score
+            news_summary = gemini_comment
             
             # 4. 取得 PE 資料
             pe_data = get_pe_ratio_data()
@@ -1517,6 +1621,8 @@ def deep_analyze(candidates, industry_mapping=None):
                 'institutional': candidate['institutional'],
                 'news_summary': news_summary,
                 'news_sentiment': sentiment,
+                # v4.5: 老公G 短評
+                'gemini_comment': gemini_comment,
                 # 當沖資訊
                 'day_trade': day_trade,
                 # 波段資訊
@@ -2005,10 +2111,10 @@ def format_line_messages(result):
                     if foreign != 0 or trust != 0:
                         msg.append(f"   🏦 外資:{foreign//1000:+}張 投信:{trust//1000:+}張")
                 
-                # 新聞
-                news = rec.get('news_summary', '')
-                if news and news not in ['無相關新聞', '分析失敗', '']:
-                    msg.append(f"   📰 {news}")
+                # v4.5: 老公G 短評
+                gemini_comment = rec.get('gemini_comment', '')
+                if gemini_comment and gemini_comment not in ['暫無 AI 分析', '暫無評論', '']:
+                    msg.append(f"🧠 老公G: {gemini_comment}")
                 
                 msg.append("")
             
