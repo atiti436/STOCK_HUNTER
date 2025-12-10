@@ -867,22 +867,27 @@ def analyze_day_trade(stock, history=None, industry=None):
 
 def analyze_swing_trade(stock, history=None):
     """
-    波段分析 (右側交易)
-    條件: 站上 MA20 + 法人買超 + MACD/KD 配合
-    新增: 停利目標 + 風報比計算
+    波段分析 (右側交易) - v4.3 優化版
+    
+    改進重點:
+    1. 距離 MA20 越近越加分，太遠則扣分（避免追高）
+    2. 停損採用「MA20 與 -7% 兩者較窄者」
+    3. 前日漲幅 > 5% 加入追漲警示
     """
     result = {
         'suitable': False,
         'score': 0,
         'reasons': [],
+        'warnings': [],           # 新增: 警示訊息
         'ma5': None,
         'ma20': None,
         'rsi': None,
         'k': None,
         'd': None,
+        'ma20_distance': None,    # 新增: 距離 MA20 百分比
         'stop_loss': None,
-        'take_profit': None,   # 新增: 停利目標
-        'risk_reward': None    # 新增: 風報比
+        'take_profit': None,
+        'risk_reward': None
     }
     
     if not history or len(history) < 20:
@@ -911,31 +916,68 @@ def analyze_swing_trade(stock, history=None):
     result['k'] = k
     result['d'] = d
     
-    # 條件1: 站上 MA20 (核心條件)
-    if ma20 and stock['price'] > ma20:
-        result['score'] += 2
-        result['reasons'].append(f"站上MA20({ma20})")
-        result['stop_loss'] = ma20  # 停損設在 MA20
-    elif ma20:
-        # 即使沒站上 MA20,但接近也給停損參考
-        result['stop_loss'] = round(stock['price'] * 0.95, 2)  # -5%
+    # ===== 新增: 追漲警示 =====
+    # 如果今日漲幅 > 5%，加入警示（可能是追高）
+    if stock['change_pct'] >= 5:
+        result['warnings'].append(f"⚠️今日漲{stock['change_pct']:.1f}%，留意追高風險")
+        result['score'] -= 1  # 扣分
     
-    # 條件2: 站上 MA5 (短線)
+    # ===== 核心改進: MA20 距離評分 =====
+    if ma20 and stock['price'] > ma20:
+        distance_pct = (stock['price'] - ma20) / ma20 * 100
+        result['ma20_distance'] = round(distance_pct, 1)
+        
+        if distance_pct <= 5:
+            # 距離 MA20 在 5% 以內 = 理想買點 ⭐
+            result['score'] += 3
+            result['reasons'].append(f"✅靠近MA20(+{distance_pct:.1f}%)")
+        elif distance_pct <= 10:
+            # 距離 MA20 在 5-10% = 中等買點
+            result['score'] += 1
+            result['reasons'].append(f"站上MA20(+{distance_pct:.1f}%)")
+        else:
+            # 距離 MA20 超過 10% = 追高風險，扣分！
+            result['score'] -= 1
+            result['warnings'].append(f"⚠️已遠離MA20(+{distance_pct:.1f}%)")
+    elif ma20:
+        # 跌破 MA20
+        result['score'] -= 1
+        result['reasons'].append(f"跌破MA20")
+    
+    # ===== 改進: 停損邏輯 =====
+    # 使用「MA20 與 -7% 兩者較窄者」
+    price = stock['price']
+    stop_loss_pct = round(price * 0.93, 2)  # -7%
+    stop_loss_ma20 = ma20 if ma20 else stop_loss_pct
+    
+    # 取較窄的停損（較高的價格 = 較窄的停損）
+    result['stop_loss'] = round(max(stop_loss_pct, stop_loss_ma20), 2)
+    
+    # 條件: 站上 MA5 (短線)
     if ma5 and stock['price'] > ma5:
         result['score'] += 1
         result['reasons'].append(f"站上MA5")
     
-    # 條件3: RSI 在合理區間 (30-80 放寬)
-    if rsi and 30 < rsi < 80:
-        result['score'] += 1
-        result['reasons'].append(f"RSI={rsi}")
+    # 條件: RSI 在合理區間
+    if rsi:
+        if rsi >= 80:
+            result['score'] -= 1
+            result['warnings'].append(f"⚠️RSI={rsi}過熱")
+        elif rsi >= 70:
+            result['warnings'].append(f"RSI={rsi}偏高")
+        elif 30 < rsi < 70:
+            result['score'] += 1
+            result['reasons'].append(f"RSI={rsi}")
+        elif rsi <= 30:
+            result['score'] += 1
+            result['reasons'].append(f"RSI={rsi}超賣")
     
-    # 條件4: KD 多方 (K > D)
+    # 條件: KD 多方 (K > D)
     if k and d and k > d:
         result['score'] += 1
         result['reasons'].append(f"KD多方")
     
-    # 條件5: 法人買超
+    # 條件: 法人買超
     inst = stock.get('institutional', {})
     if inst:
         foreign = inst.get('foreign', 0)
@@ -947,15 +989,12 @@ def analyze_swing_trade(stock, history=None):
             result['score'] += 1
             result['reasons'].append("法人買超")
     
-    # 判斷是否適合波段 (降低門檻到 2 分)
-    if result['score'] >= 2:
+    # 判斷是否適合波段（需要 >= 3 分，提高門檻）
+    if result['score'] >= 3:
         result['suitable'] = True
-        if not result['stop_loss']:
-            result['stop_loss'] = round(stock['price'] * 0.95, 2)
     
     # 計算停利目標和風報比 (1:2 風報比)
     if result['stop_loss'] and result['stop_loss'] > 0:
-        price = stock['price']
         stop_loss = result['stop_loss']
         risk = price - stop_loss  # 風險 (可能虧損)
         
@@ -1595,9 +1634,16 @@ def format_line_messages(result):
                 msg.append(f"   💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
                 msg.append(f"   📊 評分: {rec['score']} 分")
                 
-                # 技術指標
+                # 技術指標 + MA20 距離
                 if sw.get('ma20'):
-                    msg.append(f"   📐 MA20: ${sw['ma20']} | RSI: {sw.get('rsi', '-')}")
+                    ma20_dist = sw.get('ma20_distance', '')
+                    dist_str = f" (+{ma20_dist}%)" if ma20_dist else ""
+                    msg.append(f"   📐 MA20: ${sw['ma20']}{dist_str} | RSI: {sw.get('rsi', '-')}")
+                
+                # 警示訊息
+                warnings = sw.get('warnings', [])
+                if warnings:
+                    msg.append(f"   {' | '.join(warnings[:2])}")
                 
                 # 停損 + 停利 + 風報比
                 if sw.get('stop_loss'):
