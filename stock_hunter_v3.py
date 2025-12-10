@@ -907,8 +907,8 @@ def get_stock_history(ticker, days=30):
     try:
         all_data = []
         
-        # 抓取最近 2 個月資料
-        for i in range(2):
+        # v4.5: 改抓 4 個月資料 (支援 MA60 計算)
+        for i in range(4):
             target_date = datetime.now() - timedelta(days=30*i)
             date_str = target_date.strftime('%Y%m01')
             
@@ -953,48 +953,40 @@ def get_stock_history(ticker, days=30):
         return []
 
 
-def check_ma60_with_yfinance(ticker):
+def check_ma60_with_twse(ticker, history):
     """
-    用 yfinance 抓取 1 年資料，計算 MA60/MA120
-    只抓上市股 (.TW)，不含上櫃 (.TWO)
+    v4.5: 用證交所歷史資料計算 MA60/MA120
+    不再依賴 yfinance，使用已抓取的歷史資料
     
     Args:
-        ticker: 股票代碼 (例如 "2330")
+        ticker: 股票代碼
+        history: 已抓取的歷史資料 (from get_stock_history)
     
     Returns:
-        成功且站上 MA60: {'ma60': 150.0, 'ma120': 145.0, 'above_ma60': True, 'bonus': 2或3}
+        成功且站上 MA60: {'ma60': 150.0, 'bonus': 2或3}
         失敗或跌破 MA60: None
-        yfinance 無法取得資料時: 回傳預設值讓分析繼續
+        資料不足: 回傳預設值
     """
     try:
-        # 只用 .TW (上市股)
-        yf_ticker = f"{ticker}.TW"
-        stock = yf.Ticker(yf_ticker)
-        hist = stock.history(period="1y")
+        # 取得收盤價列表
+        closes = [h['close'] for h in history]
         
         # 檢查資料是否足夠 (至少需要 60 天)
-        if hist is None or len(hist) < 60:
-            # yfinance 無法取得資料（可能是非交易時間或 API 問題）
-            # 回傳預設值，讓分析繼續進行（不加也不扣分）
-            print(f"⚠️ {ticker} yfinance 無資料 (非交易時間?)，跳過 MA60 檢查", flush=True)
+        if len(closes) < 60:
+            print(f"⚠️ {ticker} 歷史資料不足 ({len(closes)} 天)，跳過 MA60", flush=True)
             return {
                 'ma60': None,
                 'ma120': None,
-                'current_price': None,
-                'above_ma60': None,  # 未知
-                'above_ma120': None,
-                'bonus': 0,  # 無法判斷，不加分
+                'bonus': 0,
                 'skipped': True
             }
         
-        # 取得收盤價序列
-        closes = hist['Close'].tolist()
         current_price = closes[-1]
         
         # 計算 MA60 (季線)
         ma60 = sum(closes[-60:]) / 60
         
-        # 計算 MA120 (半年線)
+        # 計算 MA120 (半年線) - 可能資料不足
         ma120 = None
         if len(closes) >= 120:
             ma120 = sum(closes[-120:]) / 120
@@ -1025,14 +1017,10 @@ def check_ma60_with_yfinance(ticker):
         }
         
     except Exception as e:
-        # API 失敗時，回傳預設值讓分析繼續
-        print(f"⚠️ {ticker} yfinance 失敗: {e}，跳過 MA60 檢查", flush=True)
+        print(f"⚠️ {ticker} MA60 計算失敗: {e}", flush=True)
         return {
             'ma60': None,
             'ma120': None,
-            'current_price': None,
-            'above_ma60': None,
-            'above_ma120': None,
             'bonus': 0,
             'skipped': True
         }
@@ -1568,20 +1556,21 @@ def deep_analyze(candidates, industry_mapping=None):
         industry = industry_mapping.get(ticker, '')
         
         try:
-            # ===== v4.5: MA60 季線檢查 =====
-            ma60_result = check_ma60_with_yfinance(ticker)
+            # 1. 抓取歷史資料 (60天 - 支援 MA60 計算)
+            history = get_stock_history(ticker, 60)
+            
+            # ===== v4.5: MA60 季線檢查 (改用證交所資料) =====
+            ma60_result = check_ma60_with_twse(ticker, history)
             
             # 跌破季線時 ma60_result 是 None，直接排除
             if ma60_result is None:
                 continue
             
-            # yfinance 失敗時 skipped=True，繼續分析但不加分
+            # 資料不足時 skipped=True，繼續分析但不加分
             ma60_bonus = ma60_result.get('bonus', 0)
             candidate['ma60_info'] = ma60_result
+            ma60_status = ma60_result.get('above_ma60', None)
             # ==========================================
-            
-            # 1. 抓取歷史資料 (30天)
-            history = get_stock_history(ticker, 30)
             
             # 2. 當沖分析 (傳入產業以排除金融股)
             day_trade = analyze_day_trade(candidate, history, industry)
@@ -1601,7 +1590,7 @@ def deep_analyze(candidates, industry_mapping=None):
                 name=name,
                 price=candidate['price'],
                 change_pct=candidate['change_pct'],
-                ma60_status=True,  # 已通過 MA60 檢查
+                ma60_status=ma60_status if ma60_status is not None else True,
                 institutional_data=inst_str,
                 news_titles=news_list
             )
