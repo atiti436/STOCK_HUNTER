@@ -644,7 +644,7 @@ def analyze_stock_with_gemini(ticker, name, price, change_pct, ma60_status, inst
         # 技術面狀態
         tech_status = "股價站上生命線(季線)，趨勢偏多 ✅" if ma60_status else "股價跌破生命線(季線)，趨勢偏空 ❌"
         
-        prompt = f"""角色：你是一位精明的台股波段交易員「老公G」，擅長結合技術面與題材面。
+        prompt = f"""角色：你是一位精明的台股波段交易員「AI_G」，擅長結合技術面與題材面。
 任務：分析以下股票，判斷是否值得進場操作。
 
 【股票資訊】
@@ -2151,10 +2151,10 @@ def format_line_messages(result):
                     if foreign != 0 or trust != 0:
                         msg.append(f"   🏦 外資:{foreign//1000:+}張 投信:{trust//1000:+}張")
                 
-                # v4.5: 老公G 短評
+                # v4.5: AI_G 短評
                 gemini_comment = rec.get('gemini_comment', '')
-                if gemini_comment and gemini_comment not in ['暫無 AI 分析', '暫無評論', '']:
-                    msg.append(f"🧠 老公G: {gemini_comment}")
+                if gemini_comment and gemini_comment not in ['暫無 AI 分析', '暫無評論', '', '(Gemini 已停用)']:
+                    msg.append(f"🧠 AI_G: {gemini_comment}")
                 
                 msg.append("")
             
