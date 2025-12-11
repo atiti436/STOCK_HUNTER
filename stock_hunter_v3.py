@@ -968,8 +968,18 @@ def check_ma60_with_twse(ticker, history):
         資料不足: 回傳預設值
     """
     try:
+        # 檢查 history 是否有效
+        if not history or len(history) == 0:
+            print(f"⚠️ {ticker} 無歷史資料，跳過 MA60", flush=True)
+            return {
+                'ma60': None,
+                'ma120': None,
+                'bonus': 0,
+                'skipped': True
+            }
+        
         # 取得收盤價列表
-        closes = [h['close'] for h in history]
+        closes = [h['close'] for h in history if h.get('close') is not None]
         
         # 檢查資料是否足夠 (至少需要 60 天)
         if len(closes) < 60:
