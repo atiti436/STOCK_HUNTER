@@ -38,6 +38,7 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'YOUR_TOKEN')
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', 'YOUR_SECRET')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_KEY')
 ADMIN_USER_ID = os.getenv('ADMIN_USER_ID', 'U7130f999bd008719fe5058ef31059522')  # 環境變數優先，否則用預設
+DISABLE_GEMINI = os.getenv('DISABLE_GEMINI', 'false').lower() == 'true'  # 設為 true 關閉 Gemini
 
 # 初始化
 app = Flask(__name__)
@@ -629,6 +630,11 @@ def analyze_stock_with_gemini(ticker, name, price, change_pct, ma60_status, inst
     Returns:
         {'gemini_score': 0.8, 'gemini_comment': '老公G的短評'}
     """
+    # 如果 DISABLE_GEMINI 為 true，跳過 API 呼叫
+    if DISABLE_GEMINI:
+        print(f"⚠️ {ticker} Gemini 已停用 (DISABLE_GEMINI=true)", flush=True)
+        return {'gemini_score': 0, 'gemini_comment': '(Gemini 已停用)'}
+    
     try:
         model = genai.GenerativeModel('gemini-2.5-pro')  # 強制使用 2.5 Pro！絕不降版！
         
