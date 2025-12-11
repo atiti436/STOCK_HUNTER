@@ -70,9 +70,9 @@ CONFIG = {
     "DAY_TRADE_MAX": 3,        # 當沖最多顯示 3 檔（指令觸發）
     "SWING_TRADE_MAX": 5,      # 波段最多顯示 5 檔（8:00 推播）
     
-    # 評分門檻 (v4.4: 波段提高到 5 分)
+    # 評分門檻 (v4.5: 波段改回 4 分)
     "DAY_TRADE_SCORE_THRESHOLD": 4,   # 當沖 ≥4 分
-    "SWING_TRADE_SCORE_THRESHOLD": 5, # 波段 ≥5 分
+    "SWING_TRADE_SCORE_THRESHOLD": 4, # 波段 ≥4 分
     
     # API 設定
     "API_TIMEOUT": 15,
