@@ -26,7 +26,6 @@ from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from apscheduler.schedulers.background import BackgroundScheduler
 import google.generativeai as genai
 import urllib3
-import yfinance as yf
 
 # 關閉 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
