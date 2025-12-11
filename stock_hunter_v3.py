@@ -2332,9 +2332,13 @@ def manual_run():
 
 # ==================== 主程式 ====================
 
+print("🔄 [DEBUG] 準備進入 main block...", flush=True)
+
 if __name__ == "__main__":
+    print("🔄 [DEBUG] 進入 main block!", flush=True)
     try:
         port = int(os.environ.get('PORT', 8080))
+        print(f"🔄 [DEBUG] PORT = {port}", flush=True)
         print("\n" + "="*60, flush=True)
         print("🚀 台股情報獵人 v4.0 啟動", flush=True)
         print("="*60, flush=True)
@@ -2343,6 +2347,7 @@ if __name__ == "__main__":
         print(f"🔗 手動觸發: http://localhost:{port}/manual", flush=True)
         print("="*60 + "\n", flush=True)
         
+        print("🔄 [DEBUG] 開始啟動 Flask...", flush=True)
         app.run(host='0.0.0.0', port=port, debug=False)
     except Exception as e:
         print(f"❌ 啟動失敗: {e}", flush=True)
