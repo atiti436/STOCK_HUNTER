@@ -907,8 +907,8 @@ def get_stock_history(ticker, days=30):
     try:
         all_data = []
         
-        # v4.5: 改抓 3 個月資料 (約 60 交易日，支援 MA60)
-        for i in range(3):
+        # v4.5: 改抓 4 個月資料 (約 80 交易日，確保夠算 MA60)
+        for i in range(4):
             target_date = datetime.now() - timedelta(days=30*i)
             date_str = target_date.strftime('%Y%m01')
             
