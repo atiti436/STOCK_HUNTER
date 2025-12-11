@@ -18,5 +18,5 @@ COPY . .
 # 暴露端口
 EXPOSE 8080
 
-# 啟動應用
-CMD ["python", "-u", "stock_hunter_v3.py"]
+# 啟動應用（使用 gunicorn 生產伺服器）
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--timeout", "300", "stock_hunter_v3:app"]
