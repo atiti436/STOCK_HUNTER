@@ -907,8 +907,8 @@ def get_stock_history(ticker, days=30):
     try:
         all_data = []
         
-        # v4.5: 改抓 4 個月資料 (支援 MA60 計算)
-        for i in range(4):
+        # v4.5: 改抓 3 個月資料 (約 60 交易日，支援 MA60)
+        for i in range(3):
             target_date = datetime.now() - timedelta(days=30*i)
             date_str = target_date.strftime('%Y%m01')
             
@@ -941,7 +941,7 @@ def get_stock_history(ticker, days=30):
                     except:
                         continue
             
-            time.sleep(0.3)  # API 間隔
+            time.sleep(0.15)  # 縮短 API 間隔 (0.3->0.15)
         
         # 按日期排序 (舊到新)
         all_data.sort(key=lambda x: x['date'])
