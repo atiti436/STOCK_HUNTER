@@ -13,9 +13,13 @@
 7. 管理員權限控制
 """
 
+print("🔄 [DEBUG] 開始載入模組...", flush=True)
+
 import os
 import json
 import time
+print("🔄 [DEBUG] 基礎模組載入完成", flush=True)
+
 import requests
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -29,18 +33,22 @@ import urllib3
 
 # 關閉 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+print("🔄 [DEBUG] SSL 警告已關閉", flush=True)
 
 # ==================== 環境變數 ====================
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'YOUR_TOKEN')
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', 'YOUR_SECRET')
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_KEY')
 ADMIN_USER_ID = os.getenv('ADMIN_USER_ID', 'U7130f999bd008719fe5058ef31059522')  # 環境變數優先，否則用預設
+print("🔄 [DEBUG] 環境變數載入完成", flush=True)
 
 # 初始化
+print("🔄 [DEBUG] 開始初始化 Flask 和 LINE Bot...", flush=True)
 app = Flask(__name__)
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 genai.configure(api_key=GEMINI_API_KEY)
+print("✅ [DEBUG] 初始化完成！", flush=True)
 
 # ==================== 設定參數 ====================
 
