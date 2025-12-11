@@ -687,7 +687,7 @@ def analyze_stock_with_gemini(ticker, name, price, change_pct, ma60_status, inst
         gemini_score = float(result.get('sentiment_score', 0))
         gemini_comment = result.get('comment', '暫無評論')
         
-        print(f"🧠 {ticker} 老公G短評: {gemini_comment} (分數: {gemini_score:.2f})", flush=True)
+        print(f"🧠 {ticker} AI_G短評: {gemini_comment} (分數: {gemini_score:.2f})", flush=True)
         
         return {
             'gemini_score': gemini_score,
@@ -1640,10 +1640,16 @@ def deep_analyze(candidates, industry_mapping=None):
             candidate_with_extra['news_summary'] = news_summary
             swing_trade = analyze_swing_trade(candidate_with_extra, history)
             
+            # v4.5: 將 MA60 加分加到 swing_trade 的評分中
+            swing_trade['score'] += ma60_bonus
+            # 重新判斷是否適合波段（因為加了 MA60 分數）
+            if swing_trade['score'] >= CONFIG.get('SWING_TRADE_SCORE_THRESHOLD', 5):
+                swing_trade['suitable'] = True
+            
             # 基礎評分 (快速篩選的分數)
             base_score = candidate['score']
-            # 波段評分 = swing_trade 的評分 + MA60 加分 (v4.5)
-            final_score = swing_trade['score'] + ma60_bonus
+            # 波段評分 = swing_trade 的評分 (已包含 MA60 加分)
+            final_score = swing_trade['score']
             
             # 組合結果
             result = {
@@ -1661,7 +1667,7 @@ def deep_analyze(candidates, industry_mapping=None):
                 'institutional': candidate['institutional'],
                 'news_summary': news_summary,
                 'news_sentiment': sentiment,
-                # v4.5: 老公G 短評
+                # v4.5: AI_G 短評
                 'gemini_comment': gemini_comment,
                 # 當沖資訊
                 'day_trade': day_trade,
