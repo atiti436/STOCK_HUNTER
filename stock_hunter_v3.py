@@ -1004,6 +1004,15 @@ def check_ma60_with_twse(ticker, history):
             ma120 = sum(closes[-120:]) / 120
         
         # 檢查是否站上 MA60 (一票否決)
+        if ma60 is None or current_price is None:
+            print(f"⚠️ {ticker} MA60 或價格為 None，跳過", flush=True)
+            return {
+                'ma60': None,
+                'ma120': None,
+                'bonus': 0,
+                'skipped': True
+            }
+        
         if current_price < ma60:
             print(f"❌ {ticker} 跌破季線 (現價 {current_price:.2f} < MA60 {ma60:.2f})，排除", flush=True)
             return None
@@ -1016,7 +1025,8 @@ def check_ma60_with_twse(ticker, history):
             bonus += 1  # 站上 MA120 額外 +1 分
             above_ma120 = True
         
-        print(f"✅ {ticker} 站穩季線 (MA60={ma60:.2f}, MA120={ma120:.2f if ma120 else 'N/A'}) +{bonus}分", flush=True)
+        ma120_str = f"{ma120:.2f}" if ma120 else "N/A"
+        print(f"✅ {ticker} 站穩季線 (MA60={ma60:.2f}, MA120={ma120_str}) +{bonus}分", flush=True)
         
         return {
             'ma60': round(ma60, 2),
