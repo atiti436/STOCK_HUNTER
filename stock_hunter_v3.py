@@ -13,6 +13,8 @@
 7. 管理員權限控制
 """
 
+print("Starting Stock Hunter...", flush=True)
+
 import os
 import json
 import time
