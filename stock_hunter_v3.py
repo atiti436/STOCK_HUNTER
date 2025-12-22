@@ -265,12 +265,13 @@ def get_revenue_data(ticker):
 
 # ==================== v5.0 確信度評分系統 ====================
 
-def calculate_confidence_score(stock, market_data, revenue_data=None):
+def calculate_confidence_score(stock, market_data, revenue_data=None, volume_data=None):
     """
-    計算確信分數 (0-100)
+    計算確信分數 (0-115，但 cap 在 100)
     - 基本面動能 (40分): 營收 YoY、連續成長
     - 相對強度 RS (40分): 個股 vs 大盤 20日漲幅
     - 技術護城河 (20分): MA60 站穩 + 斜率向上
+    - 量能點火 (15分): 爆量 + 收紅 (v5.0 Phase 3)
     """
     score = 0
     breakdown = []
@@ -320,6 +321,18 @@ def calculate_confidence_score(stock, market_data, revenue_data=None):
         if stock.get('ma60_slope', 0) > 0:
             score += 5
             breakdown.append("季線向上(+5)")
+    
+    # --- 4. 量能點火 (15分) - v5.0 Phase 3 ---
+    if volume_data:
+        today_vol = volume_data.get('today_vol', 0)
+        mv5 = volume_data.get('mv5', 0)
+        change_pct = stock.get('change_pct', 0)
+        
+        # 爆量條件：今日成交量 > 5日均量 × 2 且收紅
+        if mv5 > 0 and today_vol > mv5 * 2 and change_pct > 0:
+            vol_ratio = today_vol / mv5
+            score += 15
+            breakdown.append(f"🔥量能點火({vol_ratio:.1f}倍)(+15)")
     
     return {
         'score': min(score, 100),
@@ -1269,22 +1282,50 @@ def analyze_industry_trend(stocks, industry_mapping):
 
 # ==================== 歷史資料&技術指標 ====================
 
-def get_stock_history(ticker, days=30):
-    """取得單支股票歷史資料 (最近 N 天)"""
+def get_stock_history(ticker, days=60):
+    """
+    取得單支股票歷史資料 (最近 N 天)
+    v5.0 Phase 3: 改用 FinMind，支援 24 小時取得資料
+    """
+    # 優先用 FinMind
+    if FINMIND_AVAILABLE:
+        try:
+            api = DataLoader()
+            start_date = (datetime.now() - timedelta(days=days + 60)).strftime('%Y-%m-%d')
+            
+            df = api.taiwan_stock_daily(stock_id=ticker, start_date=start_date)
+            
+            if df.empty:
+                print(f"   ⚠️ FinMind 無 {ticker} 歷史資料", flush=True)
+                return []
+            
+            all_data = []
+            for _, row in df.iterrows():
+                all_data.append({
+                    'date': row['date'],
+                    'open': float(row['open']),
+                    'high': float(row['max']),
+                    'low': float(row['min']),
+                    'close': float(row['close']),
+                    'volume': int(row['Trading_turnover'])
+                })
+            
+            all_data.sort(key=lambda x: x['date'])
+            return all_data[-days:] if len(all_data) >= days else all_data
+            
+        except Exception as e:
+            print(f"   ⚠️ FinMind 歷史資料失敗: {e}", flush=True)
+    
+    # 備援：用 TWSE
     try:
         all_data = []
         
-        # v4.5: 改抓 4 個月資料 (約 80 交易日，確保夠算 MA60)
         for i in range(4):
             target_date = datetime.now() - timedelta(days=30*i)
             date_str = target_date.strftime('%Y%m01')
             
             url = f"https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY"
-            params = {
-                'date': date_str,
-                'stockNo': ticker,
-                'response': 'json'
-            }
+            params = {'date': date_str, 'stockNo': ticker, 'response': 'json'}
             
             response = requests.get(url, params=params, timeout=10, verify=False)
             data = response.json()
@@ -1292,31 +1333,21 @@ def get_stock_history(ticker, days=30):
             if data.get('stat') == 'OK' and data.get('data'):
                 for row in data['data']:
                     try:
-                        # 日期, 成交股數, 成交金額, 開盤, 最高, 最低, 收盤, 漲跌, 成交筆數
-                        close = float(row[6].replace(',', ''))
-                        high = float(row[4].replace(',', ''))
-                        low = float(row[5].replace(',', ''))
-                        volume = int(row[1].replace(',', ''))
-                        
                         all_data.append({
                             'date': row[0],
-                            'close': close,
-                            'high': high,
-                            'low': low,
-                            'volume': volume
+                            'close': float(row[6].replace(',', '')),
+                            'high': float(row[4].replace(',', '')),
+                            'low': float(row[5].replace(',', '')),
+                            'volume': int(row[1].replace(',', ''))
                         })
                     except:
                         continue
-            
-            time.sleep(0.15)  # 縮短 API 間隔 (0.3->0.15)
+            time.sleep(0.15)
         
-        # 按日期排序 (舊到新)
         all_data.sort(key=lambda x: x['date'])
-        
-        # 回傳最近 N 天
         return all_data[-days:] if len(all_data) >= days else all_data
         
-    except Exception as e:
+    except:
         return []
 
 
@@ -2116,8 +2147,20 @@ def deep_analyze_v5(candidates, market_data):
             # 5. 抓取營收資料 (v5.0 Phase 2)
             revenue_data = get_revenue_data(ticker)
             
+            # 5.5 計算量能資料 (v5.0 Phase 3)
+            volume_data = None
+            if history and len(history) >= 6:
+                volumes = [h.get('volume', 0) for h in history]
+                if volumes:
+                    today_vol = volumes[-1] if volumes else 0
+                    mv5 = sum(volumes[-6:-1]) / 5 if len(volumes) >= 6 else 0
+                    volume_data = {
+                        'today_vol': today_vol,
+                        'mv5': mv5
+                    }
+            
             # 6. 計算確信度分數 (v5.0 核心)
-            confidence = calculate_confidence_score(stock_data, market_data, revenue_data)
+            confidence = calculate_confidence_score(stock_data, market_data, revenue_data, volume_data)
             score = confidence['score']
             
             # 6. 決定策略模式
@@ -2279,14 +2322,27 @@ def analyze_single_stock(ticker):
         # 8. 抓取營收資料 (v5.0 Phase 2)
         revenue_data = get_revenue_data(ticker)
         
+        # 8.5 計算量能資料 (v5.0 Phase 3)
+        volume_data = None
+        if history and len(history) >= 6:
+            volumes = [h.get('volume', 0) for h in history]
+            if volumes:
+                today_vol = volumes[-1] if volumes else 0
+                mv5 = sum(volumes[-6:-1]) / 5 if len(volumes) >= 6 else 0
+                volume_data = {
+                    'today_vol': today_vol,
+                    'mv5': mv5
+                }
+        
         # 9. 計算確信度分數
         confidence_input = {
             'ticker': ticker,
             'return_20d': stock_return_20d,
+            'change_pct': stock_data['change_pct'],
             'above_ma60': ma60_result.get('above_ma60', False) if ma60_result else False,
             'ma60_slope': 1 if ma60_result and ma60_result.get('above_ma120', False) else 0
         }
-        confidence = calculate_confidence_score(confidence_input, market_data, revenue_data)
+        confidence = calculate_confidence_score(confidence_input, market_data, revenue_data, volume_data)
         
         # 10. 決定策略模式
         mode = get_strategy_mode(confidence['score'], market_data['trend'])
