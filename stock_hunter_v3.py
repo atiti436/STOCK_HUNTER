@@ -198,6 +198,71 @@ def get_market_trend():
         return {'trend': 'BULL', 'return_20d': 0, 'ma240': 0}
 
 
+# ==================== v5.0 Phase 2: 營收模組 ====================
+
+def get_revenue_data(ticker):
+    """
+    取得個股營收資料 (FinMind)
+    回傳: {'yoy': 25.5, 'streak': 3, 'latest_month': '2024-11'}
+    """
+    if not FINMIND_AVAILABLE:
+        return None
+    
+    try:
+        api = DataLoader()
+        # 抓最近 2 年資料 (計算 YoY 需要去年同期)
+        start_date = (datetime.now() - timedelta(days=400)).strftime('%Y-%m-%d')
+        
+        df = api.taiwan_stock_month_revenue(stock_id=ticker, start_date=start_date)
+        
+        if df.empty or len(df) < 13:
+            return None
+        
+        # 按日期排序
+        df = df.sort_values('date')
+        
+        # 最新一筆營收
+        latest = df.iloc[-1]
+        latest_revenue = latest['revenue']
+        latest_month = latest['revenue_month']
+        latest_year = latest['revenue_year']
+        
+        # 找去年同期
+        same_month_last_year = df[
+            (df['revenue_month'] == latest_month) & 
+            (df['revenue_year'] == latest_year - 1)
+        ]
+        
+        if same_month_last_year.empty:
+            yoy = 0
+        else:
+            last_year_revenue = same_month_last_year.iloc[0]['revenue']
+            if last_year_revenue > 0:
+                yoy = ((latest_revenue - last_year_revenue) / last_year_revenue) * 100
+            else:
+                yoy = 0
+        
+        # 計算連續成長月數
+        streak = 0
+        revenues = df['revenue'].tolist()
+        for i in range(len(revenues) - 1, 0, -1):
+            if revenues[i] > revenues[i-1]:
+                streak += 1
+            else:
+                break
+        
+        return {
+            'yoy': round(yoy, 1),
+            'streak': streak,
+            'latest_revenue': latest_revenue,
+            'latest_month': f"{latest_year}-{latest_month:02d}"
+        }
+        
+    except Exception as e:
+        # 靜默失敗，不影響主流程
+        return None
+
+
 # ==================== v5.0 確信度評分系統 ====================
 
 def calculate_confidence_score(stock, market_data, revenue_data=None):
@@ -215,7 +280,13 @@ def calculate_confidence_score(stock, market_data, revenue_data=None):
         revenue_yoy = revenue_data.get('yoy', 0)
         revenue_streak = revenue_data.get('streak', 0)
         
-        if revenue_yoy > 20:
+        # 異常值偵測 (YoY > 500% 可能是營建業或異常)
+        is_yoy_outlier = abs(revenue_yoy) > 500
+        
+        if is_yoy_outlier:
+            breakdown.append(f"⚠️營收YoY異常({revenue_yoy:.0f}%)")
+            # 異常值不加分，避免誤導
+        elif revenue_yoy > 20:
             score += 25
             breakdown.append(f"營收YoY+{revenue_yoy:.0f}%(+25)")
         elif revenue_yoy > 0:
@@ -2042,8 +2113,11 @@ def deep_analyze_v5(candidates, market_data):
                 'institutional': candidate.get('institutional', {})
             }
             
-            # 5. 計算確信度分數 (v5.0 核心)
-            confidence = calculate_confidence_score(stock_data, market_data, revenue_data=None)
+            # 5. 抓取營收資料 (v5.0 Phase 2)
+            revenue_data = get_revenue_data(ticker)
+            
+            # 6. 計算確信度分數 (v5.0 核心)
+            confidence = calculate_confidence_score(stock_data, market_data, revenue_data)
             score = confidence['score']
             
             # 6. 決定策略模式
@@ -2158,11 +2232,14 @@ def increment_query_count(user_id):
 # ==================== 單股分析 ====================
 
 def analyze_single_stock(ticker):
-    """分析單一股票，回傳完整報告"""
+    """分析單一股票 - v5.0 版"""
     print(f"\n🔍 開始分析 {ticker}...", flush=True)
     
     try:
-        # 1. 取得今日所有股票資料
+        # 1. 取得大盤趨勢
+        market_data = get_market_trend()
+        
+        # 2. 取得今日所有股票資料
         all_stocks = get_all_stocks_data()
         stock_data = None
         for s in all_stocks:
@@ -2173,34 +2250,55 @@ def analyze_single_stock(ticker):
         if not stock_data:
             return {'error': f'找不到股票 {ticker}'}
         
-        # 2. 取得法人資料
+        # 3. 取得法人資料
         institutional = get_institutional_data()
         stock_data['institutional'] = institutional.get(ticker, {})
         
-        # 3. 取得本益比資料
-        pe_data = get_pe_ratio_data()
-        stock_pe = pe_data.get(ticker, {})
+        # 4. 取得歷史資料 (60天)
+        history = get_stock_history(ticker, 60)
         
-        # 4. 取得融資融券資料
-        margin_data = get_margin_trading_data()
-        stock_margin = margin_data.get(ticker, {})
+        # 5. MA60 檢查
+        ma60_result = check_ma60_with_twse(ticker, history)
         
-        # 5. 取得歷史資料
-        history = get_stock_history(ticker, 30)
+        # 6. 計算 20 日漲幅 (RS)
+        stock_return_20d = 0
+        if history and len(history) >= 21:
+            closes = [h['close'] for h in history if h.get('close')]
+            if len(closes) >= 21:
+                price_20d_ago = closes[-21]
+                current_price = closes[-1]
+                stock_return_20d = ((current_price - price_20d_ago) / price_20d_ago) * 100
         
-        # 6. 技術指標分析
-        swing_trade = analyze_swing_trade(stock_data, history)
+        # 7. 計算 MA20
+        ma20 = None
+        if history and len(history) >= 20:
+            closes = [h['close'] for h in history if h.get('close')]
+            if len(closes) >= 20:
+                ma20 = sum(closes[-20:]) / 20
         
-        # 7. 取得產業分類
-        industry_mapping = get_industry_mapping()
-        industry = industry_mapping.get(ticker, '')
+        # 8. 抓取營收資料 (v5.0 Phase 2)
+        revenue_data = get_revenue_data(ticker)
         
-        # 8. 當沖分析
-        day_trade = analyze_day_trade(stock_data, history, industry)
+        # 9. 計算確信度分數
+        confidence_input = {
+            'ticker': ticker,
+            'return_20d': stock_return_20d,
+            'above_ma60': ma60_result.get('above_ma60', False) if ma60_result else False,
+            'ma60_slope': 1 if ma60_result and ma60_result.get('above_ma120', False) else 0
+        }
+        confidence = calculate_confidence_score(confidence_input, market_data, revenue_data)
         
-        # 9. 新聞分析
-        news_list = get_stock_news(ticker, stock_data['name'])
-        news_result = analyze_news_sentiment(ticker, stock_data['name'], news_list)
+        # 10. 決定策略模式
+        mode = get_strategy_mode(confidence['score'], market_data['trend'])
+        strategy = get_strategy_params(mode)
+        
+        # 11. 計算停損/停利
+        ma60 = ma60_result.get('ma60', 0) if ma60_result else 0
+        if strategy['stop_loss'] == 'MA60':
+            stop_loss_price = ma60
+        else:
+            stop_loss_price = ma20 if ma20 else stock_data['price'] * 0.93
+        take_profit_price = stock_data['price'] * (1 + strategy['take_profit_deviation'] / 100)
         
         # 組合結果
         result = {
@@ -2211,15 +2309,21 @@ def analyze_single_stock(ticker):
             'volume': stock_data['volume'],
             'turnover': stock_data['turnover'],
             'institutional': stock_data.get('institutional', {}),
-            'pe_ratio': stock_pe,
-            'margin_trading': stock_margin,
-            'swing_trade': swing_trade,
-            'day_trade': day_trade,
-            'news_summary': news_result.get('summary', ''),
-            'news_sentiment': news_result.get('sentiment', 0),
+            'ma20': round(ma20, 2) if ma20 else None,
+            'ma60': round(ma60, 2) if ma60 else None,
+            # v5.0 新增
+            'market_trend': market_data['trend'],
+            'revenue_data': revenue_data,
+            'confidence_score': confidence['score'],
+            'confidence_breakdown': confidence['breakdown'],
+            'mode': mode,
+            'strategy': strategy,
+            'rs': round(stock_return_20d - market_data.get('return_20d', 0), 2),
+            'stop_loss_price': round(stop_loss_price, 2) if stop_loss_price else None,
+            'take_profit_price': round(take_profit_price, 2),
         }
         
-        print(f"✅ {ticker} {stock_data['name']} 分析完成", flush=True)
+        print(f"✅ {ticker} {stock_data['name']} 分析完成 | 確信度: {confidence['score']}分", flush=True)
         return result
         
     except Exception as e:
@@ -2228,7 +2332,7 @@ def analyze_single_stock(ticker):
 
 
 def format_single_stock_message(result):
-    """格式化單股分析訊息 - 精簡版含 AI 建議"""
+    """格式化單股分析訊息 - v5.0 版"""
     if 'error' in result:
         return f"❌ 分析失敗: {result['error']}"
     
@@ -2238,15 +2342,79 @@ def format_single_stock_message(result):
     change_pct = result['change_pct']
     volume = result['volume']
     
-    sw = result.get('swing_trade', {})
-    dt = result.get('day_trade', {})
+    # v5.0 新資料
+    confidence_score = result.get('confidence_score', 0)
+    breakdown = result.get('confidence_breakdown', [])
+    mode = result.get('mode', 'MODE_RETAIL')
+    strategy = result.get('strategy', {})
+    rs = result.get('rs', 0)
+    stop_loss = result.get('stop_loss_price')
+    take_profit = result.get('take_profit_price')
+    ma20 = result.get('ma20')
+    ma60 = result.get('ma60')
+    market_trend = result.get('market_trend', 'BULL')
+    revenue = result.get('revenue_data')
     inst = result.get('institutional', {})
-    pe_info = result.get('pe_ratio', {})
-    margin_info = result.get('margin_trading', {})
     
-    # ===== 趨勢判斷 =====
-    trend_signals = []
-    trend_warnings = []
+    mode_emoji = strategy.get('emoji', '📊')
+    mode_label = strategy.get('label', 'RETAIL')
+    
+    msg = [
+        f"📊 {ticker} {name}",
+        f"💰 ${price} ({change_pct:+.1f}%) | {volume//1000}K張",
+        "",
+        f"📏 確信度: {confidence_score}/100分 {mode_emoji} {mode_label}",
+    ]
+    
+    if breakdown:
+        msg.append(f"📝 {' | '.join(breakdown[:3])}")
+    
+    rs_status = "強於大盤 ✅" if rs > 0 else "弱於大盤 ⚠️"
+    msg.append(f"💪 RS: {rs:+.1f}% ({rs_status})")
+    
+    if revenue:
+        yoy = revenue.get('yoy', 0)
+        streak = revenue.get('streak', 0)
+        if abs(yoy) > 500:
+            msg.append(f"📈 營收: ⚠️ YoY異常 ({yoy:.0f}%)")
+        else:
+            msg.append(f"📈 營收: YoY {yoy:+.1f}% | 連{streak}月成長")
+    
+    msg.append("")
+    msg.append("📐 技術面:")
+    if ma20:
+        ma20_status = "✅" if price > ma20 else "❌"
+        msg.append(f"   MA20: ${ma20} {ma20_status}")
+    if ma60:
+        ma60_status = "✅" if price > ma60 else "❌"
+        msg.append(f"   MA60: ${ma60} {ma60_status}")
+    
+    foreign = inst.get('foreign', 0)
+    trust = inst.get('trust', 0)
+    if foreign != 0 or trust != 0:
+        msg.append(f"🏦 外資{foreign//1000:+}K 投信{trust//1000:+}K")
+    
+    msg.append("")
+    msg.append("━━━━━━━━━━━━━━━━━━━━")
+    
+    if mode == 'MODE_AVOID':
+        msg.append(f"⛔ 建議: 確信度太低 ({confidence_score}分)")
+    else:
+        msg.append("⚠️ 【操作指令】")
+        if stop_loss:
+            msg.append(f"🛡️ 停損: ${stop_loss} ({strategy.get('stop_loss', 'MA20')})")
+        if take_profit:
+            msg.append(f"🚀 目標: ${take_profit} (+{strategy.get('take_profit_deviation', 15)}%)")
+        if stop_loss:
+            msg.append(f"👉 設觸價單 ${stop_loss} 自動停損")
+    
+    if market_trend == 'BEAR':
+        msg.append("⚠️ 大盤跌破年線！")
+    
+    return "\n".join(msg)
+
+
+# ==================== 主流程 ====================
     
     ma5 = sw.get('ma5')
     ma20 = sw.get('ma20')
@@ -2485,6 +2653,7 @@ def format_line_messages(result):
     msg1 = [
         f"📊 台股情報獵人 v5.0",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        f"📏 確信度滿分: 100分 (營收40+RS40+技術20)",
         "",
         f"{trend_emoji} 大盤趨勢: {trend}",
     ]
