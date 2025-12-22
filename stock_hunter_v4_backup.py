@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-台股情報獵人 v5.0 - 滿帆洋行整合版
+台股情報獵人 v4.2 - AI 建議版
 
-v5.0 改進重點:
-1. 大盤年線濾網 (MA240) - 使用 FinMind，跌破年線進入 BEAR MODE
-2. 確信度評分系統 - 營收 (40分) + RS (40分) + 技術面 (20分)
-3. 策略模式切換 - MODE_INSIDER (≥80) vs MODE_RETAIL (50-79) vs MODE_AVOID (<50)
-4. 移除 Gemini 新聞分析 - 改用純數據策略，省 API 成本
-5. 劇本小卡 - 每次推薦附帶停損/停利價格
-6. 庫存追蹤 - history.json 記錄推薦，每日收盤戰報
+改進重點:
+1. 使用 OpenAPI 一次取得所有股票資料
+2. 分兩階段: 快速篩選 + 深度分析 Top 15
+3. 升級 Gemini 2.5 Pro 智能分析
+4. 新增停利目標 + 風報比計算
+5. CDP 價格對齊 tick size
+6. 當沖排除金融股
+7. 管理員權限控制
 """
 
-print("Starting Stock Hunter v5.0...", flush=True)
+print("Starting Stock Hunter...", flush=True)
 
 import os
 import json
 import time
 
 import requests
-import pandas as pd
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, abort
@@ -27,15 +27,8 @@ from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from apscheduler.schedulers.background import BackgroundScheduler
+import google.generativeai as genai
 import urllib3
-
-# FinMind for market data
-try:
-    from FinMind.data import DataLoader
-    FINMIND_AVAILABLE = True
-except ImportError:
-    FINMIND_AVAILABLE = False
-    print("⚠️ FinMind 未安裝，大盤濾網功能將使用備援方案", flush=True)
 
 # 關閉 SSL 警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -43,58 +36,52 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ==================== 環境變數 ====================
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN', 'YOUR_TOKEN')
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET', 'YOUR_SECRET')
-ADMIN_USER_ID = os.getenv('ADMIN_USER_ID', 'U7130f999bd008719fe5058ef31059522')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'YOUR_GEMINI_KEY')
+ADMIN_USER_ID = os.getenv('ADMIN_USER_ID', 'U7130f999bd008719fe5058ef31059522')  # 環境變數優先，否則用預設
+DISABLE_GEMINI = os.getenv('DISABLE_GEMINI', 'false').lower() == 'true'  # 設為 true 關閉 Gemini
 
 # 初始化
 app = Flask(__name__)
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
+genai.configure(api_key=GEMINI_API_KEY)
 
-# ==================== 設定參數 v5.0 ====================
+# ==================== 設定參數 ====================
 
 CONFIG = {
-    # 篩選條件
+    # 篩選條件 (v4.4)
     "MIN_PRICE": 10,           # 最低股價
-    "MAX_PRICE": 200,          # 最高股價
+    "MAX_PRICE": 200,          # 最高股價：過濾高價股
     "MIN_TURNOVER": 5_000_000, # 最低成交金額 500萬
     "MIN_VOLUME": 300,         # 最低成交量 300張
     
+    # 爆量判斷
+    "VOLUME_SPIKE_RATIO": 2.0,
+    
     # 漲跌判斷
-    "UP_THRESHOLD": 3.0,
-    "DOWN_THRESHOLD": -3.0,
+    "UP_THRESHOLD": 3.0,       # 漲幅 > 3% 視為強勢
+    "DOWN_THRESHOLD": -3.0,    # 跌幅 > 3% 視為弱勢
     
-    # 確信度門檻 (v5.0)
-    "CONFIDENCE_INSIDER": 80,   # ≥80 = INSIDER 模式
-    "CONFIDENCE_RETAIL": 50,    # 50-79 = RETAIL 模式
+    # 位階過濾
+    "MAX_5D_GAIN": 10,         # 5日漲幅上限 10%
+    "MAX_10D_GAIN": 15,        # 10日漲幅上限 15%
     
-    # 策略參數 (v5.0)
-    "INSIDER_STOP_LOSS": "MA60",
-    "RETAIL_STOP_LOSS": "MA20",
-    "INSIDER_TAKE_PROFIT_DEVIATION": 25,  # 乖離率 %
-    "RETAIL_TAKE_PROFIT_DEVIATION": 15,
+    # 推薦數量 (v4.4: 8:00 只推波段)
+    "DAY_TRADE_MAX": 3,        # 當沖最多顯示 3 檔（指令觸發）
+    "SWING_TRADE_MAX": 5,      # 波段最多顯示 5 檔（8:00 推播）
     
-    # 大盤濾網 (v5.0)
-    "BEAR_MODE_MAX_POSITION": 0.20,  # 空頭時單檔最大 20%
-    "BULL_MODE_MAX_POSITION": 0.50,  # 多頭時單檔最大 50%
-    
-    # 推薦數量
-    "SWING_TRADE_MAX": 5,
-    
-    # 當沖開關 (v5.0: 關閉)
-    "ENABLE_DAY_TRADE": False,
+    # 評分門檻 (v4.5: 波段改回 4 分)
+    "DAY_TRADE_SCORE_THRESHOLD": 4,   # 當沖 ≥4 分
+    "SWING_TRADE_SCORE_THRESHOLD": 4, # 波段 ≥4 分
     
     # API 設定
     "API_TIMEOUT": 15,
     "API_RETRY": 3,
     "API_DELAY": 1.0,
     
-    # Top N 進入深度分析
+    # Top N 進入深度分析 (v4.4: 8 檔，批次 Gemini)
     "TOP_N_FOR_DEEP_ANALYSIS": 8,
 }
-
-# 快取檔案路徑
-TAIEX_CACHE_FILE = 'taiex_data.csv'
-HISTORY_FILE = 'recommendation_history.json'
 
 # ==================== 快取 ====================
 
@@ -121,281 +108,6 @@ def is_cache_valid(cache_time):
     if cache_time is None:
         return False
     return (datetime.now() - cache_time).seconds < CACHE_EXPIRE_MINUTES * 60
-
-
-# ==================== v5.0 大盤濾網 (FinMind) ====================
-
-def get_market_trend():
-    """
-    獲取大盤狀態 (BULL/BEAR) 及 RS 基準
-    使用 FinMind 抓取 'TAIEX' + 本地 CSV 快取
-    """
-    if not FINMIND_AVAILABLE:
-        print("⚠️ FinMind 不可用，預設為 BULL 模式", flush=True)
-        return {'trend': 'BULL', 'return_20d': 0, 'ma240': 0}
-    
-    try:
-        api = DataLoader()
-        today_str = datetime.now().strftime('%Y-%m-%d')
-        
-        # 步驟 1: 決定抓取起始日期
-        if os.path.exists(TAIEX_CACHE_FILE):
-            df_cache = pd.read_csv(TAIEX_CACHE_FILE)
-            df_cache['date'] = pd.to_datetime(df_cache['date'])
-            last_date = df_cache.iloc[-1]['date']
-            start_date = (last_date + timedelta(days=1)).strftime('%Y-%m-%d')
-            is_update = True
-        else:
-            df_cache = pd.DataFrame()
-            start_date = (datetime.now() - timedelta(days=400)).strftime('%Y-%m-%d')
-            is_update = False
-
-        # 步驟 2: 增量更新
-        if start_date <= today_str:
-            print(f"📥 更新大盤資料 (FinMind)... 起始: {start_date}", flush=True)
-            df_new = api.taiwan_stock_daily(stock_id='TAIEX', start_date=start_date)
-            
-            if not df_new.empty:
-                df_new = df_new[['date', 'close']]
-                df_new['date'] = pd.to_datetime(df_new['date'])
-                df_final = pd.concat([df_cache, df_new]).drop_duplicates(subset='date', keep='last') if is_update else df_new
-                df_final.to_csv(TAIEX_CACHE_FILE, index=False)
-            else:
-                df_final = df_cache
-        else:
-            df_final = df_cache
-
-        # 步驟 3: 計算 MA240 和 RS 基準
-        if df_final.empty or len(df_final) < 240:
-            print(f"⚠️ 大盤資料不足 ({len(df_final) if not df_final.empty else 0} 天)，預設 BULL", flush=True)
-            return {'trend': 'BULL', 'return_20d': 0, 'ma240': 0}
-            
-        df_final = df_final.sort_values('date')
-        current_price = df_final.iloc[-1]['close']
-        ma240 = df_final['close'].rolling(window=240).mean().iloc[-1]
-        
-        trend = "BULL" if current_price >= ma240 else "BEAR"
-        
-        # 近 20 日漲幅 (RS 用)
-        if len(df_final) >= 21:
-            price_20d_ago = df_final.iloc[-21]['close']
-            market_return_20d = ((current_price - price_20d_ago) / price_20d_ago) * 100
-        else:
-            market_return_20d = 0
-        
-        emoji = "🐂" if trend == "BULL" else "🐻"
-        print(f"📊 [{emoji} {trend}] 大盤: {current_price:.0f} | 年線: {ma240:.0f} | 20日: {market_return_20d:.2f}%", flush=True)
-        
-        return {
-            'trend': trend,
-            'return_20d': round(market_return_20d, 2),
-            'ma240': round(ma240, 2),
-            'current': round(current_price, 0)
-        }
-
-    except Exception as e:
-        print(f"❌ 大盤數據讀取失敗: {e}", flush=True)
-        return {'trend': 'BULL', 'return_20d': 0, 'ma240': 0}
-
-
-# ==================== v5.0 確信度評分系統 ====================
-
-def calculate_confidence_score(stock, market_data, revenue_data=None):
-    """
-    計算確信分數 (0-100)
-    - 基本面動能 (40分): 營收 YoY、連續成長
-    - 相對強度 RS (40分): 個股 vs 大盤 20日漲幅
-    - 技術護城河 (20分): MA60 站穩 + 斜率向上
-    """
-    score = 0
-    breakdown = []
-    
-    # --- 1. 基本面動能 (40分) ---
-    if revenue_data:
-        revenue_yoy = revenue_data.get('yoy', 0)
-        revenue_streak = revenue_data.get('streak', 0)
-        
-        if revenue_yoy > 20:
-            score += 25
-            breakdown.append(f"營收YoY+{revenue_yoy:.0f}%(+25)")
-        elif revenue_yoy > 0:
-            score += 10
-            breakdown.append(f"營收YoY+{revenue_yoy:.0f}%(+10)")
-        
-        if revenue_streak >= 3:
-            score += 15
-            breakdown.append(f"連{revenue_streak}月成長(+15)")
-    
-    # --- 2. 相對強度 RS (40分) ---
-    stock_return_20d = stock.get('return_20d', 0)
-    market_return_20d = market_data.get('return_20d', 0)
-    rs = stock_return_20d - market_return_20d
-    
-    if rs > 10:
-        score += 40
-        breakdown.append(f"RS+{rs:.1f}%(40)")
-    elif rs > 0:
-        score += 20
-        breakdown.append(f"RS+{rs:.1f}%(+20)")
-    elif rs > -5:
-        score += 10
-        breakdown.append(f"RS{rs:.1f}%(+10)")
-    
-    # --- 3. 技術護城河 (20分) ---
-    if stock.get('above_ma60', False):
-        score += 15
-        breakdown.append("站MA60(+15)")
-        
-        if stock.get('ma60_slope', 0) > 0:
-            score += 5
-            breakdown.append("季線向上(+5)")
-    
-    return {
-        'score': min(score, 100),
-        'breakdown': breakdown
-    }
-
-
-def get_strategy_mode(score, market_trend):
-    """
-    根據分數和大盤狀態決定操作模式
-    """
-    # BEAR MODE 強制降級
-    if market_trend == 'BEAR':
-        if score >= CONFIG['CONFIDENCE_INSIDER']:
-            return 'MODE_RETAIL'  # 降級
-        else:
-            return 'MODE_AVOID'
-    
-    # BULL MODE 正常
-    if score >= CONFIG['CONFIDENCE_INSIDER']:
-        return 'MODE_INSIDER'
-    elif score >= CONFIG['CONFIDENCE_RETAIL']:
-        return 'MODE_RETAIL'
-    else:
-        return 'MODE_AVOID'
-
-
-def get_strategy_params(mode):
-    """
-    根據模式返回策略參數
-    """
-    if mode == 'MODE_INSIDER':
-        return {
-            'stop_loss': 'MA60',
-            'take_profit_deviation': CONFIG['INSIDER_TAKE_PROFIT_DEVIATION'],
-            'max_position': CONFIG['BULL_MODE_MAX_POSITION'],
-            'emoji': '🔥',
-            'label': 'INSIDER'
-        }
-    elif mode == 'MODE_RETAIL':
-        return {
-            'stop_loss': 'MA20',
-            'take_profit_deviation': CONFIG['RETAIL_TAKE_PROFIT_DEVIATION'],
-            'max_position': CONFIG['BEAR_MODE_MAX_POSITION'],
-            'emoji': '📊',
-            'label': 'RETAIL'
-        }
-    else:
-        return {
-            'stop_loss': None,
-            'take_profit_deviation': 0,
-            'max_position': 0,
-            'emoji': '⛔',
-            'label': 'AVOID'
-        }
-
-
-# ==================== v5.0 庫存追蹤 ====================
-
-def load_recommendation_history():
-    """讀取推薦歷史"""
-    if os.path.exists(HISTORY_FILE):
-        with open(HISTORY_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    return {}
-
-
-def save_recommendation(ticker, name, price, mode, stop_loss, ma20=None, ma60=None):
-    """儲存推薦到歷史檔案"""
-    history = load_recommendation_history()
-    
-    history[ticker] = {
-        'name': name,
-        'buy_price': price,
-        'buy_date': datetime.now().strftime('%Y-%m-%d'),
-        'mode': mode,
-        'stop_loss': stop_loss,
-        'ma20': ma20,
-        'ma60': ma60
-    }
-    
-    with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
-    
-    print(f"💾 已記錄推薦：{ticker} {name} @ {price}", flush=True)
-
-
-def check_portfolio_status(stocks_data):
-    """
-    檢查庫存狀態，產生每日戰報
-    """
-    history = load_recommendation_history()
-    if not history:
-        return None
-    
-    alerts = []
-    updated_history = {}
-    
-    # 建立股價查詢表
-    price_map = {s['ticker']: s for s in stocks_data}
-    
-    for ticker, info in history.items():
-        if ticker not in price_map:
-            updated_history[ticker] = info  # 保留，下次再檢查
-            continue
-        
-        stock = price_map[ticker]
-        current_price = stock['price']
-        buy_price = info['buy_price']
-        mode = info['mode']
-        
-        # 取得當前停損價
-        stop_price = info.get('stop_loss', 0)
-        
-        # 計算獲利
-        profit_pct = ((current_price - buy_price) / buy_price) * 100
-        
-        if current_price < stop_price:
-            # 觸發停損
-            alerts.append({
-                'ticker': ticker,
-                'name': info['name'],
-                'status': 'SELL',
-                'current_price': current_price,
-                'stop_price': stop_price,
-                'profit_pct': profit_pct,
-                'message': f"🚨 {info['name']} 跌破停損 {stop_price}！"
-            })
-            # 不放入 updated_history，等於移除
-        else:
-            # 續抱
-            alerts.append({
-                'ticker': ticker,
-                'name': info['name'],
-                'status': 'HOLD',
-                'current_price': current_price,
-                'stop_price': stop_price,
-                'profit_pct': profit_pct,
-                'message': f"✅ {info['name']} 續抱 ({profit_pct:+.1f}%)"
-            })
-            updated_history[ticker] = info
-    
-    # 更新歷史檔案
-    with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
-        json.dump(updated_history, f, ensure_ascii=False, indent=2)
-    
-    return alerts
 
 
 # ==================== API 函數 ====================
@@ -1992,136 +1704,6 @@ def deep_analyze(candidates, industry_mapping=None):
     }
 
 
-# ==================== v5.0 深度分析 ====================
-
-def deep_analyze_v5(candidates, market_data):
-    """
-    v5.0 深度分析 - 純數據策略版
-    使用確信度評分系統，不依賴 Gemini
-    """
-    top_n = CONFIG['TOP_N_FOR_DEEP_ANALYSIS']
-    to_analyze = candidates[:top_n]
-    
-    print(f"\n🔬 v5.0 深度分析 Top {len(to_analyze)} 支股票...", flush=True)
-    print(f"   (確信度評分 + 策略模式切換)", flush=True)
-    
-    swing_trade_list = []
-    
-    for i, candidate in enumerate(to_analyze, 1):
-        ticker = candidate['ticker']
-        name = candidate['name']
-        
-        try:
-            # 1. 抓取歷史資料 (60天)
-            history = get_stock_history(ticker, 60)
-            
-            # 2. MA60 季線檢查 (一票否決)
-            ma60_result = check_ma60_with_twse(ticker, history)
-            if ma60_result is None:
-                continue
-            
-            # 3. 計算 20 日漲幅 (RS 用)
-            stock_return_20d = 0
-            if history and len(history) >= 21:
-                closes = [h['close'] for h in history if h.get('close')]
-                if len(closes) >= 21:
-                    price_20d_ago = closes[-21]
-                    current_price = closes[-1]
-                    stock_return_20d = ((current_price - price_20d_ago) / price_20d_ago) * 100
-            
-            # 4. 準備股票資料
-            stock_data = {
-                'ticker': ticker,
-                'name': name,
-                'price': candidate['price'],
-                'change_pct': candidate['change_pct'],
-                'return_20d': stock_return_20d,
-                'above_ma60': ma60_result.get('above_ma60', False),
-                'ma60': ma60_result.get('ma60', 0),
-                'ma60_slope': 1 if ma60_result.get('above_ma120', False) else 0,
-                'institutional': candidate.get('institutional', {})
-            }
-            
-            # 5. 計算確信度分數 (v5.0 核心)
-            confidence = calculate_confidence_score(stock_data, market_data, revenue_data=None)
-            score = confidence['score']
-            
-            # 6. 決定策略模式
-            mode = get_strategy_mode(score, market_data['trend'])
-            if mode == 'MODE_AVOID':
-                print(f"   ⛔ {ticker} {name}: 確信度 {score} 分，跳過", flush=True)
-                continue
-            
-            strategy = get_strategy_params(mode)
-            
-            # 7. 計算停損/停利價格 (劇本小卡)
-            ma20 = None
-            if history and len(history) >= 20:
-                closes = [h['close'] for h in history if h.get('close')]
-                if len(closes) >= 20:
-                    ma20 = sum(closes[-20:]) / 20
-            
-            ma60 = ma60_result.get('ma60', 0)
-            
-            # 停損價格
-            if strategy['stop_loss'] == 'MA60':
-                stop_loss_price = ma60
-            else:
-                stop_loss_price = ma20 if ma20 else candidate['price'] * 0.93
-            
-            # 停利價格
-            take_profit_price = candidate['price'] * (1 + strategy['take_profit_deviation'] / 100)
-            
-            # 8. 儲存推薦到歷史 (庫存追蹤)
-            save_recommendation(
-                ticker=ticker,
-                name=name,
-                price=candidate['price'],
-                mode=mode,
-                stop_loss=round(stop_loss_price, 2),
-                ma20=round(ma20, 2) if ma20 else None,
-                ma60=round(ma60, 2) if ma60 else None
-            )
-            
-            # 9. 組合結果
-            result = {
-                'rank': i,
-                'ticker': ticker,
-                'name': name,
-                'price': candidate['price'],
-                'change_pct': candidate['change_pct'],
-                'turnover': candidate['turnover'],
-                # v5.0 新增
-                'confidence_score': score,
-                'confidence_breakdown': confidence['breakdown'],
-                'mode': mode,
-                'strategy': strategy,
-                'stop_loss_price': round(stop_loss_price, 2),
-                'take_profit_price': round(take_profit_price, 2),
-                'ma20': round(ma20, 2) if ma20 else None,
-                'ma60': round(ma60, 2) if ma60 else None,
-                'rs': round(stock_return_20d - market_data.get('return_20d', 0), 2),
-                'institutional': candidate.get('institutional', {})
-            }
-            
-            swing_trade_list.append(result)
-            print(f"   {strategy['emoji']} {ticker} {name}: {score}分 {strategy['label']} | 停損:{stop_loss_price:.1f}", flush=True)
-            
-        except Exception as e:
-            print(f"   ❌ {ticker} 分析失敗: {e}", flush=True)
-            continue
-    
-    # 按確信度排序
-    swing_trade_list.sort(key=lambda x: x['confidence_score'], reverse=True)
-    
-    print(f"✅ v5.0 深度分析完成:", flush=True)
-    print(f"   📈 推薦標的: {len(swing_trade_list)} 支", flush=True)
-    
-    return {
-        'swing_trade': swing_trade_list[:CONFIG.get('SWING_TRADE_MAX', 5)]
-    }
-
-
 # ==================== 查詢次數控制 ====================
 
 def check_query_limit(user_id):
@@ -2406,48 +1988,57 @@ def format_single_stock_message(result):
 # ==================== 主流程 ====================
 
 def scan_all_stocks():
-    """掃描全台股 - v5.0 滿帆洋行整合版"""
+    """掃描全台股 - 完整版 (含當沖/波段策略)"""
     print("\n" + "="*60, flush=True)
-    print("🚀 台股情報獵人 v5.0 - 開始掃描", flush=True)
-    print("   (純數據策略 + 確信度評分)", flush=True)
+    print("🚀 台股情報獵人 v4.0 - 開始掃描", flush=True)
+    print("   (含當沖/波段雙策略 + Gemini 2.5 Pro)", flush=True)
     print("="*60, flush=True)
     
     start_time = time.time()
     
-    # Step 1: 取得大盤趨勢 (v5.0: 使用 FinMind 年線判斷)
-    market_trend = get_market_trend()
-    print(f"\n🌍 大盤趨勢: {'🐂 BULL 多頭' if market_trend['trend'] == 'BULL' else '🐻 BEAR 空頭'}", flush=True)
-    if market_trend['trend'] == 'BEAR':
-        print("⚠️ 警告：大盤跌破年線，策略自動降級！", flush=True)
+    # Step 1: 取得大盤狀態 (含指數)
+    market = get_market_status()
+    if market.get('index', 0) > 0:
+        print(f"\n📊 大盤指數: {market['index']:,} 點", flush=True)
+    print(f"🌍 市場狀態: {market['status']}", flush=True)
+    print(f"   {market.get('reason', '')}", flush=True)
     
-    # Step 2: 一次取得所有股票資料
+    # Step 2: 取得國際新聞
+    print("\n📰 抓取國際新聞...", flush=True)
+    macro_news = get_macro_news()
+    for news in macro_news[:3]:
+        print(f"   • {news[:40]}...", flush=True)
+    
+    # Step 3: 一次取得所有股票資料
     stocks = get_all_stocks_data()
     if not stocks:
         return {'error': '無法取得股票資料'}
     
-    # Step 3: 檢查庫存狀態 (v5.0: 每日戰報)
-    portfolio_alerts = check_portfolio_status(stocks)
-    if portfolio_alerts:
-        print("\n📋 庫存追蹤:", flush=True)
-        for alert in portfolio_alerts:
-            print(f"   {alert['message']}", flush=True)
-    
     # Step 4: 取得法人資料
     institutional = get_institutional_data()
     
-    # Step 5: 快速篩選
+    # Step 5: 取得產業分類並分析趨勢
+    industry_mapping = get_industry_mapping()
+    industry_trend = analyze_industry_trend(stocks, industry_mapping)
+    
+    print("\n🏭 產業趨勢:", flush=True)
+    print(f"   🔥 強勢: {', '.join([f'{i[0]}({i[1]:+.1f}%)' for i in industry_trend['strong'][:3]])}", flush=True)
+    print(f"   ❄️ 弱勢: {', '.join([f'{i[0]}({i[1]:+.1f}%)' for i in industry_trend['weak'][:3]])}", flush=True)
+    
+    # Step 6: 快速篩選
     candidates = quick_filter(stocks, institutional)
     
-    # Step 6: 深度分析 (v5.0: 使用確信度評分)
-    recommendations = deep_analyze_v5(candidates, market_trend)
+    # Step 7: 深度分析 (含 Gemini 2.5 Pro 新聞 AI)
+    recommendations = deep_analyze(candidates, industry_mapping)
     
     end_time = time.time()
     
     # 結果
     result = {
         'timestamp': datetime.now().isoformat(),
-        'market_trend': market_trend,
-        'portfolio_alerts': portfolio_alerts,
+        'market': market,
+        'macro_news': macro_news,
+        'industry_trend': industry_trend,
         'total_stocks': len(stocks),
         'passed_filter': len(candidates),
         'recommendations': recommendations,
@@ -2458,7 +2049,8 @@ def scan_all_stocks():
     print(f"✅ 掃描完成! 耗時: {result['execution_time']} 秒", flush=True)
     print(f"   總股票數: {result['total_stocks']}", flush=True)
     print(f"   通過篩選: {result['passed_filter']}", flush=True)
-    print(f"   📈 推薦標的: {len(recommendations.get('swing_trade', []))} 支", flush=True)
+    print(f"   🔥 當沖標的: {len(recommendations.get('day_trade', []))} 支", flush=True)
+    print(f"   📈 波段標的: {len(recommendations.get('swing_trade', []))} 支", flush=True)
     print("="*60 + "\n", flush=True)
     
     return result
@@ -2467,99 +2059,112 @@ def scan_all_stocks():
 # ==================== LINE 訊息格式 ====================
 
 def format_line_messages(result):
-    """格式化 LINE 推送訊息 - v5.0 劇本小卡版"""
+    """格式化 LINE 推送訊息 (分段發送) - v4.4: 8:00 只推波段"""
     if 'error' in result:
         return [f"❌ 錯誤: {result['error']}"]
     
-    market = result.get('market_trend', result.get('market', {}))
+    market = result['market']
     recommendations = result.get('recommendations', {})
+    day_trade_list = recommendations.get('day_trade', [])
     swing_trade_list = recommendations.get('swing_trade', [])
-    portfolio_alerts = result.get('portfolio_alerts', [])
     
     messages = []
     
-    # 第一段: 大盤趨勢 + 庫存戰報
-    trend = market.get('trend', 'UNKNOWN')
-    trend_emoji = "🐂" if trend == 'BULL' else "🐻" if trend == 'BEAR' else "❓"
-    
+    # 第一段: 大盤 + 國際新聞 + 產業趨勢
     msg1 = [
-        f"📊 台股情報獵人 v5.0",
+        f"📊 台股情報獵人 v4.4",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        "",
-        f"{trend_emoji} 大盤趨勢: {trend}",
+        ""
     ]
     
-    if market.get('ma240'):
-        msg1.append(f"📈 年線: {market['ma240']:,.0f} | 20日: {market.get('return_20d', 0):+.1f}%")
-    
-    if trend == 'BEAR':
-        msg1.append("⚠️ 策略已自動降級！")
-    
+    # 大盤指數
+    if market.get('index', 0) > 0:
+        msg1.append(f"📈 大盤: {market['index']:,} 點")
+    msg1.append(f"🌍 市場: {market['status']} ({market.get('reason', '')})")
     msg1.append("")
     
-    # 庫存戰報
-    if portfolio_alerts:
-        msg1.append("📋 庫存追蹤:")
-        sell_alerts = [a for a in portfolio_alerts if a.get('status') == 'SELL']
-        hold_alerts = [a for a in portfolio_alerts if a.get('status') == 'HOLD']
-        
-        for alert in sell_alerts:
-            msg1.append(f"🚨 {alert['name']} 跌破停損！")
-        for alert in hold_alerts[:3]:
-            msg1.append(f"✅ {alert['name']} ({alert['profit_pct']:+.1f}%)")
+    # 國際新聞
+    macro_news = result.get('macro_news', [])
+    if macro_news:
+        msg1.append("📰 國際焦點:")
+        for news in macro_news[:3]:
+            msg1.append(f"• {news[:35]}...")
         msg1.append("")
     
-    msg1.append(f"📈 推薦標的: {len(swing_trade_list)} 支")
-    msg1.append(f"⚡ 耗時: {result.get('execution_time', 0)} 秒")
+    # 產業趨勢
+    industry = result.get('industry_trend', {})
+    if industry.get('strong'):
+        strong = ', '.join([f"{i[0]}({i[1]:+.1f}%)" for i in industry['strong'][:3]])
+        weak = ', '.join([f"{i[0]}({i[1]:+.1f}%)" for i in industry.get('weak', [])[:3]])
+        msg1.append("🏭 產業趨勢:")
+        msg1.append(f"🔥 強: {strong}")
+        msg1.append(f"❄️ 弱: {weak}")
+        msg1.append("")
+    
+    # v4.4: 8:00 推播不顯示當沖，改為提示可用指令
+    msg1.append(f"📈 波段標的: {len(swing_trade_list)} 支")
+    if day_trade_list:
+        msg1.append(f"💡 輸入「當沖」可查看當沖觀察名單")
+    msg1.append(f"⚡ 耗時: {result['execution_time']} 秒")
     
     messages.append("\n".join(msg1))
     
-    # 第二段起: 推薦標的 (劇本小卡)
-    for i, rec in enumerate(swing_trade_list, 1):
-        strategy = rec.get('strategy', {})
-        mode_label = strategy.get('label', 'RETAIL')
-        mode_emoji = strategy.get('emoji', '📊')
-        
-        msg = [
-            f"🎯 {rec['ticker']} {rec['name']}",
-            f"💰 現價: ${rec['price']} ({rec['change_pct']:+.1f}%)",
-            f"📊 確信度: {rec.get('confidence_score', rec.get('score', 0))}分 {mode_emoji} {mode_label}",
-            ""
-        ]
-        
-        # 顯示評分細項
-        breakdown = rec.get('confidence_breakdown', [])
-        if breakdown:
-            msg.append(f"📝 {' | '.join(breakdown[:3])}")
-        
-        # RS 相對強度
-        rs = rec.get('rs', 0)
-        if rs:
-            rs_status = "強於大盤" if rs > 0 else "弱於大盤"
-            msg.append(f"💪 RS: {rs:+.1f}% ({rs_status})")
-        msg.append("")
-        
-        # 操作指令 (劇本小卡核心)
-        stop_loss = rec.get('stop_loss_price', rec.get('swing_trade', {}).get('stop_loss'))
-        take_profit = rec.get('take_profit_price')
-        
-        if stop_loss:
-            msg.append("⚠️ 【操作指令】")
-            msg.append(f"🛡️ 停損: ${stop_loss} ({strategy.get('stop_loss', 'MA20')})")
-            if take_profit:
-                msg.append(f"🚀 目標: ${take_profit} (+{strategy.get('take_profit_deviation', 15)}%)")
-            msg.append("")
-            msg.append(f"👉 買進後設「觸價單」${stop_loss} 賣出")
-        
-        # 籌碼
-        inst = rec.get('institutional', {})
-        if inst:
-            foreign = inst.get('foreign', 0)
-            trust = inst.get('trust', 0)
-            if foreign != 0 or trust != 0:
-                msg.append(f"🏦 外資:{foreign//1000:+}K 投信:{trust//1000:+}K")
-        
-        messages.append("\n".join(msg))
+    # v4.4: 移除當沖自動推播（改為指令觸發）
+    # 原本的當沖推播區塊已移除
+
+    
+    # 第三段起: 波段標的
+    if swing_trade_list:
+        for batch_start in range(0, len(swing_trade_list), 5):
+            batch = swing_trade_list[batch_start:batch_start+5]
+            
+            msg = [f"📈 波段推薦 ({batch_start+1}-{batch_start+len(batch)}):", ""]
+            
+            for i, rec in enumerate(batch, batch_start + 1):
+                sw = rec.get('swing_trade', {})
+                
+                msg.append(f"{rec['ticker']} {rec['name']}")
+                msg.append(f"💰 ${rec['price']} ({rec['change_pct']:+.1f}%)")
+                # v4.5: 加入季線標示
+                ma60_flag = " (季線✅)" if rec.get('ma60_info') else ""
+                msg.append(f"📊 評分: {rec['score']} 分{ma60_flag}")
+                
+                # 技術指標 + MA20 距離
+                if sw.get('ma20'):
+                    ma20_dist = sw.get('ma20_distance', '')
+                    dist_str = f" (+{ma20_dist}%)" if ma20_dist else ""
+                    msg.append(f"   📐 MA20: ${sw['ma20']}{dist_str} | RSI: {sw.get('rsi', '-')}")
+                
+                # 警示訊息
+                warnings = sw.get('warnings', [])
+                if warnings:
+                    msg.append(f"   {' | '.join(warnings[:2])}")
+                
+                # 停損 + 停利 + 風報比
+                if sw.get('stop_loss'):
+                    stop_loss_pct = (sw['stop_loss'] - rec['price']) / rec['price'] * 100
+                    msg.append(f"   🛑 停損: ${sw['stop_loss']} ({stop_loss_pct:.1f}%)")
+                
+                if sw.get('take_profit') and sw.get('risk_reward'):
+                    take_profit_pct = (sw['take_profit'] - rec['price']) / rec['price'] * 100
+                    msg.append(f"   🎯 停利: ${sw['take_profit']} (+{take_profit_pct:.1f}%) | 風報比 1:{sw['risk_reward']}")
+                
+                # 籌碼
+                inst = rec.get('institutional', {})
+                if inst:
+                    foreign = inst.get('foreign', 0)
+                    trust = inst.get('trust', 0)
+                    if foreign != 0 or trust != 0:
+                        msg.append(f"   🏦 外資:{foreign//1000:+}張 投信:{trust//1000:+}張")
+                
+                # v4.5: AI_G 短評
+                gemini_comment = rec.get('gemini_comment', '')
+                if gemini_comment and gemini_comment not in ['暫無 AI 分析', '暫無評論', '', '(Gemini 已停用)']:
+                    msg.append(f"🧠 AI_G: {gemini_comment}")
+                
+                msg.append("")
+            
+            messages.append("\n".join(msg))
     
     return messages
 
