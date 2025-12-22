@@ -88,8 +88,8 @@ CONFIG = {
     "API_RETRY": 3,
     "API_DELAY": 1.0,
     
-    # Top N 進入深度分析
-    "TOP_N_FOR_DEEP_ANALYSIS": 8,
+    # Top N 進入深度分析 (v5.0: 擴大到 50 檔)
+    "TOP_N_FOR_DEEP_ANALYSIS": 50,
 }
 
 # 快取檔案路徑
