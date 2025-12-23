@@ -55,7 +55,7 @@ handler = WebhookHandler(LINE_CHANNEL_SECRET)
 CONFIG = {
     # 篩選條件
     "MIN_PRICE": 10,           # 最低股價
-    "MAX_PRICE": 200,          # 最高股價
+    "MAX_PRICE": 500,          # 最高股價 (v5.0: 調高至 500)
     "MIN_TURNOVER": 5_000_000, # 最低成交金額 500萬
     "MIN_VOLUME": 300,         # 最低成交量 300張
     
@@ -333,9 +333,15 @@ def calculate_confidence_score(stock, market_data, revenue_data=None, volume_dat
             vol_ratio = today_vol / mv5
             score += 15
             breakdown.append(f"🔥量能點火({vol_ratio:.1f}倍)(+15)")
+        
+        # --- 5. 流動性警示 (扣分) - 阿母警告 ---
+        # 量太小 = 流動性風險高，可能被主力鎖價
+        if today_vol < 500:
+            score -= 20
+            breakdown.append(f"💀阿母警告:量僅{today_vol}張(-20)")
     
     return {
-        'score': min(score, 100),
+        'score': min(max(score, 0), 100),  # 確保在 0-100 範圍
         'breakdown': breakdown
     }
 
