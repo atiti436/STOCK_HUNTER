@@ -92,6 +92,40 @@ CONFIG = {
     "TOP_N_FOR_DEEP_ANALYSIS": 50,
 }
 
+# 0050 ETF 前 30 大成分股 (權值股)
+ETF_BLUE_CHIPS = [
+    '2330',  # 台積電
+    '2454',  # 聯發科
+    '2317',  # 鴻海
+    '2308',  # 台達電
+    '2881',  # 富邦金
+    '2882',  # 國泰金
+    '2891',  # 中信金
+    '2303',  # 聯電
+    '2412',  # 中華電
+    '1301',  # 台塑
+    '1303',  # 南亞
+    '2886',  # 兆豐金
+    '3711',  # 日月光投控
+    '2884',  # 玉山金
+    '2892',  # 第一金
+    '2357',  # 華碩
+    '2382',  # 廣達
+    '3034',  # 聯詠
+    '2885',  # 元大金
+    '2345',  # 智邦
+    '2379',  # 瑞昱
+    '4904',  # 遠傳
+    '2327',  # 國巨
+    '3231',  # 緯創
+    '2603',  # 長榮
+    '2880',  # 華南金
+    '5880',  # 合庫金
+    '2887',  # 台新金
+    '6505',  # 台塑化
+    '1326',  # 台化
+]
+
 # 快取檔案路徑
 TAIEX_CACHE_FILE = 'taiex_data.csv'
 HISTORY_FILE = 'recommendation_history.json'
@@ -339,6 +373,11 @@ def calculate_confidence_score(stock, market_data, revenue_data=None, volume_dat
         if today_vol < 500:
             score -= 20
             breakdown.append(f"💀阿母警告:量僅{today_vol}張(-20)")
+    
+    # --- 6. 權值股標記 (不加分，只標記) ---
+    ticker = stock.get('ticker', '')
+    if ticker in ETF_BLUE_CHIPS:
+        breakdown.append("🏆權值股")
     
     return {
         'score': min(max(score, 0), 100),  # 確保在 0-100 範圍
