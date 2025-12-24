@@ -2736,7 +2736,7 @@ def scan_all_stocks():
 # ==================== LINE 訊息格式 ====================
 
 def format_line_messages(result):
-    """格式化 LINE 推送訊息 - v5.0 劇本小卡版"""
+    """格式化 LINE 推送訊息 - v5.1 省額度版 (合併訊息)"""
     if 'error' in result:
         return [f"❌ 錯誤: {result['error']}"]
     
@@ -2747,16 +2747,15 @@ def format_line_messages(result):
     
     messages = []
     
-    # 第一段: 大盤趨勢 + 庫存戰報
+    # === 第一則訊息: 大盤 + 庫存 + 前半推薦 ===
     trend = market.get('trend', 'UNKNOWN')
     trend_emoji = "🐂" if trend == 'BULL' else "🐻" if trend == 'BEAR' else "❓"
     
     msg1 = [
         f"📊 台股情報獵人 v5.0",
         f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        f"📏 確信度滿分: 100分 (營收40+RS40+技術20)",
         "",
-        f"{trend_emoji} 大盤趨勢: {trend}",
+        f"{trend_emoji} 大盤: {trend}",
     ]
     
     if market.get('ma240'):
@@ -2765,73 +2764,82 @@ def format_line_messages(result):
     if trend == 'BEAR':
         msg1.append("⚠️ 策略已自動降級！")
     
-    msg1.append("")
-    
-    # 庫存戰報
+    # 庫存戰報 (精簡版)
     if portfolio_alerts:
-        msg1.append("📋 庫存追蹤:")
+        msg1.append("")
         sell_alerts = [a for a in portfolio_alerts if a.get('status') == 'SELL']
         hold_alerts = [a for a in portfolio_alerts if a.get('status') == 'HOLD']
         
-        for alert in sell_alerts:
-            msg1.append(f"🚨 {alert['name']} 跌破停損！")
-        for alert in hold_alerts[:3]:
-            msg1.append(f"✅ {alert['name']} ({alert['profit_pct']:+.1f}%)")
-        msg1.append("")
+        if sell_alerts:
+            for alert in sell_alerts[:2]:
+                msg1.append(f"🚨 {alert['name']} 跌破停損！")
+        if hold_alerts:
+            holds = ", ".join([f"{a['name']}({a['profit_pct']:+.0f}%)" for a in hold_alerts[:3]])
+            msg1.append(f"✅ 續抱: {holds}")
     
-    msg1.append(f"📈 推薦標的: {len(swing_trade_list)} 支")
-    msg1.append(f"⚡ 耗時: {result.get('execution_time', 0)} 秒")
+    msg1.append("")
+    msg1.append(f"━━━ 📈 推薦 {len(swing_trade_list)} 支 ━━━")
+    
+    # 加入前半推薦 (第 1-3 支)
+    first_half = swing_trade_list[:3]
+    for rec in first_half:
+        msg1.append("")
+        msg1.extend(_format_stock_card(rec))
     
     messages.append("\n".join(msg1))
     
-    # 第二段起: 推薦標的 (劇本小卡)
-    for i, rec in enumerate(swing_trade_list, 1):
-        strategy = rec.get('strategy', {})
-        mode_label = strategy.get('label', 'RETAIL')
-        mode_emoji = strategy.get('emoji', '📊')
+    # === 第二則訊息: 後半推薦 (第 4-5 支) ===
+    second_half = swing_trade_list[3:]
+    if second_half:
+        msg2 = [f"━━━ 📈 推薦續 ({len(second_half)} 支) ━━━"]
         
-        msg = [
-            f"🎯 {rec['ticker']} {rec['name']}",
-            f"💰 現價: ${rec['price']} ({rec['change_pct']:+.1f}%)",
-            f"📊 確信度: {rec.get('confidence_score', rec.get('score', 0))}分 {mode_emoji} {mode_label}",
-            ""
-        ]
+        for rec in second_half:
+            msg2.append("")
+            msg2.extend(_format_stock_card(rec))
         
-        # 顯示評分細項
-        breakdown = rec.get('confidence_breakdown', [])
-        if breakdown:
-            msg.append(f"📝 {' | '.join(breakdown[:3])}")
-        
-        # RS 相對強度
-        rs = rec.get('rs', 0)
-        if rs:
-            rs_status = "強於大盤" if rs > 0 else "弱於大盤"
-            msg.append(f"💪 RS: {rs:+.1f}% ({rs_status})")
-        msg.append("")
-        
-        # 操作指令 (劇本小卡核心)
-        stop_loss = rec.get('stop_loss_price', rec.get('swing_trade', {}).get('stop_loss'))
-        take_profit = rec.get('take_profit_price')
-        
-        if stop_loss:
-            msg.append("⚠️ 【操作指令】")
-            msg.append(f"🛡️ 停損: ${stop_loss} ({strategy.get('stop_loss', 'MA20')})")
-            if take_profit:
-                msg.append(f"🚀 目標: ${take_profit} (+{strategy.get('take_profit_deviation', 15)}%)")
-            msg.append("")
-            msg.append(f"👉 買進後設「觸價單」${stop_loss} 賣出")
-        
-        # 籌碼
-        inst = rec.get('institutional', {})
-        if inst:
-            foreign = inst.get('foreign', 0)
-            trust = inst.get('trust', 0)
-            if foreign != 0 or trust != 0:
-                msg.append(f"🏦 外資:{foreign//1000:+}K 投信:{trust//1000:+}K")
-        
-        messages.append("\n".join(msg))
+        messages.append("\n".join(msg2))
     
     return messages
+
+
+def _format_stock_card(rec):
+    """格式化單支股票的劇本小卡 (內部函數)"""
+    strategy = rec.get('strategy', {})
+    mode_label = strategy.get('label', 'RETAIL')
+    mode_emoji = strategy.get('emoji', '📊')
+    
+    lines = [
+        f"🎯 {rec['ticker']} {rec['name']}",
+        f"💰 ${rec['price']} ({rec['change_pct']:+.1f}%) | {mode_emoji} {rec.get('confidence_score', 0)}分 {mode_label}",
+    ]
+    
+    # 評分細項
+    breakdown = rec.get('confidence_breakdown', [])
+    if breakdown:
+        lines.append(f"📝 {' | '.join(breakdown[:3])}")
+    
+    # RS
+    rs = rec.get('rs', 0)
+    if rs:
+        rs_icon = "✅" if rs > 0 else "⚠️"
+        lines.append(f"💪 RS: {rs:+.1f}% {rs_icon}")
+    
+    # 操作指令
+    stop_loss = rec.get('stop_loss_price', rec.get('swing_trade', {}).get('stop_loss'))
+    take_profit = rec.get('take_profit_price')
+    
+    if stop_loss:
+        lines.append(f"🛡️ 停損 ${stop_loss} | 🚀 目標 ${take_profit}")
+    
+    # 籌碼 (精簡)
+    inst = rec.get('institutional', {})
+    if inst:
+        foreign = inst.get('foreign', 0)
+        trust = inst.get('trust', 0)
+        if foreign != 0 or trust != 0:
+            lines.append(f"🏦 外{foreign//1000:+}K 投{trust//1000:+}K")
+    
+    return lines
 
 
 def send_line_push(message):
