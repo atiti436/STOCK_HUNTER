@@ -2860,58 +2860,87 @@ def send_line_push(message):
 
 # ==================== 定時任務 ====================
 
-# 2025 年台股休市日 (不含週末)
-TAIWAN_HOLIDAYS_2025 = [
-    # 元旦
-    '2025-01-01',
-    # 農曆春節
-    '2025-01-27', '2025-01-28', '2025-01-29', '2025-01-30', '2025-01-31',
-    # 228 和平紀念日
-    '2025-02-28',
-    # 清明節 + 兒童節
-    '2025-04-03', '2025-04-04',
-    # 勞動節
-    '2025-05-01',
-    # 端午節
-    '2025-05-30', '2025-05-31',
-    # 中秋節
-    '2025-10-06',
-    # 國慶日
-    '2025-10-10',
-]
-
 def is_trading_day():
-    """檢查今天是否為交易日"""
+    """
+    智能判斷今天是否為交易日
+    - 週末直接跳過 (不浪費 API)
+    - 平日嘗試抓 TWSE 資料，沒資料 = 休市
+    """
     today = datetime.now()
-    today_str = today.strftime('%Y-%m-%d')
     
-    # 週末不交易
+    # 週末直接跳過
     if today.weekday() >= 5:  # 5=Saturday, 6=Sunday
-        return False, "週末休市"
+        return False, "週末休市", None
     
-    # 國定假日不交易
-    if today_str in TAIWAN_HOLIDAYS_2025:
-        return False, "國定假日休市"
+    # 平日嘗試抓資料
+    print("🔍 檢查今日是否有交易資料...", flush=True)
+    stocks = get_all_stocks_data()
     
-    return True, "交易日"
+    if not stocks:
+        return False, "今日無交易資料 (可能為國定假日)", None
+    
+    return True, "交易日", stocks
 
 def daily_analysis_task():
-    """每日分析任務"""
+    """每日分析任務 (智能版)"""
     print("\n⏰ 執行每日分析任務...", flush=True)
     
-    # 檢查是否為交易日
-    is_trading, reason = is_trading_day()
+    # 智能檢查是否為交易日
+    is_trading, reason, stocks_data = is_trading_day()
     if not is_trading:
         print(f"📅 {reason}，跳過今日分析", flush=True)
         return
     
+    print(f"✅ {reason}，開始分析...", flush=True)
+    
     try:
-        result = scan_all_stocks()
+        # 直接用已抓取的資料，省一次 API
+        result = scan_all_stocks_with_data(stocks_data) if stocks_data else scan_all_stocks()
         messages = format_line_messages(result)
         send_line_push(messages)
     except Exception as e:
         print(f"❌ 每日任務失敗: {e}", flush=True)
         send_line_push(f"❌ 今日分析失敗: {e}")
+
+
+def scan_all_stocks_with_data(stocks):
+    """掃描全台股 (使用已抓取的資料)"""
+    print("\n" + "="*60, flush=True)
+    print("🚀 台股情報獵人 v5.0 - 開始掃描", flush=True)
+    print("="*60, flush=True)
+    
+    start_time = time.time()
+    
+    # Step 1: 取得大盤趨勢
+    market_trend = get_market_trend()
+    print(f"\n🌍 大盤趨勢: {'🐂 BULL 多頭' if market_trend['trend'] == 'BULL' else '🐻 BEAR 空頭'}", flush=True)
+    
+    # Step 2: 使用傳入的股票資料 (已抓取)
+    print(f"✅ 使用已抓取的 {len(stocks)} 支股票資料", flush=True)
+    
+    # Step 3: 檢查庫存狀態
+    portfolio_alerts = check_portfolio_status(stocks)
+    
+    # Step 4: 取得法人資料
+    institutional = get_institutional_data()
+    
+    # Step 5: 快速篩選
+    candidates = quick_filter(stocks, institutional)
+    
+    # Step 6: 深度分析
+    recommendations = deep_analyze_v5(candidates, market_trend)
+    
+    end_time = time.time()
+    
+    return {
+        'timestamp': datetime.now().isoformat(),
+        'market_trend': market_trend,
+        'portfolio_alerts': portfolio_alerts,
+        'total_stocks': len(stocks),
+        'passed_filter': len(candidates),
+        'recommendations': recommendations,
+        'execution_time': round(end_time - start_time, 2)
+    }
 
 
 # 初始化排程器
