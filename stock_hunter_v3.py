@@ -2823,6 +2823,14 @@ def scan_all_stocks():
         for alert in portfolio_alerts:
             print(f"   {alert['message']}", flush=True)
     
+    # Step 3.5: 檢查追蹤清單 (v5.1: 到價提醒)
+    watchlist_alerts = check_watchlist_alerts(stocks)
+    if watchlist_alerts:
+        print("\n🎯 追蹤清單:", flush=True)
+        for alert in watchlist_alerts:
+            action = "買進" if alert['type'] == 'BUY' else ("賣出" if alert['type'] == 'SELL' else "停損")
+            print(f"   {alert['name']}: {action}訊號 @ {alert['current_price']}", flush=True)
+    
     # Step 4: 取得法人資料
     institutional = get_institutional_data()
     
@@ -2842,6 +2850,7 @@ def scan_all_stocks():
         'total_stocks': len(stocks),
         'passed_filter': len(candidates),
         'recommendations': recommendations,
+        'watchlist_alerts': watchlist_alerts,  # v5.1: 追蹤清單提醒
         'execution_time': round(end_time - start_time, 2)
     }
     
@@ -2898,6 +2907,23 @@ def format_line_messages(result):
         if hold_alerts:
             holds = ", ".join([f"{a['name']}({a['profit_pct']:+.0f}%)" for a in hold_alerts[:3]])
             msg1.append(f"✅ 續抱: {holds}")
+    
+    # v5.1: 追蹤清單到價提醒
+    watchlist_alerts = result.get('watchlist_alerts', [])
+    if watchlist_alerts:
+        msg1.append("")
+        msg1.append("🎯 追蹤清單到價:")
+        for alert in watchlist_alerts[:3]:  # 最多顯示 3 個
+            if alert['type'] == 'BUY':
+                emoji = "🟢"
+                action = "買"
+            elif alert['type'] == 'SELL':
+                emoji = "🔴"
+                action = "賣"
+            else:
+                emoji = "⚠️"
+                action = "停損"
+            msg1.append(f"{emoji} {alert['name']} {action}訊號 ${alert['current_price']:.0f}")
     
     msg1.append("")
     msg1.append(f"━━━ 📈 推薦 {len(swing_trade_list)} 支 ━━━")
