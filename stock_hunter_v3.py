@@ -126,6 +126,31 @@ ETF_BLUE_CHIPS = [
     '1326',  # 台化
 ]
 
+# ==================== 追蹤清單 (v5.1) ====================
+# 個人口袋名單，到價會通知
+WATCHLIST = {
+    '4571': {
+        'name': '鈞興-KY',
+        'strategy': '等洗盤布局 (2027 前佈局)',
+        'alerts': {
+            'buy': [150, 140, 130],   # 跌到這些價位通知買進
+            'sell': [200, 220],       # 漲到這些價位通知賣出
+        },
+        'target': 228,                # 目標價 (券商共識)
+        'note': '內線：2027 股東出清，先洗再拉'
+    },
+    '2408': {
+        'name': '南亞科',
+        'strategy': '已持有 (187.5 進場)',
+        'alerts': {
+            'buy': [],
+            'sell': [200, 220, 230],
+        },
+        'stop_loss': 172,             # MA10 停損
+        'note': '追高進場，DRAM 題材'
+    }
+}
+
 # 快取檔案路徑
 TAIEX_CACHE_FILE = 'taiex_data.csv'
 HISTORY_FILE = 'recommendation_history.json'
@@ -525,6 +550,103 @@ def check_portfolio_status(stocks_data):
         json.dump(updated_history, f, ensure_ascii=False, indent=2)
     
     return alerts
+
+
+def check_watchlist_alerts(stocks_data):
+    """
+    檢查追蹤清單，到價時產生提醒
+    v5.1 新功能
+    """
+    alerts = []
+    
+    # 建立股票代碼->價格的對應
+    price_map = {}
+    for stock in stocks_data:
+        price_map[stock['ticker']] = stock['price']
+    
+    for ticker, config in WATCHLIST.items():
+        current_price = price_map.get(ticker)
+        if current_price is None:
+            continue
+        
+        name = config.get('name', ticker)
+        strategy = config.get('strategy', '')
+        note = config.get('note', '')
+        alert_config = config.get('alerts', {})
+        
+        # 檢查買進價位
+        buy_alerts = alert_config.get('buy', [])
+        for alert_price in buy_alerts:
+            if current_price <= alert_price:
+                alerts.append({
+                    'ticker': ticker,
+                    'name': name,
+                    'type': 'BUY',
+                    'current_price': current_price,
+                    'alert_price': alert_price,
+                    'strategy': strategy,
+                    'note': note
+                })
+                break  # 只觸發最高的買進價位
+        
+        # 檢查賣出價位
+        sell_alerts = alert_config.get('sell', [])
+        for alert_price in sell_alerts:
+            if current_price >= alert_price:
+                alerts.append({
+                    'ticker': ticker,
+                    'name': name,
+                    'type': 'SELL',
+                    'current_price': current_price,
+                    'alert_price': alert_price,
+                    'strategy': strategy,
+                    'note': note
+                })
+                break  # 只觸發最低的賣出價位
+        
+        # 檢查停損
+        stop_loss = config.get('stop_loss')
+        if stop_loss and current_price <= stop_loss:
+            alerts.append({
+                'ticker': ticker,
+                'name': name,
+                'type': 'STOP_LOSS',
+                'current_price': current_price,
+                'alert_price': stop_loss,
+                'strategy': strategy,
+                'note': note
+            })
+    
+    return alerts
+
+
+def format_watchlist_alerts(alerts):
+    """
+    格式化追蹤清單提醒訊息
+    """
+    if not alerts:
+        return None
+    
+    lines = ["🎯 【追蹤清單到價提醒】"]
+    
+    for alert in alerts:
+        if alert['type'] == 'BUY':
+            emoji = "🟢"
+            action = "買進訊號"
+        elif alert['type'] == 'SELL':
+            emoji = "🔴"
+            action = "賣出訊號"
+        else:  # STOP_LOSS
+            emoji = "⚠️"
+            action = "觸發停損"
+        
+        lines.append(f"\n{emoji} {alert['name']} ({alert['ticker']})")
+        lines.append(f"   {action}！現價 {alert['current_price']:.1f} 元")
+        lines.append(f"   設定價位: {alert['alert_price']} 元")
+        if alert['strategy']:
+            lines.append(f"   策略: {alert['strategy']}")
+    
+    return ''.join(lines)
 
 
 # ==================== API 函數 ====================
