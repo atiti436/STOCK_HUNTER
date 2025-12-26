@@ -1,5 +1,1 @@
-{
-  "name": "stock-hunter",
-  "buildCommand": "pip install -r requirements.txt",
-  "startCommand": "python -u stock_hunter_v2.py"
-}
+{"name": "stock-hunter", "buildCommand": "pip install -r requirements.txt", "startCommand": "python -u stock_hunter_v3.py"}
