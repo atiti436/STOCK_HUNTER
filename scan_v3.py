@@ -42,56 +42,67 @@ def is_excluded_stock(ticker):
 def fetch_historical_prices(ticker, days=10):
     """
     抓取歷史股價（用於計算 5 日漲幅、5 日均量）
+    使用 FinMind API (比證交所穩定)
     返回: [(date, close, volume), ...]，最新的在前面
     """
     try:
-        # 使用證交所個股日成交資訊
-        today = datetime.now()
-        month_str = today.strftime('%Y%m')
+        from FinMind.data import DataLoader
+        dl = DataLoader()
 
-        url = f'https://www.twse.com.tw/rwd/zh/afterTrading/STOCK_DAY'
-        params = {
-            'date': month_str + '01',
-            'stockNo': ticker,
-            'response': 'json'
-        }
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
+        # 計算日期範圍
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=days+5)  # 多抓幾天避免假日
 
-        response = requests.get(url, params=params, headers=headers, timeout=15, verify=False)
-        data = response.json()
+        start_str = start_date.strftime('%Y-%m-%d')
+        end_str = end_date.strftime('%Y-%m-%d')
 
-        if data.get('stat') != 'OK' or not data.get('data'):
+        # 使用 FinMind 抓歷史股價
+        df = dl.taiwan_stock_daily(
+            stock_id=ticker,
+            start_date=start_str,
+            end_date=end_str
+        )
+
+        if df is None or df.empty:
             return []
 
         prices = []
-        for row in data['data']:
+        for _, row in df.iterrows():
             try:
-                date_str = row[0].replace('/', '')  # 113/12/31 -> 1131231
-                close = float(row[6].replace(',', ''))
-                volume = int(row[1].replace(',', '')) // 1000  # 轉成張
-                prices.append((date_str, close, volume))
+                date_str = str(row.get('date', '')).replace('-', '')  # 2025-12-30 → 20251230
+                close = float(row.get('close', 0))
+                volume = int(row.get('Trading_Volume', 0)) // 1000  # 轉成張
+
+                if close > 0 and volume > 0:
+                    prices.append((date_str, close, volume))
             except:
                 continue
 
-        # 反轉順序（最新的在前）
-        prices.reverse()
-        return prices[:days]
+        # 只取最近 N 天，新的在前
+        return sorted(prices, key=lambda x: x[0], reverse=True)[:days]
 
+    except ImportError:
+        print(f'   [{ticker}] FinMind 未安裝')
+        return []
     except Exception as e:
         print(f'   [{ticker}] 歷史股價抓取失敗: {e}')
         return []
 
 
-def fetch_institutional_history(days=7):
+def fetch_institutional_history_for_stocks(tickers, days=7):
     """
-    抓取最近 N 天的法人買賣超
-    使用 FinMind API (比證交所穩定)
+    逐檔抓取法人買賣超 (修正版)
+    使用 FinMind API，逐檔抓取避免 API timeout
+
+    參數:
+        tickers: 股票代號清單 ['2330', '2603', ...]
+        days: 查詢天數
+
     返回: {ticker: [{date, foreign, trust, total}, ...]}
     """
     try:
         from FinMind.data import DataLoader
+        import time
         dl = DataLoader()
 
         # 計算日期範圍
@@ -101,85 +112,84 @@ def fetch_institutional_history(days=7):
         start_str = start_date.strftime('%Y-%m-%d')
         end_str = end_date.strftime('%Y-%m-%d')
 
-        print(f'   抓取法人資料: {start_str} ~ {end_str}')
+        print(f'   法人資料範圍: {start_str} ~ {end_str}')
+        print(f'   需查詢 {len(tickers)} 檔 (逐檔抓取)...')
 
-        # 抓取三大法人買賣超
-        df = dl.taiwan_stock_institutional_investors(
-            stock_id='',  # 空字串代表全部
-            start_date=start_str,
-            end_date=end_str
-        )
+        result = {}
+        success_count = 0
 
-        if df is None or df.empty:
-            print('   [!] FinMind 法人資料為空')
-            return {}
+        for i, ticker in enumerate(tickers, 1):
+            try:
+                # 逐檔抓取
+                df = dl.taiwan_stock_institutional_investors(
+                    stock_id=ticker,
+                    start_date=start_str,
+                    end_date=end_str
+                )
 
-        institutional = {}
+                if df is None or df.empty:
+                    continue
 
-        # FinMind 格式: 每個法人類型一行
-        # name 可能是: Foreign_Investor, Investment_Trust, Dealer_self, 等
-        for _, row in df.iterrows():
-            ticker = str(row.get('stock_id', '')).strip()
-            date_str = str(row.get('date', '')).replace('-', '')
-            name = str(row.get('name', '')).strip()
-            buy = int(row.get('buy', 0))
-            sell = int(row.get('sell', 0))
-            net = (buy - sell) // 1000  # 轉成張
+                # 整理資料
+                ticker_data = {}
 
-            if not ticker or not date_str or not name:
+                for _, row in df.iterrows():
+                    date_str = str(row.get('date', '')).replace('-', '')
+                    name = str(row.get('name', '')).strip()
+                    buy = int(row.get('buy', 0))
+                    sell = int(row.get('sell', 0))
+                    net = (buy - sell) // 1000  # 轉成張
+
+                    if not date_str:
+                        continue
+
+                    if date_str not in ticker_data:
+                        ticker_data[date_str] = {
+                            'date': date_str,
+                            'foreign': 0,
+                            'trust': 0,
+                            'total': 0
+                        }
+
+                    # 累加外資和投信
+                    if 'Foreign_Investor' in name:
+                        ticker_data[date_str]['foreign'] += net
+                    elif 'Investment_Trust' in name:
+                        ticker_data[date_str]['trust'] += net
+
+                    ticker_data[date_str]['total'] = (
+                        ticker_data[date_str]['foreign'] +
+                        ticker_data[date_str]['trust']
+                    )
+
+                # 轉成 list 並排序
+                if ticker_data:
+                    result[ticker] = sorted(
+                        ticker_data.values(),
+                        key=lambda x: x['date'],
+                        reverse=True
+                    )
+                    success_count += 1
+
+                # 進度顯示 + 避免被擋
+                if i % 10 == 0:
+                    print(f'      進度: {i}/{len(tickers)} ({success_count} 成功)')
+                    time.sleep(0.3)
+
+            except Exception as e:
+                # 單檔失敗不影響其他
+                if i <= 3:  # 只顯示前 3 筆錯誤
+                    print(f'      [{ticker}] 失敗: {e}')
                 continue
 
-            # 建立 key
-            key = f"{ticker}_{date_str}"
-            if key not in institutional:
-                institutional[key] = {
-                    'ticker': ticker,
-                    'date': date_str,
-                    'foreign': 0,
-                    'trust': 0,
-                    'total': 0
-                }
-
-            # 累加不同法人的買賣超
-            if 'Foreign_Investor' in name:
-                institutional[key]['foreign'] += net
-            elif 'Investment_Trust' in name:
-                institutional[key]['trust'] += net
-
-            institutional[key]['total'] = (
-                institutional[key]['foreign'] +
-                institutional[key]['trust']
-            )
-
-        # 重組成 {ticker: [{date, foreign, trust, total}, ...]}
-        result = {}
-        for key, data in institutional.items():
-            ticker = data['ticker']
-            if ticker not in result:
-                result[ticker] = []
-            result[ticker].append({
-                'date': data['date'],
-                'foreign': data['foreign'],
-                'trust': data['trust'],
-                'total': data['total']
-            })
-
-        # 排序(最新的在前)
-        for ticker in result:
-            result[ticker] = sorted(
-                result[ticker],
-                key=lambda x: x['date'],
-                reverse=True
-            )
-
-        print(f'   取得 {len(result)} 檔法人資料')
+        print(f'   取得 {success_count}/{len(tickers)} 檔法人資料')
         return result
 
     except ImportError:
         print('   [!] FinMind 未安裝，無法抓取法人資料')
         return {}
     except Exception as e:
-        print(f'   [!] 法人資料抓取失敗: {e}')
+        print(f'   [!] 法人抓取失敗: {e}')
         return {}
 
 
@@ -337,7 +347,7 @@ def main():
 
     print(f'   基本篩選後: {len(stocks)} 檔')
 
-    # 2. 抓取本益比
+    # 2. 抓取本益比 + 第二階段篩選
     print('\n[2/5] 抓取本益比...')
     pe_data = {}
     try:
@@ -357,9 +367,19 @@ def main():
     except:
         print('   PE 抓取失敗')
 
-    # 3. 抓取法人買賣超（今日）
+    # 2.5 用 PE 再篩選一次，準備給法人查詢用
+    print('   用 PE < 25 再篩選...')
+    candidate_tickers = []
+    for ticker in stocks.keys():
+        pe = pe_data.get(ticker, 0)
+        if pe > 0 and pe < 25:
+            candidate_tickers.append(ticker)
+
+    print(f'   PE 篩選後: {len(candidate_tickers)} 檔 (準備查法人)')
+
+    # 3. 逐檔抓取法人買賣超
     print('\n[3/5] 抓取法人買賣超...')
-    institutional = fetch_institutional_history(days=7)
+    institutional = fetch_institutional_history_for_stocks(candidate_tickers, days=7)
 
     # 4. 抓取歷史股價（計算 5 日漲幅、均量）
     print('\n[4/5] 計算歷史技術指標...')
