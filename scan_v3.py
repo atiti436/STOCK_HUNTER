@@ -87,62 +87,100 @@ def fetch_historical_prices(ticker, days=10):
 def fetch_institutional_history(days=7):
     """
     抓取最近 N 天的法人買賣超
+    使用 FinMind API (比證交所穩定)
     返回: {ticker: [{date, foreign, trust, total}, ...]}
     """
-    institutional = {}
+    try:
+        from FinMind.data import DataLoader
+        dl = DataLoader()
 
-    for days_ago in range(1, days+1):  # 從昨天開始往前抓
-        target_date = datetime.now() - timedelta(days=days_ago)
-        date_str = target_date.strftime('%Y%m%d')
+        # 計算日期範圍
+        end_date = datetime.now() - timedelta(days=1)  # 昨天
+        start_date = end_date - timedelta(days=days)
 
-        try:
-            url_inst = "https://www.twse.com.tw/rwd/zh/fund/T86"
-            params = {
-                'date': date_str,
-                'selectType': 'ALLBUT0999',
-                'response': 'json'
-            }
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            }
+        start_str = start_date.strftime('%Y-%m-%d')
+        end_str = end_date.strftime('%Y-%m-%d')
 
-            response = requests.get(url_inst, params=params, headers=headers, timeout=15, verify=False)
-            data = response.json()
+        print(f'   抓取法人資料: {start_str} ~ {end_str}')
 
-            if data.get('stat') != 'OK' or not data.get('data'):
+        # 抓取三大法人買賣超
+        df = dl.taiwan_stock_institutional_investors(
+            stock_id='',  # 空字串代表全部
+            start_date=start_str,
+            end_date=end_str
+        )
+
+        if df is None or df.empty:
+            print('   [!] FinMind 法人資料為空')
+            return {}
+
+        institutional = {}
+
+        # FinMind 格式: 每個法人類型一行
+        # name 可能是: Foreign_Investor, Investment_Trust, Dealer_self, 等
+        for _, row in df.iterrows():
+            ticker = str(row.get('stock_id', '')).strip()
+            date_str = str(row.get('date', '')).replace('-', '')
+            name = str(row.get('name', '')).strip()
+            buy = int(row.get('buy', 0))
+            sell = int(row.get('sell', 0))
+            net = (buy - sell) // 1000  # 轉成張
+
+            if not ticker or not date_str or not name:
                 continue
 
-            print(f'   [OK] 法人資料: {date_str}')
+            # 建立 key
+            key = f"{ticker}_{date_str}"
+            if key not in institutional:
+                institutional[key] = {
+                    'ticker': ticker,
+                    'date': date_str,
+                    'foreign': 0,
+                    'trust': 0,
+                    'total': 0
+                }
 
-            for item in data['data']:
-                try:
-                    ticker = item[0].strip()
-                    if not (ticker.isdigit() and len(ticker) == 4):
-                        continue
+            # 累加不同法人的買賣超
+            if 'Foreign_Investor' in name:
+                institutional[key]['foreign'] += net
+            elif 'Investment_Trust' in name:
+                institutional[key]['trust'] += net
 
-                    foreign = int(item[4].replace(',', '')) if item[4] != '--' else 0
-                    trust = int(item[10].replace(',', '')) if item[10] != '--' else 0
+            institutional[key]['total'] = (
+                institutional[key]['foreign'] +
+                institutional[key]['trust']
+            )
 
-                    if ticker not in institutional:
-                        institutional[ticker] = []
+        # 重組成 {ticker: [{date, foreign, trust, total}, ...]}
+        result = {}
+        for key, data in institutional.items():
+            ticker = data['ticker']
+            if ticker not in result:
+                result[ticker] = []
+            result[ticker].append({
+                'date': data['date'],
+                'foreign': data['foreign'],
+                'trust': data['trust'],
+                'total': data['total']
+            })
 
-                    institutional[ticker].append({
-                        'date': date_str,
-                        'foreign': foreign,
-                        'trust': trust,
-                        'total': foreign + trust
-                    })
-                except:
-                    continue
+        # 排序(最新的在前)
+        for ticker in result:
+            result[ticker] = sorted(
+                result[ticker],
+                key=lambda x: x['date'],
+                reverse=True
+            )
 
-            time.sleep(3)  # 避免被擋
-            break  # 只抓最新一天
+        print(f'   取得 {len(result)} 檔法人資料')
+        return result
 
-        except Exception as e:
-            print(f'   [{date_str}] 法人資料失敗: {e}')
-            continue
-
-    return institutional
+    except ImportError:
+        print('   [!] FinMind 未安裝，無法抓取法人資料')
+        return {}
+    except Exception as e:
+        print(f'   [!] 法人資料抓取失敗: {e}')
+        return {}
 
 
 def fetch_financial_data():
