@@ -259,23 +259,29 @@ def fetch_financial_data():
 
 
 def calculate_5day_change(prices):
-    """計算近 5 日累積漲幅"""
+    """計算近 5 日累積漲幅
+
+    返回: 漲幅百分比 或 None (資料不足)
+    """
     if len(prices) < 5:
-        return 0
+        return None  # 資料不足，回傳 None
 
     latest = prices[0][1]  # 最新收盤
     day5_ago = prices[4][1]  # 5 天前收盤
 
     if day5_ago == 0:
-        return 0
+        return None  # 避免除以零
 
     return ((latest - day5_ago) / day5_ago) * 100
 
 
 def calculate_5day_avg_volume(prices):
-    """計算 5 日均量"""
+    """計算 5 日均量
+
+    返回: 均量 或 None (資料不足)
+    """
     if len(prices) < 5:
-        return 0
+        return None  # 資料不足，回傳 None
 
     volumes = [p[2] for p in prices[:5]]
     return sum(volumes) / len(volumes)
@@ -419,7 +425,7 @@ def fetch_revenue_data(tickers):
 
 def main():
     print('=' * 80)
-    print('選股條件 v3.0 - 找法人剛進場、體質健康、還沒噴的股票')
+    print('選股條件 v3.1 - 找法人剛進場、體質健康、還沒噴、營收成長的股票')
     print('=' * 80)
 
     # 1. 抓取當日股價
@@ -451,8 +457,6 @@ def main():
 
         # 基本篩選
         if not (50 <= close <= 200):  # 價格 50-200
-            continue
-        if volume < 500:  # 量 > 500 張
             continue
         if not (0 <= change_pct <= 5):  # 今日漲幅 0-5%
             continue
@@ -509,17 +513,22 @@ def main():
     for ticker in candidate_tickers:  # 改用 candidate_tickers (已經過 PE 篩選)
         prices = fetch_historical_prices(ticker, days=10)
         if prices:
-            historical_data[ticker] = {
-                'prices': prices,
-                '5day_change': calculate_5day_change(prices),
-                '5day_avg_volume': calculate_5day_avg_volume(prices)
-            }
-            count += 1
-            if count % 10 == 0:
-                print(f'   已處理 {count} 檔...')
-                time.sleep(2)  # 避免被擋
+            day5_change = calculate_5day_change(prices)
+            avg_volume = calculate_5day_avg_volume(prices)
 
-    print(f'   取得 {len(historical_data)} 檔歷史資料')
+            # 只有資料完整才儲存 (避免 None 導致後續錯誤)
+            if day5_change is not None and avg_volume is not None:
+                historical_data[ticker] = {
+                    'prices': prices,
+                    '5day_change': day5_change,
+                    '5day_avg_volume': avg_volume
+                }
+                count += 1
+                if count % 10 == 0:
+                    print(f'   已處理 {count} 檔...')
+                    time.sleep(2)  # 避免被擋
+
+    print(f'   取得 {len(historical_data)} 檔歷史資料 (資料完整)')
 
     # 5. 抓取財報（毛利率、營業利益率）
     print('\n[5/6] 抓取財報資料...')
@@ -533,8 +542,7 @@ def main():
 
     # 7. 最終篩選
     print('\n[7/7] 最終篩選...')
-    strict_results = []  # 嚴格版
-    loose_results = []   # 寬鬆版
+    results = []  # 符合條件的股票
 
     for ticker in candidate_tickers:  # 改用 candidate_tickers (已經過 PE 篩選)
         # 取得股票基本資料
@@ -571,48 +579,40 @@ def main():
         rev = revenue_data.get(ticker, {})
         revenue_yoy = rev.get('yoy', 0)
 
-        # 檢查條件
-        is_strict = True
-        reasons = []
+        # === 嚴格篩選條件 (不符合就跳過) ===
 
-        # 近 5 日漲幅 < 10%
+        # 近 5 日漲幅 < 10% (避免追高)
         if day5_change >= 10:
-            is_strict = False
-            reasons.append(f'5日漲{day5_change:.1f}%')
+            continue
 
-        # 法人買超 3-5 天
+        # 法人買超 3-5 天 (剛進場)
         if buy_days < 3 or buy_days > 5:
-            is_strict = False
-            reasons.append(f'法人買{buy_days}天')
+            continue
 
         # 法人 1 月累積 > -10,000 張 (避免長期賣壓)
         if inst_1month <= -10000:
-            is_strict = False
-            reasons.append(f'1月累積{inst_1month:+,}張')
+            continue
 
-        # 營收 YoY > 10%
+        # 營收 YoY > 10% (成長動能)
         if revenue_yoy <= 10:
-            is_strict = False
-            reasons.append(f'營收YoY{revenue_yoy:+.1f}%')
+            continue
 
-        # 今日量 > 5 日均量
+        # 今日量 > 5 日均量 (啟動訊號)
         if stock['volume'] < avg_volume:
-            is_strict = False
-            reasons.append('量能不足')
+            continue
 
-        # 財報條件（毛利率、營業利益率）
+        # 財報條件（毛利率、營業利益率）- 暫時停用
         fin = financial_data.get(ticker, {})
         gross_margin = fin.get('gross_margin', 0)
         operating_margin = fin.get('operating_margin', 0)
 
         if financial_data:  # 只有在有財報資料時才檢查
             if gross_margin < 20:
-                is_strict = False
-                reasons.append(f'毛利率{gross_margin:.1f}%')
+                continue
             if operating_margin < 0:
-                is_strict = False
-                reasons.append(f'營業利益率{operating_margin:.1f}%')
+                continue
 
+        # === 符合所有條件，加入結果 ===
         result = {
             'ticker': ticker,
             'name': stock['name'],
@@ -629,37 +629,31 @@ def main():
             'avg_volume': int(avg_volume),
             'revenue_yoy': revenue_yoy,  # 營收 YoY
             'gross_margin': gross_margin,
-            'operating_margin': operating_margin,
-            'reasons': reasons
+            'operating_margin': operating_margin
         }
 
-        if is_strict:
-            strict_results.append(result)
-        else:
-            loose_results.append(result)
+        results.append(result)
 
     # 排序 (依法人 5 日累積排序)
-    strict_results = sorted(strict_results, key=lambda x: x['inst_5day'], reverse=True)
+    results = sorted(results, key=lambda x: x['inst_5day'], reverse=True)
 
-    # 7. 輸出結果 (只輸出嚴格版)
-    output_results(strict_results)
+    # 8. 輸出結果
+    output_results(results)
 
     print('\n' + '=' * 80)
-    print(f'[OK] 符合條件（推薦買入）: {len(strict_results)} 檔')
-    print(f'[!] 不符合條件: {len(loose_results)} 檔 (不顯示)')
+    print(f'[OK] 符合條件（推薦買入）: {len(results)} 檔')
     print(f'詳細結果已存到 scan_result_v3.txt')
 
 
-def output_results(strict):
-    """輸出結果到檔案 (只輸出嚴格版)"""
+def output_results(results):
+    """輸出結果到檔案"""
     with open('scan_result_v3.txt', 'w', encoding='utf-8') as f:
         today = datetime.now().strftime('%Y-%m-%d')
 
         f.write('=' * 140 + '\n')
-        f.write(f'選股條件 v3.0 篩選結果 - {today}\n')
+        f.write(f'選股條件 v3.1 篩選結果 - {today}\n')
         f.write('=' * 140 + '\n\n')
 
-        # 只輸出嚴格版
         f.write('[OK] 符合條件 (推薦買入) - 法人剛進場、體質健康、還沒噴、營收成長\n')
         f.write('-' * 140 + '\n')
         f.write(f"{'#':>3} {'代號':<6} {'名稱':<10} {'價格':>7} {'漲幅':>7} {'PE':>6} "
@@ -667,7 +661,7 @@ def output_results(strict):
                f"{'買天':>5} {'5日漲':>7} {'量/均':>12}\n")
         f.write('-' * 140 + '\n')
 
-        for i, r in enumerate(strict[:20], 1):
+        for i, r in enumerate(results[:20], 1):
             volume_ratio = f"{r['volume']}/{r['avg_volume']}"
             yoy_str = f"{r['revenue_yoy']:+.1f}%" if r['revenue_yoy'] != 0 else '-'
             line = (f"{i:>3} {r['ticker']:<6} {r['name']:<10} {r['price']:>7.1f} "
@@ -677,7 +671,7 @@ def output_results(strict):
             f.write(line)
             print(line.strip())
 
-        f.write(f'\n共 {len(strict)} 檔\n')
+        f.write(f'\n共 {len(results)} 檔\n')
         f.write('=' * 140 + '\n')
 
 
