@@ -3156,10 +3156,10 @@ def scan_all_stocks_with_data(stocks):
     }
 
 
-# 初始化排程器
-scheduler = BackgroundScheduler()
-scheduler.add_job(daily_analysis_task, 'cron', hour=8, minute=0)
-scheduler.start()
+# 初始化排程器 (已停用，改由 GitHub Actions 執行)
+# scheduler = BackgroundScheduler()
+# scheduler.add_job(daily_analysis_task, 'cron', hour=8, minute=0)
+# scheduler.start()
 
 
 # ==================== LINE BOT Webhook ====================

@@ -2,7 +2,12 @@
 
 ## 📋 功能說明
 
-每天台灣晚上 9 點自動執行選股，並透過 Line BOT 推送結果到你的 Line。
+每天台灣早上 8 點自動執行選股（scan_v3.py），並透過 Line BOT 推送結果到你的 Line。
+
+**重要更新（2025-12-31）**：
+- ✅ 改用 GitHub Actions 執行 scan_v3.py（v3.1 最新邏輯）
+- ✅ 停用 ZEABUR 的自動排程（避免重複執行）
+- ✅ ZEABUR Line BOT 僅作為推送中繼站
 
 ## 🔧 設定步驟
 
@@ -52,16 +57,16 @@ git push
 ### 5. 確認定時任務
 
 設定完成後，GitHub Actions 會：
-- **每天晚上 9 點**（台北時間）自動執行
+- **每天早上 8 點**（台北時間）自動執行
 - 週一到週五執行（週末休市不執行）
 - 你也可以隨時手動觸發
 
 ## 📊 運作流程
 
 ```
-GitHub Actions (每天 21:00)
+GitHub Actions (每天 08:00)
   ↓
-執行 scan_v3.py (選股)
+執行 scan_v3.py (v3.1 選股邏輯)
   ↓
 產生 scan_result_v3.txt
   ↓
@@ -119,13 +124,13 @@ python scripts/push_to_linebot.py
 
 ```yaml
 schedule:
-  # 台灣晚上 8 點 (UTC 12:00)
-  - cron: '0 12 * * 1-5'
+  # 台灣早上 8 點 (UTC 00:00)
+  - cron: '0 0 * * 1-5'
 ```
 
 Cron 時間計算：
 - 台灣時間 - 8 小時 = UTC 時間
-- 例如：21:00 → 13:00 UTC
+- 例如：08:00 → 00:00 UTC，21:00 → 13:00 UTC
 
 ## ✅ 設定完成檢查清單
 
