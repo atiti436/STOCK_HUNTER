@@ -123,76 +123,72 @@ def fetch_institutional_history_for_stocks(tickers, days=7):
         end_str = end_date.strftime('%Y-%m-%d')
 
         print(f'   法人資料範圍: {start_str} ~ {end_str}')
-        print(f'   需查詢 {len(tickers)} 檔 (逐檔抓取)...')
+        print(f'   嘗試一次抓取所有股票法人資料...')
 
+        # 一次抓取所有股票 (stock_id='')
+        df = dl.taiwan_stock_institutional_investors(
+            stock_id='',  # 空字串 = 抓全部
+            start_date=start_str,
+            end_date=end_str
+        )
+
+        if df is None or df.empty:
+            print('   [X] 無法取得法人資料')
+            return {}
+
+        print(f'   [OK] 成功抓取 {len(df)} 筆法人資料')
+
+        # 整理資料
         result = {}
-        success_count = 0
 
-        for i, ticker in enumerate(tickers, 1):
-            try:
-                # 逐檔抓取
-                df = dl.taiwan_stock_institutional_investors(
-                    stock_id=ticker,
-                    start_date=start_str,
-                    end_date=end_str
-                )
+        for _, row in df.iterrows():
+            ticker = str(row.get('stock_id', '')).strip()
 
-                if df is None or df.empty:
-                    continue
-
-                # 整理資料
-                ticker_data = {}
-
-                for _, row in df.iterrows():
-                    date_str = str(row.get('date', '')).replace('-', '')
-                    name = str(row.get('name', '')).strip()
-                    buy = int(row.get('buy', 0))
-                    sell = int(row.get('sell', 0))
-                    net = (buy - sell) // 1000  # 轉成張
-
-                    if not date_str:
-                        continue
-
-                    if date_str not in ticker_data:
-                        ticker_data[date_str] = {
-                            'date': date_str,
-                            'foreign': 0,
-                            'trust': 0,
-                            'total': 0
-                        }
-
-                    # 累加外資和投信
-                    if 'Foreign_Investor' in name:
-                        ticker_data[date_str]['foreign'] += net
-                    elif 'Investment_Trust' in name:
-                        ticker_data[date_str]['trust'] += net
-
-                    ticker_data[date_str]['total'] = (
-                        ticker_data[date_str]['foreign'] +
-                        ticker_data[date_str]['trust']
-                    )
-
-                # 轉成 list 並排序
-                if ticker_data:
-                    result[ticker] = sorted(
-                        ticker_data.values(),
-                        key=lambda x: x['date'],
-                        reverse=True
-                    )
-                    success_count += 1
-
-                # 進度顯示 + 避免被擋
-                if i % 10 == 0:
-                    print(f'      進度: {i}/{len(tickers)} ({success_count} 成功)')
-                    time.sleep(0.3)
-
-            except Exception as e:
-                # 單檔失敗不影響其他
-                if i <= 3:  # 只顯示前 3 筆錯誤
-                    print(f'      [{ticker}] 失敗: {e}')
+            # 只處理我們要的股票
+            if ticker not in tickers:
                 continue
 
-        print(f'   取得 {success_count}/{len(tickers)} 檔法人資料')
+            date_str = str(row.get('date', '')).replace('-', '')
+            name = str(row.get('name', '')).strip()
+            buy = int(row.get('buy', 0))
+            sell = int(row.get('sell', 0))
+            net = (buy - sell) // 1000  # 轉成張
+
+            if not date_str or not ticker:
+                continue
+
+            # 初始化股票資料
+            if ticker not in result:
+                result[ticker] = {}
+
+            if date_str not in result[ticker]:
+                result[ticker][date_str] = {
+                    'date': date_str,
+                    'foreign': 0,
+                    'trust': 0,
+                    'total': 0
+                }
+
+            # 累加外資和投信
+            if 'Foreign_Investor' in name:
+                result[ticker][date_str]['foreign'] += net
+            elif 'Investment_Trust' in name:
+                result[ticker][date_str]['trust'] += net
+
+            result[ticker][date_str]['total'] = (
+                result[ticker][date_str]['foreign'] +
+                result[ticker][date_str]['trust']
+            )
+
+        # 轉成 list 並排序
+        for ticker in result:
+            result[ticker] = sorted(
+                result[ticker].values(),
+                key=lambda x: x['date'],
+                reverse=True
+            )
+
+        print(f'   整理完成: {len(result)} 檔股票有法人資料')
         return result
 
     except ImportError:
