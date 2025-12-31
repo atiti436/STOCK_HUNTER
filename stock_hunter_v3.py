@@ -141,13 +141,13 @@ WATCHLIST = {
     },
     '2408': {
         'name': '南亞科',
-        'strategy': '已持有 (187.5 進場)',
+        'strategy': '已持有 (187.5 進場)，12/30 納入 0050',
         'alerts': {
             'buy': [],
-            'sell': [200, 220, 230],
+            'sell': [205, 220, 230],  # 停利 205 (用戶指定)
         },
-        'stop_loss': 172,             # MA10 停損
-        'note': '追高進場，DRAM 題材'
+        'stop_loss': 190,             # 用戶指定停損
+        'note': 'DRAM 題材 + 0050 效應，1/2 後觀察內資動向'
     }
 }
 
@@ -649,7 +649,72 @@ def format_watchlist_alerts(alerts):
     return ''.join(lines)
 
 
-# ==================== API 函數 ====================
+# ==================== v5.2 ETF 潛力股捕捉 ====================
+
+def scan_etf_candidates():
+    """
+    掃描可能納入 0050 的候選股
+    原理：市值排名 51-60 超過 45-50 時，下次可能入選
+    執行時機：每季 2/5/8/11 月底
+    """
+    try:
+        # 使用現有的股票資料
+        stocks = get_all_stocks_data()
+        if not stocks:
+            return None
+        
+        # 計算市值（價格 × 成交量作為估算，實際應用需要發行股數）
+        # 這裡用成交金額作為流動性排序參考
+        for stock in stocks:
+            # 簡易市值估算：價格 × 日成交金額 / 價格 ≈ 流動性
+            stock['liquidity_score'] = stock.get('turnover', 0)
+        
+        # 依流動性排序（實際應用需要真正的市值數據）
+        sorted_stocks = sorted(stocks, key=lambda x: x['liquidity_score'], reverse=True)
+        
+        # 取排名 45-60
+        rank_45_50 = sorted_stocks[44:50]  # Index 44-49
+        rank_51_60 = sorted_stocks[50:60]  # Index 50-59
+        
+        # 找出「逆轉」候選：51-60 名中流動性高於 45-50 最低者
+        min_score_45_50 = min([s['liquidity_score'] for s in rank_45_50]) if rank_45_50 else 0
+        
+        candidates = []
+        for stock in rank_51_60:
+            if stock['liquidity_score'] > min_score_45_50 * 0.9:  # 接近閾值
+                candidates.append({
+                    'ticker': stock['ticker'],
+                    'name': stock['name'],
+                    'price': stock['price'],
+                    'liquidity': stock['liquidity_score'],
+                    'note': '潛在 0050 候選'
+                })
+        
+        print(f"📊 ETF 候選股掃描完成，發現 {len(candidates)} 檔潛力股", flush=True)
+        return candidates
+        
+    except Exception as e:
+        print(f"❌ ETF 候選股掃描失敗: {e}", flush=True)
+        return None
+
+
+def format_etf_candidates(candidates):
+    """格式化 ETF 候選股報告"""
+    if not candidates:
+        return "📊 目前無潛在 0050 候選股"
+    
+    lines = ["📊 【0050 潛在候選股】", "（下次季度調整可能入選）", ""]
+    
+    for i, c in enumerate(candidates[:5], 1):  # 最多顯示 5 檔
+        lines.append(f"{i}. {c['name']} ({c['ticker']}) ${c['price']:.1f}")
+    
+    lines.append("")
+    lines.append("⏰ 0050 審核時間：3/6/9/12 月")
+    lines.append("💡 策略：生效日前 1-2 週佈局")
+    
+    return '\n'.join(lines)
+
+
 
 def get_all_stocks_data():
     """
@@ -3246,6 +3311,37 @@ def manual_run():
     result = scan_all_stocks()
     messages = format_line_messages(result)
     return '<hr>'.join([m.replace('\n', '<br>') for m in messages])
+
+
+@app.route("/push_scan_result", methods=['POST'])
+def push_scan_result():
+    """
+    接收選股結果並推送到 Line (給 GitHub Actions 呼叫)
+
+    POST Body:
+    {
+        "message": "選股結果訊息內容"
+    }
+    """
+    try:
+        data = request.get_json()
+
+        if not data or 'message' not in data:
+            return {'error': 'Missing message'}, 400
+
+        message = data['message']
+
+        # 推送到管理員 Line
+        line_bot_api.push_message(
+            ADMIN_USER_ID,
+            TextSendMessage(text=message)
+        )
+
+        return {'status': 'success', 'message': 'Pushed to Line'}, 200
+
+    except Exception as e:
+        print(f'[!] 推送失敗: {e}', flush=True)
+        return {'error': str(e)}, 500
 
 
 # ==================== 主程式 ====================
