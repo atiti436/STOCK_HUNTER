@@ -57,6 +57,36 @@
 
 ---
 
+### ⚠️ **Zeabur 部署注意事項（重要！）**
+
+**問題**：Push 會觸發 Zeabur 自動部署，如果 Docker Image 太大會等 10+ 分鐘
+
+**解決**：已加入 `.dockerignore` 排除不必要檔案 ✅
+
+#### 🚫 不要 Push 這些檔案（會拖慢部署）
+- `scan_v3.py`、`scan_v4.py` - Zeabur 不需要
+- `data/*`、`_backup/*` - 資料檔案
+- `*.md`（除了 README） - 文檔
+
+#### ✅ 只 Push 必要檔案
+- `line_relay.py` - Zeabur 主程式
+- `requirements.txt` - 依賴清單
+- `Dockerfile`、`Procfile` - 部署設定
+- `.dockerignore` - **必須保留！**
+
+#### 📝 下次改動前檢查
+```bash
+# 檢查會被複製進 Docker 的檔案
+git diff --name-only
+
+# 如果只改 scan_v3/v4、README → 可以放心 push（不影響 Zeabur）
+# 如果改 line_relay.py、requirements.txt → 會觸發部署（約 2-3 分鐘）
+```
+
+**教訓**：2026-01-02 凌晨沒加 `.dockerignore` 前，部署等了 10+ 分鐘 😭
+
+---
+
 ## 🔄 **v3.4.1 更新 (2026-01-01 22:30)**
 
 ### ✅ 已完成：多 TOKEN 輪替功能（真正實作版）
