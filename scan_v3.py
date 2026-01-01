@@ -28,6 +28,7 @@
 - 適合短波段操作 (3-10 個工作日)
 """
 
+import os
 import requests
 import urllib3
 from datetime import datetime, timedelta
@@ -35,6 +36,9 @@ import json
 import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# FinMind API Token (600次/小時)
+FINMIND_TOKEN = os.environ.get('FINMIND_TOKEN', 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAxNTo1MzoyMCIsInVzZXJfaWQiOiJhdGl0aSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.NmNnOo6KP0bmvvdFQ68L6SM1DChuxrW7Z1P5onzPWlU')
 
 # ===== 工具函數 =====
 
@@ -58,6 +62,7 @@ def fetch_historical_prices(ticker, days=10):
     try:
         from FinMind.data import DataLoader
         dl = DataLoader()
+        dl.login_by_token(api_token=FINMIND_TOKEN)
 
         # 計算日期範圍
         end_date = datetime.now()
@@ -114,6 +119,7 @@ def fetch_institutional_history_for_stocks(tickers, days=7):
         from FinMind.data import DataLoader
         import time
         dl = DataLoader()
+        dl.login_by_token(api_token=FINMIND_TOKEN)
 
         # 計算日期範圍
         end_date = datetime.now() - timedelta(days=1)  # 昨天
@@ -211,6 +217,7 @@ def fetch_financial_data():
     try:
         from FinMind.data import DataLoader
         dl = DataLoader()
+        dl.login_by_token(api_token=FINMIND_TOKEN)
 
         # 抓取最新一季財報
         today = datetime.now()
@@ -354,6 +361,7 @@ def fetch_revenue_data(tickers):
     try:
         from FinMind.data import DataLoader
         dl = DataLoader()
+        dl.login_by_token(api_token=FINMIND_TOKEN)
 
         # 計算日期範圍 (最近 400 天，涵蓋 1 年多，才能比對 YoY)
         end_date = datetime.now()
