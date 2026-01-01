@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# 不需要的 Python 腳本（Zeabur 只需要 line_relay.py）
+scan_v3.py
+scan_v4.py
+notify_line.py
+stock_hunter_v3.py
+
+# 資料和備份
+data/
+_backup/
+*.json
+*.txt
+!requirements.txt
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# 文檔
+*.md
+!README.md
+
+# 其他
+*.log
+.DS_Store
+KEEP/
+scripts/
+.github/
