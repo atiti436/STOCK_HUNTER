@@ -1,1 +1,1 @@
-web: python -u stock_hunter_v3.py
+web: gunicorn line_relay:app
