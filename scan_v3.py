@@ -195,16 +195,23 @@ def fetch_institutional_history_for_stocks(tickers, days=7):
             except Exception as e:
                 if i <= 3:  # 只顯示前 3 筆錯誤
                     print(f'      [{ticker}] 法人失敗: {e}')
+                # 記錄到健康檢查（只記錄前幾個）
+                if len(HEALTH_CHECK['errors']) < 3:
+                    HEALTH_CHECK['errors'].append(f"法人API: {str(e)[:50]}")
                 continue
 
+        HEALTH_CHECK['inst_success'] = success_count
+        HEALTH_CHECK['inst_total'] = len(tickers)
         print(f'   取得 {success_count}/{len(tickers)} 檔法人資料')
         return result
 
     except ImportError:
         print('   [!] FinMind 未安裝，無法抓取法人資料')
+        HEALTH_CHECK['errors'].append("FinMind 未安裝")
         return {}
     except Exception as e:
         print(f'   [!] 法人抓取失敗: {e}')
+        HEALTH_CHECK['errors'].append(f"法人抓取失敗: {str(e)[:50]}")
         return {}
 
 
@@ -427,14 +434,18 @@ def fetch_revenue_data(tickers):
                     print(f'      [{ticker}] 失敗: {e}')
                 continue
 
+        HEALTH_CHECK['revenue_success'] = success_count
+        HEALTH_CHECK['revenue_total'] = len(tickers)
         print(f'   取得 {success_count}/{len(tickers)} 檔營收資料')
         return result
 
     except ImportError:
         print('   [!] FinMind 未安裝，無法抓取營收資料')
+        HEALTH_CHECK['errors'].append("FinMind 未安裝")
         return {}
     except Exception as e:
         print(f'   [!] 營收抓取失敗: {e}')
+        HEALTH_CHECK['errors'].append(f"營收抓取失敗: {str(e)[:50]}")
         return {}
 
 
@@ -451,6 +462,7 @@ HEALTH_CHECK = {
     'revenue_success': 0,   # 營收資料成功數
     'revenue_total': 0,     # 營收資料總數
     'warnings': [],         # 警告訊息
+    'errors': [],           # API 錯誤訊息
     'data_date': '',        # 資料日期
 }
 
@@ -458,30 +470,45 @@ def check_data_health():
     """檢查資料健康狀態，回傳警告訊息"""
     warnings = []
     
+    # 加入 API 錯誤
+    if HEALTH_CHECK['errors']:
+        for err in HEALTH_CHECK['errors'][:3]:  # 最多顯示 3 個錯誤
+            warnings.append(f"API錯誤: {err}")
+    
     # 檢查證交所資料
-    if HEALTH_CHECK['stock_count'] < 500:
-        warnings.append(f"證交所資料異常少 ({HEALTH_CHECK['stock_count']}檔)")
+    if HEALTH_CHECK['stock_count'] == 0:
+        warnings.append("證交所 API 無資料（可能被擋或假日）")
+    elif HEALTH_CHECK['stock_count'] < 50:
+        warnings.append(f"證交所資料極少 ({HEALTH_CHECK['stock_count']}檔)，可能 API 異常")
     
     # 檢查 PE 資料
-    if HEALTH_CHECK['pe_count'] < 500:
+    if HEALTH_CHECK['pe_count'] == 0:
+        warnings.append("PE API 無資料")
+    elif HEALTH_CHECK['pe_count'] < 500:
         warnings.append(f"PE 資料異常少 ({HEALTH_CHECK['pe_count']}檔)")
     
     # 檢查法人資料成功率
     if HEALTH_CHECK['inst_total'] > 0:
         inst_rate = HEALTH_CHECK['inst_success'] / HEALTH_CHECK['inst_total'] * 100
-        if inst_rate < 80:
+        if inst_rate < 50:
+            warnings.append(f"法人資料大量失敗 ({inst_rate:.0f}%)，FinMind 可能達上限")
+        elif inst_rate < 80:
             warnings.append(f"法人資料成功率過低 ({inst_rate:.0f}%)")
     
     # 檢查歷史股價成功率
     if HEALTH_CHECK['price_total'] > 0:
         price_rate = HEALTH_CHECK['price_success'] / HEALTH_CHECK['price_total'] * 100
-        if price_rate < 80:
+        if price_rate < 50:
+            warnings.append(f"股價資料大量失敗 ({price_rate:.0f}%)，FinMind 可能達上限")
+        elif price_rate < 80:
             warnings.append(f"歷史股價成功率過低 ({price_rate:.0f}%)")
     
     # 檢查營收資料成功率
     if HEALTH_CHECK['revenue_total'] > 0:
         rev_rate = HEALTH_CHECK['revenue_success'] / HEALTH_CHECK['revenue_total'] * 100
-        if rev_rate < 50:
+        if rev_rate < 30:
+            warnings.append(f"營收資料大量失敗 ({rev_rate:.0f}%)，FinMind 可能達上限")
+        elif rev_rate < 50:
             warnings.append(f"營收資料成功率過低 ({rev_rate:.0f}%)")
     
     HEALTH_CHECK['warnings'] = warnings
