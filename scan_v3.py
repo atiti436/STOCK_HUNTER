@@ -1,31 +1,32 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-選股條件 v3.2 篩選器 (短波段優化版)
-目標：找「法人剛進場、趨勢向上、還沒噴」的股票（抓起漲點，不追高）
+選股條件 v3.3 篩選器 (狼性操盤手版)
+目標：找「法人有在買、趨勢向上、還沒過熱」的股票
 
 篩選條件（所有條件都必須符合）:
 
 【基本面】
-- 價格 30-300 元 (放寬，包含轉機股和高價股)
-- PE < 35 (放寬，短線動能股通常 PE 較高)
-- 營收 YoY > 0% (不衰退就及格)
+- 價格 30-300 元
+- PE < 35
+- 營收 YoY > 0%
 
 【技術面】
-- 今日漲幅 0-5%
-- 近 5 日累積漲幅 < 10% (避免追高)
-- 今日量 > 5 日均量 (啟動訊號)
-- 股價 > MA20 (趨勢向上) ⭐ 新增
+- 今日漲幅 -2% ~ 5% (v3.3: 容許小回檔)
+- 近 5 日累積漲幅 < 10%
+- 今日量 > 5 日均量
+- 股價 > MA
+- RSI < 80 (v3.3 新增: 避免過熱)
 
 【籌碼面】
-- 法人買超 2-7 天 (放寬，從發動到吸籌都算)
-- 法人 5 日累積 > 300 張 (確保有份量) ⭐ 新增
-- 日成交量 > 800 張 (避免殭屍股) ⭐ 新增
-- 法人 1 月累積 > -10,000 張 (避免長期賣壓)
+- 法人連續買超 >= 2 天 (v3.3: 移除上限)
+- 法人 5 日累積 > 300 張
+- 日成交量 > 800 張
+- 法人 1 月累積 > -10,000 張
 
 輸出說明:
 - 只輸出符合所有條件的股票
-- 適合短波段操作 (3-10 個工作日)
+- 適合短波段操作 (3-10 天)
 """
 
 import os
@@ -52,6 +53,46 @@ def is_excluded_stock(ticker):
         return True
     return False
 
+
+def calculate_rsi(prices, period=14):
+    """
+    計算 RSI (相對強弱指標)
+    
+    參數:
+        prices: 收盤價列表 (最新在前)，例如 [100, 99, 101, ...]
+        period: RSI 週期，預設 14
+    
+    返回:
+        RSI 值 (0-100)，如果資料不足返回 50 (中性)
+    """
+    if len(prices) < period + 1:
+        return 50  # 資料不足，返回中性值
+    
+    # 反轉讓舊的在前
+    prices = list(reversed(prices[:period + 1]))
+    
+    gains = []
+    losses = []
+    
+    for i in range(1, len(prices)):
+        change = prices[i] - prices[i-1]
+        if change > 0:
+            gains.append(change)
+            losses.append(0)
+        else:
+            gains.append(0)
+            losses.append(abs(change))
+    
+    avg_gain = sum(gains) / period if gains else 0
+    avg_loss = sum(losses) / period if losses else 0
+    
+    if avg_loss == 0:
+        return 100  # 沒有跌過，RSI = 100
+    
+    rs = avg_gain / avg_loss
+    rsi = 100 - (100 / (1 + rs))
+    
+    return round(rsi, 1)
 
 def fetch_historical_prices(ticker, days=10):
     """
@@ -554,7 +595,7 @@ def main():
         # 基本篩選 (v3.2 放寬)
         if not (30 <= close <= 300):  # 價格 30-300 (放寬)
             continue
-        if not (0 <= change_pct <= 5):  # 今日漲幅 0-5%
+        if not (-2 <= change_pct <= 5):  # v3.3: 容許小回檔 -2% ~ 5%
             continue
         if volume < 800:  # 日成交量 > 800 張 (新增)
             continue
@@ -611,7 +652,7 @@ def main():
     historical_data = {}
     count = 0
     for ticker in candidate_tickers:  # 改用 candidate_tickers (已經過 PE 篩選)
-        prices = fetch_historical_prices(ticker, days=10)
+        prices = fetch_historical_prices(ticker, days=20)  # v3.3: 改成 20 天支援 RSI14
         if prices:
             day5_change = calculate_5day_change(prices)
             avg_volume = calculate_5day_avg_volume(prices)
@@ -685,8 +726,8 @@ def main():
         if day5_change >= 10:
             continue
 
-        # 法人買超 2-7 天 (v3.2 放寬：從發動到吸籌都算)
-        if buy_days < 2 or buy_days > 7:
+        # v3.3: 移除天數上限，只要連續買超 >= 2 天就算
+        if buy_days < 2:
             continue
 
         # 法人 5 日累積 > 300 張 (v3.2 新增：確保有份量)
@@ -716,6 +757,14 @@ def main():
             if current_price < ma20:  # 股價要在 MA 之上
                 continue
 
+        # === v3.3 新增：RSI 過熱判斷 ===
+        rsi = 50  # 預設中性
+        if len(prices_list) >= 15:  # 需要至少 15 天資料計算 RSI14
+            closes_for_rsi = [p[1] for p in prices_list]
+            rsi = calculate_rsi(closes_for_rsi, period=14)
+            if rsi >= 80:  # RSI >= 80 表示過熱，避免追高
+                continue
+
         # 財報條件（毛利率、營業利益率）- 暫時停用
         fin = financial_data.get(ticker, {})
         gross_margin = fin.get('gross_margin', 0)
@@ -743,6 +792,7 @@ def main():
             '5day_change': round(day5_change, 2),
             'avg_volume': int(avg_volume),
             'revenue_yoy': revenue_yoy,  # 營收 YoY
+            'rsi': rsi,  # v3.3: RSI 過熱指標
             'gross_margin': gross_margin,
             'operating_margin': operating_margin
         }
