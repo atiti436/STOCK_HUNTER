@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-選股條件 v3.3 篩選器 (狼性操盤手版)
+選股條件 v3.4 篩選器 (含劇本小卡)
 目標：找「法人有在買、趨勢向上、還沒過熱」的股票
 
 篩選條件（所有條件都必須符合）:
@@ -23,6 +23,10 @@
 - 法人 5 日累積 > 300 張
 - 日成交量 > 800 張
 - 法人 1 月累積 > -10,000 張
+
+【v3.4 新增：劇本小卡】
+- 動態停損：乖離>5%守MA10，乖離<5%守MA20，底線-7%
+- 停利目標：+20%
 
 輸出說明:
 - 只輸出符合所有條件的股票
@@ -93,6 +97,33 @@ def calculate_rsi(prices, period=14):
     rsi = 100 - (100 / (1 + rs))
     
     return round(rsi, 1)
+
+
+def calculate_stop_loss(close_price, ma10, ma20):
+    """
+    動態停損 (v3.4):
+    - 乖離 > 5% (噴出股) → 停損守 MA10 (緊)
+    - 乖離 < 5% (起漲股) → 停損守 MA20 (寬)
+    - 底線：-7% 硬停損
+    
+    返回: (停損價, 說明)
+    """
+    # 1. 算乖離率
+    bias_ma20 = (close_price - ma20) / ma20 if ma20 and ma20 > 0 else 0
+
+    # 2. 決定停損基準線
+    if bias_ma20 > 0.05:  # 高出 5% 以上 (噴出股)
+        technical_stop = ma10 if ma10 else close_price * 0.95
+        note = f"守MA10"
+    else:  # 還在低檔 (剛起漲)
+        technical_stop = ma20 if ma20 else close_price * 0.93
+        note = f"守MA20"
+
+    # 3. 雙刀流：取技術停損與 -7% 較高者 (離現價較近者)
+    hard_stop = close_price * 0.93  # -7%
+    final_stop = max(technical_stop or hard_stop, hard_stop)
+    
+    return round(final_stop, 2), note
 
 def fetch_historical_prices(ticker, days=10):
     """
@@ -748,14 +779,16 @@ def main():
             continue
 
         # === v3.2 新增：MA20 趨勢確認 ===
-        prices_list = hist['prices']  # [(date, close, volume), ...]
-        if len(prices_list) >= 5:  # 至少要有 5 天資料
-            # 計算 MA20 (用現有資料，最多 10 天)
-            closes = [p[1] for p in prices_list]
-            ma20 = sum(closes) / len(closes)  # 用現有資料的平均
-            current_price = stock['price']
-            if current_price < ma20:  # 股價要在 MA 之上
-                continue
+        prices_list = hist['prices']  # [(date, close, volume), ...] 最新在前
+        closes = [p[1] for p in prices_list]
+        
+        # 計算 MA10 和 MA20
+        ma10 = sum(closes[:10]) / 10 if len(closes) >= 10 else None
+        ma20 = sum(closes[:20]) / 20 if len(closes) >= 20 else sum(closes) / len(closes)
+        
+        current_price = stock['price']
+        if len(prices_list) >= 5 and current_price < ma20:  # 股價要在 MA 之上
+            continue
 
         # === v3.3 新增：RSI 過熱判斷 ===
         rsi = 50  # 預設中性
@@ -776,6 +809,10 @@ def main():
             if operating_margin < 0:
                 continue
 
+        # === v3.4 新增：計算停損/停利 (劇本小卡) ===
+        stop_loss, stop_note = calculate_stop_loss(current_price, ma10, ma20)
+        take_profit = round(current_price * 1.20, 2)  # +20% 停利目標
+
         # === 符合所有條件，加入結果 ===
         result = {
             'ticker': ticker,
@@ -794,7 +831,13 @@ def main():
             'revenue_yoy': revenue_yoy,  # 營收 YoY
             'rsi': rsi,  # v3.3: RSI 過熱指標
             'gross_margin': gross_margin,
-            'operating_margin': operating_margin
+            'operating_margin': operating_margin,
+            # v3.4 劇本小卡
+            'ma10': round(ma10, 2) if ma10 else None,
+            'ma20': round(ma20, 2) if ma20 else None,
+            'stop_loss': stop_loss,
+            'stop_note': stop_note,
+            'take_profit': take_profit,
         }
 
         results.append(result)
@@ -819,7 +862,7 @@ def output_results(results):
         today = datetime.now().strftime('%Y-%m-%d')
 
         f.write('=' * 140 + '\n')
-        f.write(f'選股條件 v3.2 篩選結果 (短波段優化版) - {today}\n')
+        f.write(f'選股條件 v3.4 篩選結果 (含劇本小卡) - {today}\n')
         f.write('=' * 140 + '\n\n')
 
         # 健康檢查報告
@@ -857,6 +900,22 @@ def output_results(results):
             print(line.strip())
 
         f.write(f'\n共 {len(results)} 檔\n')
+        
+        # === v3.4 新增：劇本小卡 ===
+        if results:
+            f.write('\n' + '=' * 60 + '\n')
+            f.write('📋 【劇本小卡】操作指引\n')
+            f.write('=' * 60 + '\n\n')
+            
+            for i, r in enumerate(results[:10], 1):  # 最多顯示 10 檔
+                stop_pct = (r['stop_loss'] - r['price']) / r['price'] * 100
+                profit_pct = (r['take_profit'] - r['price']) / r['price'] * 100
+                
+                f.write(f"🎯 {r['name']} ({r['ticker']}) ${r['price']:.1f} ({r['change_pct']:+.1f}%)\n")
+                f.write(f"   🛡️ 停損: ${r['stop_loss']:.1f} ({stop_pct:+.1f}%) - {r['stop_note']}\n")
+                f.write(f"   🚀 目標: ${r['take_profit']:.1f} ({profit_pct:+.1f}%)\n")
+                f.write(f"   📊 主力: {r['inst_leader']} | 法人5日: {r['inst_5day']:+,}張\n")
+                f.write('\n')
         
         # 警告摘要
         if warnings:

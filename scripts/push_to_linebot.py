@@ -37,83 +37,56 @@ def parse_stock_count(content):
 
 
 def format_line_message(content):
-    """格式化 Line 訊息（精簡版，避免超過 5000 字元）"""
+    """格式化 Line 訊息（v3.4 劇本小卡版）"""
     stock_count = parse_stock_count(content)
     today = datetime.now().strftime('%Y-%m-%d')
 
     if stock_count == 0:
         # 沒有股票時發送簡短訊息
-        message = f"""📊 選股 BOT v3.1 - {today}
+        message = f"""📊 選股 BOT v3.4 - {today}
 
 ❌ 今日無符合條件的股票
 
 篩選條件：
-✅ 法人剛進場 (3-5天)
-✅ 體質健康 (PE<25, 營收YoY>10%)
-✅ 還沒噴 (5日漲<10%)
+✅ 法人連續買超 ≥2天
+✅ 體質健康 (PE<35, 營收YoY>0%)
+✅ 還沒噴 (5日漲<10%, RSI<80)
 ✅ 有量能 (今日量>5日均)"""
     else:
-        # 有股票時提取關鍵資訊（只取前 5 檔避免訊息過長）
+        # 找劇本小卡區塊
         lines = content.split('\n')
-
-        # 找到表格開始位置
-        start_idx = -1
-        for i, line in enumerate(lines):
-            if '代號' in line and '名稱' in line:
-                start_idx = i
-                break
-
-        stocks_info = []
-        if start_idx != -1:
-            # 跳過表頭和分隔線，讀取資料
-            for i in range(start_idx + 2, len(lines)):
-                line = lines[i].strip()
-                if not line or line.startswith('共 ') or line.startswith('='):
+        script_card_lines = []
+        in_script_card = False
+        
+        for line in lines:
+            if '【劇本小卡】' in line:
+                in_script_card = True
+                continue
+            if in_script_card:
+                if line.startswith('===') or line.startswith('⚠️'):
                     break
-
-                # 解析欄位（簡化版）
-                parts = line.split()
-                if len(parts) >= 8:
-                    try:
-                        num = parts[0]
-                        ticker = parts[1]
-                        name = parts[2]
-                        price = parts[3]
-                        change = parts[4]
-                        pe = parts[5]
-                        inst_5d = parts[6]
-
-                        stocks_info.append(
-                            f"{num}. {ticker} {name}\n"
-                            f"   價格: {price}元 ({change}) PE:{pe}\n"
-                            f"   法人5日: {inst_5d}張"
-                        )
-
-                        # 只取前 5 檔
-                        if len(stocks_info) >= 5:
-                            break
-                    except:
-                        continue
-
-        if stocks_info:
-            stocks_text = '\n\n'.join(stocks_info)
-            more_text = f"\n\n...還有 {stock_count - len(stocks_info)} 檔" if stock_count > 5 else ""
-
-            message = f"""📊 選股 BOT v3.1 - {today}
+                if line.strip():
+                    script_card_lines.append(line)
+        
+        if script_card_lines:
+            # 只取前 5 檔的劇本小卡（避免訊息過長）
+            # 每檔約 4 行，所以取 20 行
+            script_text = '\n'.join(script_card_lines[:20])
+            
+            message = f"""📊 選股 BOT v3.4 - {today}
 
 ✅ 找到 {stock_count} 檔推薦股票
 
-{stocks_text}{more_text}
-
+{script_text}
 篩選條件：
-✅ 法人剛進場 (3-5天)
-✅ 體質健康 (PE<25, 營收YoY>10%)
-✅ 還沒噴 (5日漲<10%)
-✅ 有量能 (今日量>5日均)"""
+✅ 法人連續買超 ≥2天
+✅ 體質健康 (PE<35, 營收YoY>0%)
+✅ 還沒噴 (5日漲<10%, RSI<80)"""
         else:
-            message = f"""📊 選股 BOT v3.1 - {today}
+            # 降級：用舊格式
+            message = f"""📊 選股 BOT v3.4 - {today}
 
-找到 {stock_count} 檔符合條件的股票
+✅ 找到 {stock_count} 檔推薦股票
 請查看完整結果檔案"""
 
     return message.strip()

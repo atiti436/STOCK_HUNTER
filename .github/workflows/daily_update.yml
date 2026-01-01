@@ -2,8 +2,8 @@ name: Daily Stock Screening
 
 on:
   schedule:
-    # 每天台灣早上 8 點 (UTC 00:00)，週一到週五
-    - cron: '0 0 * * 1-5'
+    # 每天台灣晚上 20:30 (UTC 12:30)，週一到週五
+    - cron: '30 12 * * 1-5'
 
   # 也可以手動觸發
   workflow_dispatch:

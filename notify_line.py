@@ -59,7 +59,7 @@ def format_line_message(content):
     if stock_count == 0:
         # 沒有股票時發送簡短訊息
         message = f"""
-📊 選股 BOT v3.3 - {today}
+📊 選股 BOT v3.4 - {today}
 {warning_text}
 ❌ 今日無符合條件的股票
 
@@ -70,46 +70,43 @@ def format_line_message(content):
 ✅ 有量能 (今日量>5日均)
 """
     else:
-        # 有股票時發送完整結果
+        # 有股票時發送卡片式結果 (v3.4)
         lines = content.split('\n')
 
-        # 找到表格開始位置
-        start_idx = -1
-        for i, line in enumerate(lines):
-            if '代號' in line and '名稱' in line:
-                start_idx = i
-                break
-
-        if start_idx == -1:
-            message = f"""
-📊 選股 BOT v3.3 - {today}
-{warning_text}
-找到 {stock_count} 檔符合條件的股票
-請查看完整結果檔案
-"""
-        else:
-            # 提取表格內容（表頭 + 分隔線 + 數據行）
-            table_lines = []
-            for i in range(start_idx, len(lines)):
-                line = lines[i].strip()
-                if not line or line.startswith('共 ') or line.startswith('='):
+        # 找到劇本小卡區塊
+        script_card_lines = []
+        in_script_card = False
+        for line in lines:
+            if '【劇本小卡】' in line:
+                in_script_card = True
+                continue
+            if in_script_card:
+                if line.startswith('===') or line.startswith('⚠️'):
                     break
-                table_lines.append(line)
+                if line.strip():
+                    script_card_lines.append(line)
 
-            table_text = '\n'.join(table_lines)
-
+        if script_card_lines:
+            # 使用劇本小卡格式
+            script_text = '\n'.join(script_card_lines[:20])  # 限制長度
             message = f"""
-📊 選股 BOT v3.3 - {today}
+📊 選股 BOT v3.4 - {today}
 {warning_text}
 ✅ 找到 {stock_count} 檔推薦股票
 
-{table_text}
-
+{script_text}
 篩選條件：
 ✅ 法人連續買超 ≥2天
 ✅ 體質健康 (PE<35, 營收YoY>0%)
 ✅ 還沒噴 (5日漲<10%, RSI<80)
-✅ 有量能 (今日量>5日均)
+"""
+        else:
+            # 降級：用簡短提示
+            message = f"""
+📊 選股 BOT v3.4 - {today}
+{warning_text}
+✅ 找到 {stock_count} 檔推薦股票
+請查看完整結果檔案
 """
 
     return message.strip()
