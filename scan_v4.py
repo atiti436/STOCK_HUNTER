@@ -143,6 +143,110 @@ def calculate_stop_loss(close_price, ma10, ma20):
     
     return round(final_stop, 2), note
 
+
+def calculate_v4_score(stock_data, inst_data, ma20):
+    """
+    v4.0 計分函數（Gemini 融合版）
+    
+    參數：
+        stock_data: {price, volum
+
+e, change_pct, ...}
+        inst_data: 法人歷史資料 [{date, foreign, trust, total}, ...]
+        ma20: MA20 價格
+    
+    返回：
+        score: int (0-7)
+        reasons: list[str]
+    """
+    score = 0
+    reasons = []
+    
+    price = stock_data['price']
+    volume = stock_data['volume']
+    change_pct = stock_data['change_pct']
+    
+    # === 籌碼面（最高 4 分）===
+    
+    # 計算 5 日買超
+    net_buy_5days = sum(r['total'] for r in inst_data[:5]) if inst_data else 0
+    
+    # [基礎分] 有大人顧
+    if net_buy_5days > 0:
+        score += 1
+        reasons.append("法人買超")
+    
+    # [力道分] 緯創型（錢砸很多）
+    if net_buy_5days > 5000:
+        score += 2
+        reasons.append(f"力道強({net_buy_5days//1000}K張)")
+    elif net_buy_5days > 1000:
+        score += 1
+        reasons.append(f"有買超({net_buy_5days//1000}K張)")
+    
+    # [時機分] 技嘉型（剛開始買）
+    buy_days = count_institutional_buy_days(inst_data)
+    if 1 <= buy_days <= 3:
+        score += 1
+        reasons.append(f"剛買{buy_days}天")
+    
+    # === 動能面（最高 2 分）===
+    
+    # [量能] 有人點火
+    avg_vol = stock_data.get('avg_volume', 0)
+    if avg_vol > 0 and volume > avg_vol:
+        score += 1
+        reasons.append("量增")
+    
+    # [漲幅] 剛起漲
+    if 0 < change_pct <= 4:
+        score += 1
+        reasons.append("剛起漲")
+    elif change_pct > 5:
+        # 漲太多不加分（已經提示是缺點）
+        pass
+    
+    # === 安全面（最高 1 分）===
+    
+    # [乖離] 離月線近
+    if ma20 and ma20 > 0:
+        bias = (price - ma20) / ma20 * 100
+        if bias < 8:
+            score += 1
+            reasons.append("位階安全")
+    
+    return score, reasons
+
+
+def calculate_batch_profit(price):
+    """
+    計算分批停利價格（v4.0）
+    避免「200 一瞬間」問題
+    
+    返回：{
+        'batch_1': {'price': xxx, 'pct': 4, 'note': '保本'},
+        'batch_2': {...},
+        'batch_3': {...},
+    }
+    """
+    return {
+        'batch_1': {
+            'price': round(price * 1.04, 1),
+            'pct': 4,
+            'note': '保本先跑'
+        },
+        'batch_2': {
+            'price': round(price * 1.07, 1),
+            'pct': 7,
+            'note': '主要目標'
+        },
+        'batch_3': {
+            'price': round(price * 1.10, 1),
+            'pct': 10,
+            'note': '賺更多'
+        },
+    }
+
 def fetch_historical_prices(ticker, days=10):
     """
     抓取歷史股價（用於計算 5 日漲幅、5 日均量）
@@ -897,6 +1001,24 @@ def main():
             'stop_note': stop_note,
             'take_profit': take_profit,
         }
+        
+        # === v4.0 新增：計分制 + 分批停利 ===
+        # 計算 v4.0 分數
+        stock_data_for_score = {
+            'price': stock['price'],
+            'volume': stock['volume'],
+            'change_pct': stock['change_pct'],
+            'avg_volume': int(avg_volume)
+        }
+        score, reasons = calculate_v4_score(stock_data_for_score, inst, ma20)
+        
+        # 計算分批停利
+        batch_profit = calculate_batch_profit(stock['price'])
+        
+        # 加入 v4.0 欄位
+        result['score'] = score
+        result['reasons'] = reasons
+        result['batch_profit'] = batch_profit
 
         results.append(result)
 
@@ -972,9 +1094,30 @@ def output_results(results):
                 stop_pct = (r['stop_loss'] - r['price']) / r['price'] * 100
                 profit_pct = (r['take_profit'] - r['price']) / r['price'] * 100
                 
-                f.write(f"🎯 {r['name']} ({r['ticker']}) ${r['price']:.1f} ({r['change_pct']:+.1f}%)\n")
+                # v4.0 評分和分批停利
+                score = r.get('score', 0)
+                reasons = r.get('reasons', [])
+                batch = r.get('batch_profit', {})
+                
+                # 標題行（加入分數）
+                f.write(f"🎯 {r['name']} ({r['ticker']}) ${r['price']:.1f} ({r['change_pct']:+.1f}%) - {score} 分\n")
+                
+                # 評分理由
+                if reasons:
+                    f.write(f"   💡 評分理由：{' | '.join(reasons)}\n")
+                
+                # v4.0 分批停利
+                if batch:
+                    f.write(f"\n   【分批停利】\n")
+                    b1 = batch.get('batch_1', {})
+                    b2 = batch.get('batch_2', {})
+                    b3 = batch.get('batch_3', {})
+                    f.write(f"   第 1 批：${b1.get('price', 0):.1f} (+{b1.get('pct', 0)}% {b1.get('note', '')})\n")
+                    f.write(f"   第 2 批：${b2.get('price', 0):.1f} (+{b2.get('pct', 0)}% {b2.get('note', '')})\n")
+                    f.write(f"   第 3 批：${b3.get('price', 0):.1f} (+{b3.get('pct', 0)}% {b3.get('note', '')})\n")
+                    f.write(f"\n")
                 f.write(f"   🛡️ 停損: ${r['stop_loss']:.1f} ({stop_pct:+.1f}%) - {r['stop_note']}\n")
-                f.write(f"   🚀 目標: ${r['take_profit']:.1f} ({profit_pct:+.1f}%)\n")
+
                 f.write(f"   📊 主力: {r['inst_leader']} | 法人5日: {r['inst_5day']:+,}張\n")
                 f.write('\n')
         
