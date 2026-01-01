@@ -440,6 +440,53 @@ def fetch_revenue_data(tickers):
 
 # ===== 主程式 =====
 
+# 健康檢查記錄
+HEALTH_CHECK = {
+    'stock_count': 0,       # 證交所股票數量
+    'pe_count': 0,          # PE 資料數量
+    'inst_success': 0,      # 法人資料成功數
+    'inst_total': 0,        # 法人資料總數
+    'price_success': 0,     # 歷史股價成功數
+    'price_total': 0,       # 歷史股價總數
+    'revenue_success': 0,   # 營收資料成功數
+    'revenue_total': 0,     # 營收資料總數
+    'warnings': [],         # 警告訊息
+    'data_date': '',        # 資料日期
+}
+
+def check_data_health():
+    """檢查資料健康狀態，回傳警告訊息"""
+    warnings = []
+    
+    # 檢查證交所資料
+    if HEALTH_CHECK['stock_count'] < 500:
+        warnings.append(f"證交所資料異常少 ({HEALTH_CHECK['stock_count']}檔)")
+    
+    # 檢查 PE 資料
+    if HEALTH_CHECK['pe_count'] < 500:
+        warnings.append(f"PE 資料異常少 ({HEALTH_CHECK['pe_count']}檔)")
+    
+    # 檢查法人資料成功率
+    if HEALTH_CHECK['inst_total'] > 0:
+        inst_rate = HEALTH_CHECK['inst_success'] / HEALTH_CHECK['inst_total'] * 100
+        if inst_rate < 80:
+            warnings.append(f"法人資料成功率過低 ({inst_rate:.0f}%)")
+    
+    # 檢查歷史股價成功率
+    if HEALTH_CHECK['price_total'] > 0:
+        price_rate = HEALTH_CHECK['price_success'] / HEALTH_CHECK['price_total'] * 100
+        if price_rate < 80:
+            warnings.append(f"歷史股價成功率過低 ({price_rate:.0f}%)")
+    
+    # 檢查營收資料成功率
+    if HEALTH_CHECK['revenue_total'] > 0:
+        rev_rate = HEALTH_CHECK['revenue_success'] / HEALTH_CHECK['revenue_total'] * 100
+        if rev_rate < 50:
+            warnings.append(f"營收資料成功率過低 ({rev_rate:.0f}%)")
+    
+    HEALTH_CHECK['warnings'] = warnings
+    return warnings
+
 def main():
     print('=' * 80)
     print('選股條件 v3.2 - 短波段優化版 (法人剛進場、趨勢向上、還沒噴)')
@@ -450,6 +497,11 @@ def main():
     url_stocks = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'
     response = requests.get(url_stocks, timeout=15, verify=False)
     stock_data = response.json()
+    
+    # 記錄資料日期（用第一筆資料的日期）
+    if stock_data:
+        first_item = stock_data[0]
+        HEALTH_CHECK['data_date'] = first_item.get('Date', '')
 
     stocks = {}
     for item in stock_data:
@@ -487,6 +539,7 @@ def main():
             'volume': volume
         }
 
+    HEALTH_CHECK['stock_count'] = len(stocks)
     print(f'   基本篩選後: {len(stocks)} 檔')
 
     # 2. 抓取本益比 + 第二階段篩選
@@ -505,6 +558,7 @@ def main():
                     pe_data[ticker] = float(pe_str)
                 except:
                     pass
+        HEALTH_CHECK['pe_count'] = len(pe_data)
         print(f'   取得 {len(pe_data)} 檔 PE 資料')
     except:
         print('   PE 抓取失敗')
@@ -680,13 +734,33 @@ def main():
 
 
 def output_results(results):
-    """輸出結果到檔案"""
+    """輸出結果到檔案（含健康檢查報告）"""
+    # 執行健康檢查
+    warnings = check_data_health()
+    
     with open('scan_result_v3.txt', 'w', encoding='utf-8') as f:
         today = datetime.now().strftime('%Y-%m-%d')
 
         f.write('=' * 140 + '\n')
         f.write(f'選股條件 v3.2 篩選結果 (短波段優化版) - {today}\n')
         f.write('=' * 140 + '\n\n')
+
+        # 健康檢查報告
+        f.write('[健康檢查]\n')
+        if warnings:
+            f.write('⚠️ 資料異常警告:\n')
+            for w in warnings:
+                f.write(f'  - {w}\n')
+        else:
+            f.write('✅ 資料正常\n')
+        
+        f.write(f'  證交所: {HEALTH_CHECK["stock_count"]} 檔\n')
+        f.write(f'  PE: {HEALTH_CHECK["pe_count"]} 檔\n')
+        if HEALTH_CHECK['inst_total'] > 0:
+            f.write(f'  法人: {HEALTH_CHECK["inst_success"]}/{HEALTH_CHECK["inst_total"]} 成功\n')
+        if HEALTH_CHECK['revenue_total'] > 0:
+            f.write(f'  營收: {HEALTH_CHECK["revenue_success"]}/{HEALTH_CHECK["revenue_total"]} 成功\n')
+        f.write('\n')
 
         f.write('[OK] 符合條件 (推薦買入) - 法人剛進場、趨勢向上、還沒噴 (短波段 3-10 天)\n')
         f.write('-' * 140 + '\n')
@@ -706,6 +780,11 @@ def output_results(results):
             print(line.strip())
 
         f.write(f'\n共 {len(results)} 檔\n')
+        
+        # 警告摘要
+        if warnings:
+            f.write('\n⚠️ 警告: ' + ', '.join(warnings) + '\n')
+        
         f.write('=' * 140 + '\n')
 
 

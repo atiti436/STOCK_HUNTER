@@ -32,21 +32,40 @@ def parse_stock_count(content):
                 pass
     return 0
 
+def parse_warnings(content):
+    """解析健康檢查警告"""
+    warnings = []
+    for line in content.split('\n'):
+        if line.strip().startswith('- ') and '異常' in line or '過低' in line:
+            warnings.append(line.strip()[2:])  # 移除 "- " 前綴
+        if line.strip().startswith('⚠️ 警告:'):
+            # 解析最後的摘要行
+            msg = line.replace('⚠️ 警告:', '').strip()
+            if msg and msg not in warnings:
+                warnings = [msg]  # 使用摘要代替
+    return warnings
+
 def format_line_message(content):
-    """格式化 Line 訊息"""
+    """格式化 Line 訊息（含健康檢查警告）"""
     stock_count = parse_stock_count(content)
+    warnings = parse_warnings(content)
     today = datetime.now().strftime('%Y-%m-%d')
+    
+    # 警告訊息
+    warning_text = ""
+    if warnings:
+        warning_text = "\n⚠️ 資料警告: " + ", ".join(warnings) + "\n"
 
     if stock_count == 0:
         # 沒有股票時發送簡短訊息
         message = f"""
-📊 選股 BOT v3.1 - {today}
-
-今日無符合條件的股票
+📊 選股 BOT v3.2 - {today}
+{warning_text}
+❌ 今日無符合條件的股票
 
 篩選條件：
-✅ 法人剛進場 (3-5天)
-✅ 體質健康 (PE<25, 營收YoY>10%)
+✅ 法人剛進場 (2-7天)
+✅ 體質健康 (PE<35, 營收YoY>0%)
 ✅ 還沒噴 (5日漲<10%)
 ✅ 有量能 (今日量>5日均)
 """
@@ -63,8 +82,8 @@ def format_line_message(content):
 
         if start_idx == -1:
             message = f"""
-📊 選股 BOT v3.1 - {today}
-
+📊 選股 BOT v3.2 - {today}
+{warning_text}
 找到 {stock_count} 檔符合條件的股票
 請查看完整結果檔案
 """
@@ -80,15 +99,15 @@ def format_line_message(content):
             table_text = '\n'.join(table_lines)
 
             message = f"""
-📊 選股 BOT v3.1 - {today}
-
+📊 選股 BOT v3.2 - {today}
+{warning_text}
 ✅ 找到 {stock_count} 檔推薦股票
 
 {table_text}
 
 篩選條件：
-✅ 法人剛進場 (3-5天)
-✅ 體質健康 (PE<25, 營收YoY>10%)
+✅ 法人剛進場 (2-7天)
+✅ 體質健康 (PE<35, 營收YoY>0%)
 ✅ 還沒噴 (5日漲<10%)
 ✅ 有量能 (今日量>5日均)
 """
