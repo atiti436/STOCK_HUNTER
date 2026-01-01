@@ -1,31 +1,31 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-選股條件 v3.1 篩選器
-目標：找「法人剛進場、體質健康、還沒噴、營收成長」的股票（抓起漲點，不追高）
+選股條件 v3.2 篩選器 (短波段優化版)
+目標：找「法人剛進場、趨勢向上、還沒噴」的股票（抓起漲點，不追高）
 
 篩選條件（所有條件都必須符合）:
 
 【基本面】
-- 價格 50-200 元
-- PE < 25
-- 營收 YoY > 10% (確保成長動能)
-- 毛利率 > 20% (暫時停用 - API 問題)
-- 營業利益率 > 0% (暫時停用 - API 問題)
+- 價格 30-300 元 (放寬，包含轉機股和高價股)
+- PE < 35 (放寬，短線動能股通常 PE 較高)
+- 營收 YoY > 0% (不衰退就及格)
 
 【技術面】
 - 今日漲幅 0-5%
 - 近 5 日累積漲幅 < 10% (避免追高)
 - 今日量 > 5 日均量 (啟動訊號)
+- 股價 > MA20 (趨勢向上) ⭐ 新增
 
 【籌碼面】
-- 法人買超 3-5 天 (剛進場)
+- 法人買超 2-7 天 (放寬，從發動到吸籌都算)
+- 法人 5 日累積 > 300 張 (確保有份量) ⭐ 新增
+- 日成交量 > 800 張 (避免殭屍股) ⭐ 新增
 - 法人 1 月累積 > -10,000 張 (避免長期賣壓)
-- 主力分析 (投信/外資/混合 - 參考用)
 
 輸出說明:
-- 只輸出符合所有條件的股票 (嚴格篩選)
-- 不符合任一條件的股票會被直接排除
+- 只輸出符合所有條件的股票
+- 適合短波段操作 (3-10 個工作日)
 """
 
 import requests
@@ -101,8 +101,8 @@ def fetch_historical_prices(ticker, days=10):
 
 def fetch_institutional_history_for_stocks(tickers, days=7):
     """
-    逐檔抓取法人買賣超 (修正版)
-    使用 FinMind API，逐檔抓取避免 API timeout
+    逐檔抓取法人買賣超 (v3.2 修正版)
+    改成逐檔抓取，避免 FinMind 免費版 API 限制
 
     參數:
         tickers: 股票代號清單 ['2330', '2603', ...]
@@ -123,72 +123,75 @@ def fetch_institutional_history_for_stocks(tickers, days=7):
         end_str = end_date.strftime('%Y-%m-%d')
 
         print(f'   法人資料範圍: {start_str} ~ {end_str}')
-        print(f'   嘗試一次抓取所有股票法人資料...')
+        print(f'   逐檔抓取 {len(tickers)} 檔法人資料...')
 
-        # 一次抓取所有股票 (stock_id='')
-        df = dl.taiwan_stock_institutional_investors(
-            stock_id='',  # 空字串 = 抓全部
-            start_date=start_str,
-            end_date=end_str
-        )
-
-        if df is None or df.empty:
-            print('   [X] 無法取得法人資料')
-            return {}
-
-        print(f'   [OK] 成功抓取 {len(df)} 筆法人資料')
-
-        # 整理資料
         result = {}
+        success_count = 0
 
-        for _, row in df.iterrows():
-            ticker = str(row.get('stock_id', '')).strip()
+        for i, ticker in enumerate(tickers, 1):
+            try:
+                # 逐檔抓取
+                df = dl.taiwan_stock_institutional_investors(
+                    stock_id=ticker,
+                    start_date=start_str,
+                    end_date=end_str
+                )
 
-            # 只處理我們要的股票
-            if ticker not in tickers:
+                if df is None or df.empty:
+                    continue
+
+                # 整理該檔股票的法人資料
+                ticker_data = {}
+
+                for _, row in df.iterrows():
+                    date_str = str(row.get('date', '')).replace('-', '')
+                    name = str(row.get('name', '')).strip()
+                    buy = int(row.get('buy', 0))
+                    sell = int(row.get('sell', 0))
+                    net = (buy - sell) // 1000  # 轉成張
+
+                    if not date_str:
+                        continue
+
+                    if date_str not in ticker_data:
+                        ticker_data[date_str] = {
+                            'date': date_str,
+                            'foreign': 0,
+                            'trust': 0,
+                            'total': 0
+                        }
+
+                    # 累加外資和投信
+                    if 'Foreign_Investor' in name:
+                        ticker_data[date_str]['foreign'] += net
+                    elif 'Investment_Trust' in name:
+                        ticker_data[date_str]['trust'] += net
+
+                    ticker_data[date_str]['total'] = (
+                        ticker_data[date_str]['foreign'] +
+                        ticker_data[date_str]['trust']
+                    )
+
+                # 轉成 list 並排序
+                if ticker_data:
+                    result[ticker] = sorted(
+                        ticker_data.values(),
+                        key=lambda x: x['date'],
+                        reverse=True
+                    )
+                    success_count += 1
+
+                # 進度顯示 + 避免被擋
+                if i % 20 == 0:
+                    print(f'      法人進度: {i}/{len(tickers)} ({success_count} 成功)')
+                    time.sleep(0.5)
+
+            except Exception as e:
+                if i <= 3:  # 只顯示前 3 筆錯誤
+                    print(f'      [{ticker}] 法人失敗: {e}')
                 continue
 
-            date_str = str(row.get('date', '')).replace('-', '')
-            name = str(row.get('name', '')).strip()
-            buy = int(row.get('buy', 0))
-            sell = int(row.get('sell', 0))
-            net = (buy - sell) // 1000  # 轉成張
-
-            if not date_str or not ticker:
-                continue
-
-            # 初始化股票資料
-            if ticker not in result:
-                result[ticker] = {}
-
-            if date_str not in result[ticker]:
-                result[ticker][date_str] = {
-                    'date': date_str,
-                    'foreign': 0,
-                    'trust': 0,
-                    'total': 0
-                }
-
-            # 累加外資和投信
-            if 'Foreign_Investor' in name:
-                result[ticker][date_str]['foreign'] += net
-            elif 'Investment_Trust' in name:
-                result[ticker][date_str]['trust'] += net
-
-            result[ticker][date_str]['total'] = (
-                result[ticker][date_str]['foreign'] +
-                result[ticker][date_str]['trust']
-            )
-
-        # 轉成 list 並排序
-        for ticker in result:
-            result[ticker] = sorted(
-                result[ticker].values(),
-                key=lambda x: x['date'],
-                reverse=True
-            )
-
-        print(f'   整理完成: {len(result)} 檔股票有法人資料')
+        print(f'   取得 {success_count}/{len(tickers)} 檔法人資料')
         return result
 
     except ImportError:
@@ -431,7 +434,7 @@ def fetch_revenue_data(tickers):
 
 def main():
     print('=' * 80)
-    print('選股條件 v3.1 - 找法人剛進場、體質健康、還沒噴、營收成長的股票')
+    print('選股條件 v3.2 - 短波段優化版 (法人剛進場、趨勢向上、還沒噴)')
     print('=' * 80)
 
     # 1. 抓取當日股價
@@ -461,10 +464,12 @@ def main():
         if close <= 0:
             continue
 
-        # 基本篩選
-        if not (50 <= close <= 200):  # 價格 50-200
+        # 基本篩選 (v3.2 放寬)
+        if not (30 <= close <= 300):  # 價格 30-300 (放寬)
             continue
         if not (0 <= change_pct <= 5):  # 今日漲幅 0-5%
+            continue
+        if volume < 800:  # 日成交量 > 800 張 (新增)
             continue
 
         stocks[ticker] = {
@@ -497,11 +502,11 @@ def main():
         print('   PE 抓取失敗')
 
     # 2.5 用 PE 再篩選一次，準備給法人查詢用
-    print('   用 PE < 25 再篩選...')
+    print('   用 PE < 35 再篩選... (v3.2 放寬)')
     candidate_tickers = []
     for ticker in stocks.keys():
         pe = pe_data.get(ticker, 0)
-        if pe > 0 and pe < 25:
+        if pe > 0 and pe < 35:  # v3.2: 放寬到 35
             candidate_tickers.append(ticker)
 
     print(f'   PE 篩選後: {len(candidate_tickers)} 檔 (準備查法人)')
@@ -585,27 +590,42 @@ def main():
         rev = revenue_data.get(ticker, {})
         revenue_yoy = rev.get('yoy', 0)
 
-        # === 嚴格篩選條件 (不符合就跳過) ===
+        # === v3.2 篩選條件 (短波段優化) ===
 
         # 近 5 日漲幅 < 10% (避免追高)
         if day5_change >= 10:
             continue
 
-        # 法人買超 3-5 天 (剛進場)
-        if buy_days < 3 or buy_days > 5:
+        # 法人買超 2-7 天 (v3.2 放寬：從發動到吸籌都算)
+        if buy_days < 2 or buy_days > 7:
+            continue
+
+        # 法人 5 日累積 > 300 張 (v3.2 新增：確保有份量)
+        inst_5day = sum(r['total'] for r in inst[:5])
+        if inst_5day < 300:
             continue
 
         # 法人 1 月累積 > -10,000 張 (避免長期賣壓)
         if inst_1month <= -10000:
             continue
 
-        # 營收 YoY > 10% (成長動能)
-        if revenue_yoy <= 10:
+        # 營收 YoY > 0% (v3.2 放寬：不衰退就及格)
+        if revenue_yoy <= 0:
             continue
 
         # 今日量 > 5 日均量 (啟動訊號)
         if stock['volume'] < avg_volume:
             continue
+
+        # === v3.2 新增：MA20 趨勢確認 ===
+        prices_list = hist['prices']  # [(date, close, volume), ...]
+        if len(prices_list) >= 5:  # 至少要有 5 天資料
+            # 計算 MA20 (用現有資料，最多 10 天)
+            closes = [p[1] for p in prices_list]
+            ma20 = sum(closes) / len(closes)  # 用現有資料的平均
+            current_price = stock['price']
+            if current_price < ma20:  # 股價要在 MA 之上
+                continue
 
         # 財報條件（毛利率、營業利益率）- 暫時停用
         fin = financial_data.get(ticker, {})
@@ -627,7 +647,7 @@ def main():
             'volume': stock['volume'],
             'pe': pe,
             'inst_today': today_inst,
-            'inst_5day': sum(r['total'] for r in inst[:5]),  # 5 日累積
+            'inst_5day': inst_5day,  # 5 日累積 (已在上面計算)
             'inst_1month': inst_1month,  # 1 月累積
             'inst_leader': inst_leader,  # 主力
             'buy_days': buy_days,
@@ -657,10 +677,10 @@ def output_results(results):
         today = datetime.now().strftime('%Y-%m-%d')
 
         f.write('=' * 140 + '\n')
-        f.write(f'選股條件 v3.1 篩選結果 - {today}\n')
+        f.write(f'選股條件 v3.2 篩選結果 (短波段優化版) - {today}\n')
         f.write('=' * 140 + '\n\n')
 
-        f.write('[OK] 符合條件 (推薦買入) - 法人剛進場、體質健康、還沒噴、營收成長\n')
+        f.write('[OK] 符合條件 (推薦買入) - 法人剛進場、趨勢向上、還沒噴 (短波段 3-10 天)\n')
         f.write('-' * 140 + '\n')
         f.write(f"{'#':>3} {'代號':<6} {'名稱':<10} {'價格':>7} {'漲幅':>7} {'PE':>6} "
                f"{'法人5日':>10} {'法人1月':>10} {'主力':<6} {'營收YoY':>9} "
