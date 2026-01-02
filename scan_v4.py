@@ -791,7 +791,7 @@ def main():
             try:
                 close = float(row.get('close', 0))
                 open_price = float(row.get('open', 0))
-                volume = int(row.get('Trading_Volume', 0)) // 1000  # 轉成張
+                volume = int(row.get('Trading_turnover', 0))  # 已經是張數
 
                 # 計算漲跌幅（用前一天收盤價）
                 # FinMind 沒有直接給 change，要自己算
