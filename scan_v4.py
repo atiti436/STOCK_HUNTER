@@ -925,6 +925,7 @@ def main():
     # 2. 抓取本益比 + 第二階段篩選
     print('\n[2/5] 抓取本益比...')
     pe_data = {}
+    name_data = {}  # 順便抓名稱
     try:
         url_pe = "https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL"
         response = requests.get(url_pe, timeout=15, verify=False)
@@ -933,13 +934,21 @@ def main():
         for item in pe_list:
             ticker = item.get('Code', '').strip()
             pe_str = item.get('PEratio', '')
-            if ticker and pe_str:
-                try:
-                    pe_data[ticker] = float(pe_str)
-                except:
-                    pass
+            name = item.get('Name', '')
+            if ticker:
+                if pe_str:
+                    try:
+                        pe_data[ticker] = float(pe_str)
+                    except:
+                        pass
+                if name:
+                    name_data[ticker] = name
+                    # 補上名稱到 stocks
+                    if ticker in stocks:
+                        stocks[ticker]['name'] = name
+                        
         HEALTH_CHECK['pe_count'] = len(pe_data)
-        print(f'   取得 {len(pe_data)} 檔 PE 資料')
+        print(f'   取得 {len(pe_data)} 檔 PE 資料，{len(name_data)} 檔名稱')
     except:
         print('   PE 抓取失敗')
 
