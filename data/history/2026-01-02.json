@@ -1,0 +1,45 @@
+{
+  "date": "2026-01-02",
+  "timestamp": "2026-01-02T20:45:37.921446",
+  "count": 2,
+  "stocks": [
+    {
+      "ticker": "3231",
+      "name": "緯創",
+      "price": 150.5,
+      "change_pct": 2.38,
+      "pe": 19.49,
+      "inst_5day": 43470,
+      "inst_1month": -1185,
+      "inst_leader": "外資",
+      "buy_days": 8,
+      "5day_change": 5.8,
+      "revenue_yoy": 194.64,
+      "rsi": 70.4,
+      "stop_loss": 145.42,
+      "take_profit": 180.6,
+      "stop_note": "守MA20",
+      "ma10": 146.55,
+      "ma20": 145.42
+    },
+    {
+      "ticker": "2637",
+      "name": "慧洋-KY",
+      "price": 67.9,
+      "change_pct": -1.45,
+      "pe": 16.36,
+      "inst_5day": 3064,
+      "inst_1month": 9586,
+      "inst_leader": "外資",
+      "buy_days": 8,
+      "5day_change": -2.16,
+      "revenue_yoy": 9.81,
+      "rsi": 54.5,
+      "stop_loss": 67.68,
+      "take_profit": 81.48,
+      "stop_note": "守MA20",
+      "ma10": 68.34,
+      "ma20": 67.68
+    }
+  ]
+}
