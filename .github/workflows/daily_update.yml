@@ -26,10 +26,18 @@ jobs:
           pip install --upgrade pip
           pip install FinMind pandas requests urllib3
 
-      - name: Run stock screening
-        run: python scan_v3.py
+      - name: Run stock screening (v4.0)
+        run: python scan_v4.py
 
       - name: Push to Line BOT
         env:
           LINEBOT_URL: ${{ secrets.LINEBOT_URL }}
         run: python scripts/push_to_linebot.py
+
+      - name: Commit scan history
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/history/*.json || true
+          git diff --staged --quiet || git commit -m "data: auto-save scan result $(date +%Y-%m-%d)"
+          git push || true
