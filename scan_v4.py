@@ -750,7 +750,7 @@ def check_data_health():
 
 def main():
     print('=' * 80)
-    print('選股條件 v3.2 - 短波段優化版 (法人剛進場、趨勢向上、還沒噴)')
+    print('選股條件 v4.0 - Gemini 融合版 (計分制 + 分批停利)')
     print('=' * 80)
 
     # 1. 抓取當日股價
@@ -866,9 +866,7 @@ def main():
 
     # 5. 抓取財報（毛利率、營業利益率）
     print('\n[5/6] 抓取財報資料...')
-    print('   (暫時跳過財報檢查,避免 API 問題)')
-    financial_data = {}  # TODO: 修正 FinMind API 後啟用
-    # financial_data = fetch_financial_data()
+    financial_data = fetch_financial_data()
 
     # 6. 抓取營收資料（計算 YoY）
     print('\n[6/7] 抓取營收資料...')
@@ -966,9 +964,9 @@ def main():
         operating_margin = fin.get('operating_margin', 0)
 
         if financial_data:  # 只有在有財報資料時才檢查
-            if gross_margin < 20:
+            if gross_margin < 15:  # v4.0: 放寬到 15%
                 continue
-            if operating_margin < 0:
+            if operating_margin < 3:  # v4.0: 至少賺 3%
                 continue
 
         # === v3.4 新增：計算停損/停利 (劇本小卡) ===
@@ -1022,8 +1020,9 @@ def main():
 
         results.append(result)
 
-    # 排序 (依法人 5 日累積排序)
-    results = sorted(results, key=lambda x: x['inst_5day'], reverse=True)
+    # v4.0: 依分數排序，過濾 score >= 3，限制最多 6 檔
+    results = sorted(results, key=lambda x: x.get('score', 0), reverse=True)
+    results = [r for r in results if r.get('score', 0) >= 3][:6]
 
     # 8. 輸出結果
     output_results(results)
@@ -1033,7 +1032,7 @@ def main():
 
     print('\n' + '=' * 80)
     print(f'[OK] 符合條件（推薦買入）: {len(results)} 檔')
-    print(f'詳細結果已存到 scan_result_v3.txt')
+    print(f'詳細結果已存到 scan_result_v4.txt')
 
 
 def output_results(results):
@@ -1041,11 +1040,11 @@ def output_results(results):
     # 執行健康檢查
     warnings = check_data_health()
     
-    with open('scan_result_v3.txt', 'w', encoding='utf-8') as f:
+    with open('scan_result_v4.txt', 'w', encoding='utf-8') as f:
         today = datetime.now().strftime('%Y-%m-%d')
 
         f.write('=' * 140 + '\n')
-        f.write(f'選股條件 v3.4 篩選結果 (含劇本小卡) - {today}\n')
+        f.write(f'選股條件 v4.0 篩選結果 (計分制 + 分批停利) - {today}\n')
         f.write('=' * 140 + '\n\n')
 
         # 健康檢查報告
@@ -1099,8 +1098,9 @@ def output_results(results):
                 reasons = r.get('reasons', [])
                 batch = r.get('batch_profit', {})
                 
-                # 標題行（加入分數）
-                f.write(f"🎯 {r['name']} ({r['ticker']}) ${r['price']:.1f} ({r['change_pct']:+.1f}%) - {score} 分\n")
+                # 標題行（加入分數 + 分級圖示）
+                icon = '🔥' if score >= 7 else ('✅' if score >= 5 else '👀')
+                f.write(f"{icon} {r['name']} ({r['ticker']}) ${r['price']:.1f} ({r['change_pct']:+.1f}%) - {score} 分\n")
                 
                 # 評分理由
                 if reasons:
