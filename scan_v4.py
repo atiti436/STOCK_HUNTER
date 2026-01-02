@@ -750,55 +750,125 @@ def check_data_health():
 
 def main():
     print('=' * 80)
-    print('選股條件 v4.0 - Gemini 融合版 (計分制 + 分批停利)')
+    print('選股條件 v4.1 - FinMind 優先版 (17:30 有資料)')
     print('=' * 80)
 
-    # 1. 抓取當日股價
+    # 1. 抓取當日股價 (改用 FinMind 全市場，17:30 就有資料)
     print('\n[1/5] 抓取當日股價...')
-    url_stocks = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'
-    response = requests.get(url_stocks, timeout=15, verify=False)
-    stock_data = response.json()
-    
-    # 記錄資料日期（用第一筆資料的日期）
-    if stock_data:
-        first_item = stock_data[0]
-        HEALTH_CHECK['data_date'] = first_item.get('Date', '')
-
     stocks = {}
-    for item in stock_data:
-        ticker = item.get('Code', '')
-        if not (ticker.isdigit() and len(ticker) == 4):
-            continue
-        if is_excluded_stock(ticker):
-            continue
 
-        try:
-            close = float(item.get('ClosingPrice', '0').replace(',', '') or 0)
-            change_str = item.get('Change', '0').replace(',', '').replace('+', '')
-            change = float(change_str) if change_str and change_str != 'X' else 0
-            prev_close = close - change
-            change_pct = (change / prev_close * 100) if prev_close > 0 else 0
-            volume = int(item.get('TradeVolume', '0').replace(',', '') or 0) // 1000
-        except:
-            continue
+    try:
+        from FinMind.data import DataLoader
+        dl = DataLoader()
+        dl.login_by_token(api_token=get_finmind_token())
 
-        if close <= 0:
-            continue
+        # 一次抓全市場今天的股價 (不指定 stock_id)
+        today = datetime.now().strftime('%Y-%m-%d')
+        print(f'   正在從 FinMind 抓取 {today} 全市場股價...')
 
-        # 基本篩選 (v3.2 放寬)
-        if not (30 <= close <= 300):  # 價格 30-300 (放寬)
-            continue
-        if not (-2 <= change_pct <= 5):  # v3.3: 容許小回檔 -2% ~ 5%
-            continue
-        if volume < 800:  # 日成交量 > 800 張 (新增)
-            continue
+        df = dl.taiwan_stock_daily(
+            start_date=today,
+            end_date=today
+        )
 
-        stocks[ticker] = {
-            'name': item.get('Name', ''),
-            'price': close,
-            'change_pct': round(change_pct, 2),
-            'volume': volume
-        }
+        if df is None or df.empty:
+            print('   ⚠️ FinMind 無資料，改用證交所 API')
+            raise Exception("FinMind 無資料")
+
+        # 記錄資料日期
+        HEALTH_CHECK['data_date'] = df['date'].iloc[0] if not df.empty else ''
+
+        # 解析 FinMind 資料格式
+        for _, row in df.iterrows():
+            ticker = str(row.get('stock_id', '')).strip()
+
+            # 只要 4 位數股票代號
+            if not (ticker.isdigit() and len(ticker) == 4):
+                continue
+            if is_excluded_stock(ticker):
+                continue
+
+            try:
+                close = float(row.get('close', 0))
+                open_price = float(row.get('open', 0))
+                volume = int(row.get('Trading_Volume', 0)) // 1000  # 轉成張
+
+                # 計算漲跌幅（用前一天收盤價）
+                # FinMind 沒有直接給 change，要自己算
+                prev_close = open_price  # 簡化：用開盤價估算
+                if close > 0 and open_price > 0:
+                    change_pct = ((close - open_price) / open_price) * 100
+                else:
+                    change_pct = 0
+
+                if close <= 0:
+                    continue
+
+                # 基本篩選 (v3.2 放寬)
+                if not (30 <= close <= 300):  # 價格 30-300
+                    continue
+                if not (-2 <= change_pct <= 5):  # v3.3: 容許小回檔 -2% ~ 5%
+                    continue
+                if volume < 800:  # 日成交量 > 800 張
+                    continue
+
+                stocks[ticker] = {
+                    'name': '',  # FinMind 沒給名稱，後面從 PE 補
+                    'price': close,
+                    'change_pct': round(change_pct, 2),
+                    'volume': volume
+                }
+            except Exception as e:
+                continue
+
+        print(f'   FinMind 抓取成功: {len(stocks)} 檔通過基本篩選')
+
+    except Exception as e:
+        # Fallback: 改用證交所 API
+        print(f'   FinMind 失敗 ({e})，改用證交所 API...')
+        url_stocks = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'
+        response = requests.get(url_stocks, timeout=15, verify=False)
+        stock_data = response.json()
+
+        if stock_data:
+            first_item = stock_data[0]
+            HEALTH_CHECK['data_date'] = first_item.get('Date', '')
+
+        for item in stock_data:
+            ticker = item.get('Code', '')
+            if not (ticker.isdigit() and len(ticker) == 4):
+                continue
+            if is_excluded_stock(ticker):
+                continue
+
+            try:
+                close = float(item.get('ClosingPrice', '0').replace(',', '') or 0)
+                change_str = item.get('Change', '0').replace(',', '').replace('+', '')
+                change = float(change_str) if change_str and change_str != 'X' else 0
+                prev_close = close - change
+                change_pct = (change / prev_close * 100) if prev_close > 0 else 0
+                volume = int(item.get('TradeVolume', '0').replace(',', '') or 0) // 1000
+            except:
+                continue
+
+            if close <= 0:
+                continue
+
+            if not (30 <= close <= 300):
+                continue
+            if not (-2 <= change_pct <= 5):
+                continue
+            if volume < 800:
+                continue
+
+            stocks[ticker] = {
+                'name': item.get('Name', ''),
+                'price': close,
+                'change_pct': round(change_pct, 2),
+                'volume': volume
+            }
+
+        print(f'   證交所 API 抓取: {len(stocks)} 檔')
 
     HEALTH_CHECK['stock_count'] = len(stocks)
     print(f'   基本篩選後: {len(stocks)} 檔')
