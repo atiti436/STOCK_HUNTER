@@ -42,9 +42,9 @@ import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# FinMind API Tokens (多帳號輪替，每個 600次/小時)
+# FinMind API Tokens (第一個是 Backer 付費版 1600/hr)
 FINMIND_TOKENS = [
-    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAxNTo1MzoyMCIsInVzZXJfaWQiOiJhdGl0aSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.NmNnOo6KP0bmvvdFQ68L6SM1DChuxrW7Z1P5onzPWlU',
+    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMyAwMDoxODoyNSIsInVzZXJfaWQiOiJhdGl0aSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.0AoJDWaK-mWt1OhdyL6JdOI5TOkSpNEe-tDoI34aHjI',
     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAyMjowNTozNSIsInVzZXJfaWQiOiJhdGl0aTQzNiIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.ejONnKY_3b9tqA7wh47d2r5yfUKCFWybdNSkrJp3C10',
     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAyMjowODo1OCIsInVzZXJfaWQiOiJ4aWFpIiwiaXAiOiIxMTEuMjQzLjE0Mi45OSJ9.-sWtQw0UY8FkMCR8Tg_Lp9kO-UkRhjLTqRrlDXXpk10',
 ]
@@ -762,17 +762,30 @@ def main():
         dl = DataLoader()
         dl.login_by_token(api_token=get_finmind_token())
 
-        # 一次抓全市場今天的股價 (不指定 stock_id)
-        today = datetime.now().strftime('%Y-%m-%d')
-        print(f'   正在從 FinMind 抓取 {today} 全市場股價...')
-
-        df = dl.taiwan_stock_daily(
-            start_date=today,
-            end_date=today
-        )
-
+        # 抓最近一個交易日的股價（可能是今天或昨天）
+        # 先試今天，沒資料就往前找
+        today = datetime.now()
+        df = None
+        data_date = None
+        
+        for days_back in range(3):  # 最多往前找 3 天（週末）
+            check_date = (today - timedelta(days=days_back)).strftime('%Y-%m-%d')
+            print(f'   正在從 FinMind 抓取 {check_date} 全市場股價...')
+            
+            df = dl.taiwan_stock_daily(
+                start_date=check_date,
+                end_date=check_date
+            )
+            
+            if df is not None and not df.empty:
+                data_date = check_date
+                print(f'   ✅ 取得 {check_date} 資料 ({len(df)} 筆)')
+                break
+            else:
+                print(f'   ⚠️ {check_date} 無資料，往前找...')
+        
         if df is None or df.empty:
-            print('   ⚠️ FinMind 無資料，改用證交所 API')
+            print('   ❌ FinMind 無資料，改用證交所 API')
             raise Exception("FinMind 無資料")
 
         # 記錄資料日期
@@ -824,50 +837,86 @@ def main():
         print(f'   FinMind 抓取成功: {len(stocks)} 檔通過基本篩選')
 
     except Exception as e:
-        # Fallback: 改用證交所 API
-        print(f'   FinMind 失敗 ({e})，改用證交所 API...')
-        url_stocks = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'
-        response = requests.get(url_stocks, timeout=15, verify=False)
-        stock_data = response.json()
-
-        if stock_data:
-            first_item = stock_data[0]
-            HEALTH_CHECK['data_date'] = first_item.get('Date', '')
-
-        for item in stock_data:
+        # Fallback: 改用證交所 STOCK_DAY API (個股查詢，資料正確)
+        print(f'   FinMind 失敗 ({e})，改用證交所 STOCK_DAY API...')
+        print('   ⚠️ 這會比較慢（需逐檔查詢），但資料正確')
+        
+        # 先取得股票清單
+        url_list = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'
+        response = requests.get(url_list, timeout=15, verify=False)
+        stock_list = response.json()
+        
+        # 找到最近的交易日（從今天往前找 3 天）
+        today = datetime.now()
+        for days_back in range(3):
+            check_date = (today - timedelta(days=days_back)).strftime('%Y%m%d')
+            # 測試一檔看有沒有資料
+            test_url = f'https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date={check_date}&stockNo=2330'
+            test_resp = requests.get(test_url, timeout=10, verify=False)
+            test_data = test_resp.json()
+            if test_data.get('stat') == 'OK' and test_data.get('data'):
+                last_row = test_data['data'][-1]
+                # 確認日期對不對
+                date_parts = last_row[0].split('/')
+                data_year = int(date_parts[0]) + 1911
+                data_date = f'{data_year}-{date_parts[1]}-{date_parts[2]}'
+                print(f'   找到交易日: {data_date}')
+                HEALTH_CHECK['data_date'] = data_date
+                break
+            time.sleep(0.3)
+        
+        # 逐檔抓取（只抓通過基本條件的）
+        count = 0
+        for item in stock_list:
             ticker = item.get('Code', '')
             if not (ticker.isdigit() and len(ticker) == 4):
                 continue
             if is_excluded_stock(ticker):
                 continue
-
+            
             try:
-                close = float(item.get('ClosingPrice', '0').replace(',', '') or 0)
-                change_str = item.get('Change', '0').replace(',', '').replace('+', '')
-                change = float(change_str) if change_str and change_str != 'X' else 0
+                url = f'https://www.twse.com.tw/exchangeReport/STOCK_DAY?response=json&date={check_date}&stockNo={ticker}'
+                resp = requests.get(url, timeout=10, verify=False)
+                data = resp.json()
+                
+                if data.get('stat') != 'OK' or not data.get('data'):
+                    continue
+                
+                last_row = data['data'][-1]
+                # 解析資料: ['115/01/02', '成交股數', '成交金額', '開盤', '最高', '最低', '收盤', '漲跌', '成交筆', '']
+                close = float(last_row[6].replace(',', ''))
+                open_price = float(last_row[3].replace(',', ''))
+                change_str = last_row[7].replace(',', '').replace('+', '')
+                change = float(change_str) if change_str and change_str not in ['X', ' '] else 0
                 prev_close = close - change
                 change_pct = (change / prev_close * 100) if prev_close > 0 else 0
-                volume = int(item.get('TradeVolume', '0').replace(',', '') or 0) // 1000
-            except:
+                volume = int(last_row[1].replace(',', '')) // 1000
+                
+                if close <= 0:
+                    continue
+                if not (30 <= close <= 300):
+                    continue
+                if not (-2 <= change_pct <= 5):
+                    continue
+                if volume < 800:
+                    continue
+                
+                stocks[ticker] = {
+                    'name': item.get('Name', ''),
+                    'price': close,
+                    'change_pct': round(change_pct, 2),
+                    'volume': volume
+                }
+                count += 1
+                
+                if count % 20 == 0:
+                    print(f'   進度: {count} 檔')
+                
+                time.sleep(0.3)  # 避免被擋
+                
+            except Exception as ex:
                 continue
-
-            if close <= 0:
-                continue
-
-            if not (30 <= close <= 300):
-                continue
-            if not (-2 <= change_pct <= 5):
-                continue
-            if volume < 800:
-                continue
-
-            stocks[ticker] = {
-                'name': item.get('Name', ''),
-                'price': close,
-                'change_pct': round(change_pct, 2),
-                'volume': volume
-            }
-
+        
         print(f'   證交所 API 抓取: {len(stocks)} 檔')
 
     HEALTH_CHECK['stock_count'] = len(stocks)
