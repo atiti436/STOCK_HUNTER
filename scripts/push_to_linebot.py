@@ -12,16 +12,15 @@ from datetime import datetime
 
 def read_scan_result():
     """讀取選股結果檔案"""
-    result_file = 'scan_result_v3.txt'
-
-    if not os.path.exists(result_file):
-        print(f'[!] 找不到結果檔案: {result_file}')
-        return None
-
-    with open(result_file, 'r', encoding='utf-8') as f:
-        content = f.read()
-
-    return content
+    # 優先讀 v4，沒有再讀 v3
+    for result_file in ['scan_result_v4.txt', 'scan_result_v3.txt']:
+        if os.path.exists(result_file):
+            print(f'[*] 讀取: {result_file}')
+            with open(result_file, 'r', encoding='utf-8') as f:
+                return f.read()
+    
+    print('[!] 找不到結果檔案')
+    return None
 
 
 def parse_stock_count(content):
