@@ -42,6 +42,13 @@ import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# === 命令列參數 ===
+import argparse
+parser = argparse.ArgumentParser(description='選股條件 v4.1 篩選器')
+parser.add_argument('--offline', action='store_true', 
+                    help='使用本地快取，不呼叫 API（節省 TOKEN）')
+ARGS = parser.parse_args()
+
 # FinMind API Tokens (第一個是 Backer 付費版 1600/hr)
 FINMIND_TOKENS = [
     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMyAwMDoxODoyNSIsInVzZXJfaWQiOiJhdGl0aSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.0AoJDWaK-mWt1OhdyL6JdOI5TOkSpNEe-tDoI34aHjI',
@@ -533,18 +540,22 @@ def calculate_5day_avg_volume(prices):
 
 
 def count_institutional_buy_days(inst_history):
-    """計算法人連續買超天數"""
+    """
+    計算法人買超天數（v4.1 改用「勝率」版）
+    
+    v3.x 原邏輯：連續買超（中間斷一天就歸零）
+    v4.1 新邏輯：5天內買超天數（允許中間有賣超）
+    
+    這樣技嘉「買買賣買買」= 4天，不會被歸零
+    """
     if not inst_history:
         return 0
 
-    count = 0
-    for record in inst_history:
-        if record['total'] > 0:
-            count += 1
-        else:
-            break  # 一旦不是買超就停止
-
-    return count
+    # 取最近 5 天
+    last_5 = inst_history[:5]
+    buy_days = sum(1 for r in last_5 if r['total'] > 0)
+    
+    return buy_days
 
 
 def analyze_institutional_leader(inst_history):
@@ -752,6 +763,87 @@ def main():
     print('=' * 80)
     print('選股條件 v4.1 - FinMind 優先版 (17:30 有資料)')
     print('=' * 80)
+
+    # === Offline 模式：直接讀取快取 ===
+    if ARGS.offline:
+        print('\n📂 【OFFLINE 模式】使用本地快取，不呼叫 API')
+        print('=' * 80)
+        
+        # 找最新的 history 檔案
+        history_dir = 'data/history'
+        if not os.path.exists(history_dir):
+            print('❌ 錯誤: data/history/ 目錄不存在，請先跑 git pull')
+            return
+        
+        # 找最新的 json 檔案（排除 all_history.json）
+        json_files = [f for f in os.listdir(history_dir) 
+                      if f.endswith('.json') and f != 'all_history.json']
+        if not json_files:
+            print('❌ 錯誤: data/history/ 沒有資料檔案')
+            return
+        
+        latest_file = sorted(json_files)[-1]  # 按日期排序取最新
+        cache_path = os.path.join(history_dir, latest_file)
+        
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+        
+        # 顯示資料來源資訊
+        data_date = cache_data.get('date', '未知')
+        cache_time = cache_data.get('timestamp', '未知')
+        stock_count = cache_data.get('count', 0)
+        
+        print(f'📅 資料日期: {data_date}')
+        print(f'⏰ 快取時間: {cache_time}')
+        print(f'📊 股票數量: {stock_count} 檔')
+        print('=' * 80)
+        
+        # 檢查資料是否過舊
+        today = datetime.now().strftime('%Y-%m-%d')
+        if data_date != today:
+            print(f'⚠️ 警告: 資料日期 {data_date} 非今日 {today}')
+            print('   如需最新資料，請使用: python scan_v4.py')
+        
+        # 轉換為 output_results 需要的格式
+        results = []
+        for stock in cache_data.get('stocks', []):
+            # 補上 batch_profit 和 reasons（從快取可能沒有）
+            result = {
+                'ticker': stock.get('ticker'),
+                'name': stock.get('name'),
+                'price': stock.get('price'),
+                'change_pct': stock.get('change_pct'),
+                'volume': stock.get('volume', 0),
+                'pe': stock.get('pe'),
+                'inst_5day': stock.get('inst_5day'),
+                'inst_1month': stock.get('inst_1month'),
+                'inst_leader': stock.get('inst_leader'),
+                'buy_days': stock.get('buy_days'),
+                '5day_change': stock.get('5day_change'),
+                'avg_volume': stock.get('avg_volume', 0),
+                'revenue_yoy': stock.get('revenue_yoy'),
+                'rsi': stock.get('rsi', 50),
+                'ma10': stock.get('ma10'),
+                'ma20': stock.get('ma20'),
+                'stop_loss': stock.get('stop_loss'),
+                'stop_note': stock.get('stop_note', ''),
+                'take_profit': stock.get('take_profit'),
+                'score': stock.get('score', 5),  # 預設 5 分
+                'reasons': stock.get('reasons', ['快取資料']),
+                'batch_profit': stock.get('batch_profit', {
+                    'batch_1': {'price': stock.get('price', 0) * 1.04, 'pct': 4, 'note': '保本先跑'},
+                    'batch_2': {'price': stock.get('price', 0) * 1.07, 'pct': 7, 'note': '主要目標'},
+                    'batch_3': {'price': stock.get('price', 0) * 1.10, 'pct': 10, 'note': '賺更多'},
+                }),
+            }
+            results.append(result)
+        
+        # 輸出結果
+        output_results(results)
+        print('\n' + '=' * 80)
+        print(f'[OK] 從快取載入: {len(results)} 檔 (0 API 呼叫)')
+        print('詳細結果已存到 scan_result_v4.txt')
+        return
 
     # 1. 抓取當日股價 (改用 FinMind 全市場，17:30 就有資料)
     print('\n[1/5] 抓取當日股價...')
@@ -999,6 +1091,11 @@ def main():
     # 6. 抓取營收資料（計算 YoY）
     print('\n[6/7] 抓取營收資料...')
     revenue_data = fetch_revenue_data(candidate_tickers)
+
+    # 6.5 儲存原始資料（供日後重新篩選）
+    save_raw_data(stocks, pe_data, institutional, historical_data, 
+                  revenue_data, financial_data, candidate_tickers, 
+                  HEALTH_CHECK.get('data_date'))
 
     # 7. 最終篩選
     print('\n[7/7] 最終篩選...')
@@ -1254,6 +1351,75 @@ def output_results(results):
             f.write('\n⚠️ 警告: ' + ', '.join(warnings) + '\n')
         
         f.write('=' * 140 + '\n')
+
+
+def save_raw_data(stocks, pe_data, institutional, historical_data, revenue_data, financial_data, candidate_tickers, data_date):
+    """
+    儲存候選股原始資料 (v4.1 新增)
+    用於日後重新篩選、驗證其他股票
+    
+    存檔位置：data/raw/2026-01-03.json
+    """
+    raw_dir = 'data/raw'
+    os.makedirs(raw_dir, exist_ok=True)
+    
+    today = datetime.now().strftime('%Y-%m-%d')
+    
+    # 組裝原始資料
+    raw_entry = {
+        'date': data_date or today,
+        'timestamp': datetime.now().isoformat(),
+        'candidate_count': len(candidate_tickers),
+        'candidates': []
+    }
+    
+    for ticker in candidate_tickers:
+        stock = stocks.get(ticker, {})
+        if not stock:
+            continue
+            
+        inst = institutional.get(ticker, [])
+        hist = historical_data.get(ticker, {})
+        rev = revenue_data.get(ticker, {})
+        fin = financial_data.get(ticker, {})
+        
+        # 計算衍生數據
+        prices_list = hist.get('prices', [])
+        closes = [p[1] for p in prices_list] if prices_list else []
+        ma10 = sum(closes[:10]) / 10 if len(closes) >= 10 else None
+        ma20 = sum(closes[:20]) / 20 if len(closes) >= 20 else (sum(closes) / len(closes) if closes else None)
+        
+        candidate_data = {
+            'ticker': ticker,
+            'name': stock.get('name', ''),
+            'price': stock.get('price'),
+            'change_pct': stock.get('change_pct'),
+            'volume': stock.get('volume'),
+            'pe': pe_data.get(ticker),
+            # 法人
+            'inst_today': inst[0]['total'] if inst else 0,
+            'inst_5day': sum(r['total'] for r in inst[:5]) if inst else 0,
+            'inst_1month': sum(r['total'] for r in inst) if inst else 0,
+            'inst_leader': analyze_institutional_leader(inst),
+            'buy_days': count_institutional_buy_days(inst),
+            # 技術面
+            '5day_change': hist.get('5day_change'),
+            'avg_volume': hist.get('5day_avg_volume'),
+            'ma10': round(ma10, 2) if ma10 else None,
+            'ma20': round(ma20, 2) if ma20 else None,
+            # 財報
+            'gross_margin': fin.get('gross_margin'),
+            'operating_margin': fin.get('operating_margin'),
+            'revenue_yoy': rev.get('yoy'),
+        }
+        raw_entry['candidates'].append(candidate_data)
+    
+    # 儲存
+    raw_file = f'{raw_dir}/{today}.json'
+    with open(raw_file, 'w', encoding='utf-8') as f:
+        json.dump(raw_entry, f, ensure_ascii=False, indent=2)
+    
+    print(f'📦 原始資料已存: {raw_file} ({len(raw_entry["candidates"])} 檔候選股)')
 
 
 def save_to_history(results):
