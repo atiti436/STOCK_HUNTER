@@ -25,11 +25,11 @@ import time
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# FinMind Tokens
+# FinMind Tokens (最新 Token 優先)
 FINMIND_TOKENS = [
+    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wNSAyMzowODozMSIsInVzZXJfaWQiOiJhdGl0aSIsImVtYWlsIjoiYXRpdGk0MzYxQGdtYWlsLmNvbSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.MEcPu8FHrrY2ES1j26NRO9Dg9E2ekEhM4B5rlCPidSI',  # 2026-01-05 付費版 (最新)
     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMyAwMDoxODoyNSIsInVzZXJfaWQiOiJhdGl0aSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.0AoJDWaK-mWt1OhdyL6JdOI5TOkSpNEe-tDoI34aHjI',
     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAyMjowNTozNSIsInVzZXJfaWQiOiJhdGl0aTQzNiIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.ejONnKY_3b9tqA7wh47d2r5yfUKCFWybdNSkrJp3C10',
-    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAyMjowODo1OCIsInVzZXJfaWQiOiJ4aWFpIiwiaXAiOiIxMTEuMjQzLjE0Mi45OSJ9.-sWtQw0UY8FkMCR8Tg_Lp9kO-UkRhjLTqRrlDXXpk10',
 ]
 CURRENT_TOKEN_INDEX = 0
 
@@ -221,7 +221,7 @@ def fetch_institutional_simple(tickers):
             institutional[ticker] = records[:5]
             success += 1
             print()
-            time.sleep(0.1)
+            time.sleep(0.2)  # Gemini 建議：稍長更保險
         except Exception as e:
             print(f'錯: {e}')
             fail += 1
@@ -283,7 +283,7 @@ def fetch_historical_simple(tickers):
             else:
                 fail += 1
             print()
-            time.sleep(0.1)
+            time.sleep(0.2)
         except Exception as e:
             print(f'錯: {e}')
             fail += 1
@@ -324,7 +324,7 @@ def fetch_revenue_simple(tickers):
             revenue[ticker] = {'yoy': round(yoy, 2)}
             success += 1
             print()
-            time.sleep(0.1)
+            time.sleep(0.2)
         except Exception as e:
             print(f'錯: {e}')
             fail += 1
@@ -372,7 +372,7 @@ def fetch_financials_simple(tickers):
             }
             success += 1
             print()
-            time.sleep(0.1)
+            time.sleep(0.2)
         except Exception as e:
             print(f'錯: {e}')
             fail += 1
