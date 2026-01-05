@@ -1,0 +1,4 @@
+# Records
+records/
+*.json
+!data/history/*.json

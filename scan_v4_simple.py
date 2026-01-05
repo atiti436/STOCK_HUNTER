@@ -498,7 +498,7 @@ def save_results(results):
     daily_file = f'{history_dir}/{today}.json'
     with open(daily_file, 'w', encoding='utf-8') as f:
         json.dump(history_entry, f, ensure_ascii=False, indent=2)
-    print(f'✅ 已存: {daily_file}')
+    print(f'[OK] 已存: {daily_file}')
 
 # ===== 主程式 =====
 def main():

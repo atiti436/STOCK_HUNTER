@@ -1,0 +1,1026 @@
+================================================================================
+¿ïªÑµ{¦¡ v4 Simple - ³Ì«OÀIª©¥»
+================================================================================
+[1/6] §å¶q§ìªÑ»ù...
+   ¥Ø¼Ð¤é´Á: 2026-01-06
+[32m2026-01-06 00:07:09.539[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: [0m
+   ¤µ¤éµL¸ê®Æ¡A¸Õ¬Q¤Ñ...
+[32m2026-01-06 00:07:09.688[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: [0m
+   §ì¨ì 47833 µ§
+   [DEBUG] «e3µ§preview:
+      0050 69.5 141745
+      0051 93.0 583
+      0052 40.4 40334
+   ¿z¿ï«á: 240 ÀÉ
+[2/6] §ì PE ¥»¯q¤ñ...
+   ¹Á¸Õ¤é´Á: 20260106... µL¸ê®Æ
+   ¹Á¸Õ¤é´Á: 20260105... OK (1062 µ§)
+   PE<35: 599 ÀÉ
+   [DEBUG] «e3ÀÉPE:
+      1102 PE=11.28
+      1103 PE=31.98
+      1104 PE=12.66
+
+­Ô¿ïªÑ: 122 ÀÉ
+[3/6] ³vÀÉ§ìªk¤H¡]122 ÀÉ¡A¨CÀÉ5¤Ñ¡^...
+   ¤é´Á: 2025-12-29 ~ 2026-01-05
+   [1/122] 1503 ... [32m2026-01-06 00:07:13.221[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1503[0m
+25¤Ñ [DEBUG: {'date': '2025-12-29', 'stock_id': '1503', 'buy': 365050, 'name': 'Foreign_Investor', 'sell': 93001}]
+   [2/122] 2324 ... [32m2026-01-06 00:07:14.028[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2324[0m
+25¤Ñ [DEBUG: {'date': '2025-12-29', 'stock_id': '2324', 'buy': 9753143, 'name': 'Foreign_Investor', 'sell': 6891533}]
+   [3/122] 8926 ... [32m2026-01-06 00:07:15.035[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 8926[0m
+25¤Ñ [DEBUG: {'date': '2025-12-29', 'stock_id': '8926', 'buy': 261000, 'name': 'Foreign_Investor', 'sell': 224000}]
+   [4/122] 9958 ... [32m2026-01-06 00:07:16.236[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 9958[0m
+25¤Ñ
+   [5/122] 2348 ... [32m2026-01-06 00:07:16.586[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2348[0m
+25¤Ñ
+   [6/122] 1513 ... [32m2026-01-06 00:07:17.224[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1513[0m
+25¤Ñ
+   [7/122] 6024 ... [32m2026-01-06 00:07:17.845[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6024[0m
+25¤Ñ
+   [8/122] 8103 ... [32m2026-01-06 00:07:18.126[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 8103[0m
+25¤Ñ
+   [9/122] 2317 ... [32m2026-01-06 00:07:18.712[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2317[0m
+25¤Ñ
+   [10/122] 2395 ... [32m2026-01-06 00:07:18.980[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2395[0m
+25¤Ñ
+   [11/122] 3673 ... [32m2026-01-06 00:07:19.251[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3673[0m
+25¤Ñ
+   [12/122] 9904 ... [32m2026-01-06 00:07:19.865[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 9904[0m
+25¤Ñ
+   [13/122] 4904 ... [32m2026-01-06 00:07:20.142[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4904[0m
+25¤Ñ
+   [14/122] 4912 ... [32m2026-01-06 00:07:20.534[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4912[0m
+25¤Ñ
+   [15/122] 3023 ... [32m2026-01-06 00:07:20.925[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3023[0m
+25¤Ñ
+   [16/122] 3231 ... [32m2026-01-06 00:07:21.205[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3231[0m
+25¤Ñ
+   [17/122] 1216 ... [32m2026-01-06 00:07:21.592[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1216[0m
+25¤Ñ
+   [18/122] 3705 ... [32m2026-01-06 00:07:22.376[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3705[0m
+25¤Ñ
+   [19/122] 5288 ... [32m2026-01-06 00:07:23.119[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5288[0m
+25¤Ñ
+   [20/122] 1102 ... [32m2026-01-06 00:07:23.573[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1102[0m
+25¤Ñ
+   [21/122] 5388 ... [32m2026-01-06 00:07:23.850[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5388[0m
+25¤Ñ
+   [22/122] 6235 ... [32m2026-01-06 00:07:24.644[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6235[0m
+25¤Ñ
+   [23/122] 8070 ... [32m2026-01-06 00:07:24.952[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 8070[0m
+25¤Ñ
+   [24/122] 6239 ... [32m2026-01-06 00:07:25.236[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6239[0m
+25¤Ñ
+   [25/122] 1215 ... [32m2026-01-06 00:07:25.646[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1215[0m
+25¤Ñ
+   [26/122] 1477 ... [32m2026-01-06 00:07:26.293[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1477[0m
+25¤Ñ
+   [27/122] 5434 ... [32m2026-01-06 00:07:26.920[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5434[0m
+25¤Ñ
+   [28/122] 6605 ... [32m2026-01-06 00:07:28.748[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6605[0m
+25¤Ñ
+   [29/122] 5522 ... [32m2026-01-06 00:07:30.102[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5522[0m
+25¤Ñ
+   [30/122] 3028 ... [32m2026-01-06 00:07:30.381[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3028[0m
+25¤Ñ
+   [31/122] 6213 ... [32m2026-01-06 00:07:30.984[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6213[0m
+25¤Ñ
+   [32/122] 3033 ... [32m2026-01-06 00:07:31.263[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3033[0m
+25¤Ñ
+   [33/122] 2458 ... [32m2026-01-06 00:07:31.877[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2458[0m
+25¤Ñ
+   [34/122] 2645 ... [32m2026-01-06 00:07:32.580[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2645[0m
+25¤Ñ
+   [35/122] 5706 ... [32m2026-01-06 00:07:33.367[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5706[0m
+25¤Ñ
+   [36/122] 1319 ... [32m2026-01-06 00:07:33.999[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1319[0m
+25¤Ñ
+   [37/122] 2006 ... [32m2026-01-06 00:07:34.598[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2006[0m
+25¤Ñ
+   [38/122] 2247 ... [32m2026-01-06 00:07:34.870[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2247[0m
+25¤Ñ
+   [39/122] 6869 ... [32m2026-01-06 00:07:35.635[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6869[0m
+25¤Ñ
+   [40/122] 1231 ... [32m2026-01-06 00:07:35.920[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1231[0m
+25¤Ñ
+   [41/122] 3704 ... [32m2026-01-06 00:07:36.867[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3704[0m
+25¤Ñ
+   [42/122] 3545 ... [32m2026-01-06 00:07:37.944[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3545[0m
+25¤Ñ
+   [43/122] 1609 ... [32m2026-01-06 00:07:38.754[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1609[0m
+25¤Ñ
+   [44/122] 3019 ... [32m2026-01-06 00:07:39.650[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3019[0m
+25¤Ñ
+   [45/122] 5515 ... [32m2026-01-06 00:07:40.252[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5515[0m
+25¤Ñ
+   [46/122] 2492 ... [32m2026-01-06 00:07:48.132[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2492[0m
+25¤Ñ
+   [47/122] 5469 ... [32m2026-01-06 00:07:48.519[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5469[0m
+25¤Ñ
+   [48/122] 2377 ... [32m2026-01-06 00:07:49.206[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2377[0m
+25¤Ñ
+   [49/122] 3605 ... [32m2026-01-06 00:07:49.956[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3605[0m
+25¤Ñ
+   [50/122] 3596 ... [32m2026-01-06 00:07:50.773[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3596[0m
+25¤Ñ
+   [51/122] 2393 ... [32m2026-01-06 00:07:51.069[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2393[0m
+25¤Ñ
+   [52/122] 6415 ... [32m2026-01-06 00:07:51.354[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6415[0m
+25¤Ñ
+   [53/122] 1773 ... [32m2026-01-06 00:07:52.613[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1773[0m
+25¤Ñ
+   [54/122] 5534 ... [32m2026-01-06 00:07:53.343[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5534[0m
+25¤Ñ
+   [55/122] 2206 ... [32m2026-01-06 00:07:53.995[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2206[0m
+25¤Ñ
+   [56/122] 4915 ... [32m2026-01-06 00:07:54.849[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4915[0m
+25¤Ñ
+   [57/122] 2301 ... [32m2026-01-06 00:07:55.640[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2301[0m
+25¤Ñ
+   [58/122] 3013 ... [32m2026-01-06 00:07:56.646[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3013[0m
+25¤Ñ
+   [59/122] 2615 ... [32m2026-01-06 00:07:57.638[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2615[0m
+25¤Ñ
+   [60/122] 6438 ... [32m2026-01-06 00:07:58.316[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6438[0m
+25¤Ñ
+   [61/122] 9802 ... [32m2026-01-06 00:07:58.600[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 9802[0m
+25¤Ñ
+   [62/122] 5292 ... [32m2026-01-06 00:07:59.559[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 5292[0m
+25¤Ñ
+   [63/122] 1795 ... [32m2026-01-06 00:08:00.274[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1795[0m
+25¤Ñ
+   [64/122] 2436 ... [32m2026-01-06 00:08:01.049[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2436[0m
+25¤Ñ
+   [65/122] 3004 ... [32m2026-01-06 00:08:01.969[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3004[0m
+25¤Ñ
+   [66/122] 3130 ... [32m2026-01-06 00:08:03.162[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3130[0m
+25¤Ñ
+   [67/122] 2204 ... [32m2026-01-06 00:08:03.448[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2204[0m
+25¤Ñ
+   [68/122] 9927 ... [32m2026-01-06 00:08:04.390[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 9927[0m
+25¤Ñ
+   [69/122] 4763 ... [32m2026-01-06 00:08:05.110[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4763[0m
+25¤Ñ
+   [70/122] 4770 ... [32m2026-01-06 00:08:05.384[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4770[0m
+25¤Ñ
+   [71/122] 6862 ... [32m2026-01-06 00:08:05.668[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6862[0m
+25¤Ñ
+   [72/122] 1227 ... [32m2026-01-06 00:08:05.950[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1227[0m
+25¤Ñ
+   [73/122] 2303 ... [32m2026-01-06 00:08:06.861[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2303[0m
+25¤Ñ
+   [74/122] 1514 ... [32m2026-01-06 00:08:07.178[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1514[0m
+25¤Ñ
+   [75/122] 6214 ... [32m2026-01-06 00:08:07.591[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6214[0m
+25¤Ñ
+   [76/122] 6757 ... [32m2026-01-06 00:08:07.873[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6757[0m
+25¤Ñ
+   [77/122] 2382 ... [32m2026-01-06 00:08:08.680[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2382[0m
+25¤Ñ
+   [78/122] 1229 ... [32m2026-01-06 00:08:09.490[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1229[0m
+25¤Ñ
+   [79/122] 2498 ... [32m2026-01-06 00:08:09.879[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2498[0m
+25¤Ñ
+   [80/122] 2327 ... [32m2026-01-06 00:08:10.278[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2327[0m
+25¤Ñ
+   [81/122] 2347 ... [32m2026-01-06 00:08:10.559[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2347[0m
+25¤Ñ
+   [82/122] 1723 ... [32m2026-01-06 00:08:10.955[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1723[0m
+25¤Ñ
+   [83/122] 2915 ... [32m2026-01-06 00:08:11.350[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2915[0m
+25¤Ñ
+   [84/122] 6206 ... [32m2026-01-06 00:08:11.925[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6206[0m
+25¤Ñ
+   [85/122] 1210 ... [32m2026-01-06 00:08:12.538[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1210[0m
+25¤Ñ
+   [86/122] 2313 ... [32m2026-01-06 00:08:13.162[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2313[0m
+25¤Ñ
+   [87/122] 3010 ... [32m2026-01-06 00:08:14.143[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3010[0m
+25¤Ñ
+   [88/122] 3702 ... [32m2026-01-06 00:08:15.130[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3702[0m
+25¤Ñ
+   [89/122] 2412 ... [32m2026-01-06 00:08:15.418[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2412[0m
+25¤Ñ
+   [90/122] 9938 ... [32m2026-01-06 00:08:16.132[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 9938[0m
+25¤Ñ
+   [91/122] 8454 ... [32m2026-01-06 00:08:16.918[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 8454[0m
+25¤Ñ
+   [92/122] 1722 ... [32m2026-01-06 00:08:17.866[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1722[0m
+25¤Ñ
+   [93/122] 6189 ... [32m2026-01-06 00:08:18.456[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6189[0m
+25¤Ñ
+   [94/122] 6592 ... [32m2026-01-06 00:08:19.762[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6592[0m
+25¤Ñ
+   [95/122] 6957 ... [32m2026-01-06 00:08:20.053[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6957[0m
+25¤Ñ
+   [96/122] 2354 ... [32m2026-01-06 00:08:20.681[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2354[0m
+25¤Ñ
+   [97/122] 2451 ... [32m2026-01-06 00:08:21.435[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2451[0m
+25¤Ñ
+   [98/122] 6177 ... [32m2026-01-06 00:08:22.233[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6177[0m
+25¤Ñ
+   [99/122] 2363 ... [32m2026-01-06 00:08:23.053[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2363[0m
+25¤Ñ
+   [100/122] 2618 ... [32m2026-01-06 00:08:26.550[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2618[0m
+25¤Ñ
+   [101/122] 7765 ... [32m2026-01-06 00:08:27.244[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 7765[0m
+25¤Ñ
+   [102/122] 2727 ... [32m2026-01-06 00:08:27.517[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2727[0m
+25¤Ñ
+   [103/122] 2421 ... [32m2026-01-06 00:08:28.386[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2421[0m
+25¤Ñ
+   [104/122] 2636 ... [32m2026-01-06 00:08:29.089[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2636[0m
+25¤Ñ
+   [105/122] 3706 ... [32m2026-01-06 00:08:30.354[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3706[0m
+25¤Ñ
+   [106/122] 4938 ... [32m2026-01-06 00:08:30.630[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4938[0m
+25¤Ñ
+   [107/122] 2474 ... [32m2026-01-06 00:08:30.909[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2474[0m
+25¤Ñ
+   [108/122] 1720 ... [32m2026-01-06 00:08:31.233[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 1720[0m
+25¤Ñ
+   [109/122] 3413 ... [32m2026-01-06 00:08:32.482[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3413[0m
+25¤Ñ
+   [110/122] 3045 ... [32m2026-01-06 00:08:33.322[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3045[0m
+25¤Ñ
+   [111/122] 2497 ... [32m2026-01-06 00:08:33.901[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2497[0m
+20¤Ñ
+   [112/122] 3711 ... [32m2026-01-06 00:08:34.573[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3711[0m
+25¤Ñ
+   [113/122] 9924 ... [32m2026-01-06 00:08:35.550[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 9924[0m
+25¤Ñ
+   [114/122] 4958 ... [32m2026-01-06 00:08:36.364[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4958[0m
+25¤Ñ
+   [115/122] 2912 ... [32m2026-01-06 00:08:37.208[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2912[0m
+25¤Ñ
+   [116/122] 4104 ... [32m2026-01-06 00:08:37.514[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 4104[0m
+25¤Ñ
+   [117/122] 3036 ... [32m2026-01-06 00:08:38.439[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3036[0m
+25¤Ñ
+   [118/122] 6196 ... [32m2026-01-06 00:08:39.288[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6196[0m
+25¤Ñ
+   [119/122] 2211 ... [32m2026-01-06 00:08:40.291[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 2211[0m
+25¤Ñ
+   [120/122] 3042 ... [32m2026-01-06 00:08:41.050[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3042[0m
+25¤Ñ
+   [121/122] 6414 ... [32m2026-01-06 00:08:41.665[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 6414[0m
+25¤Ñ
+   [122/122] 3025 ... [32m2026-01-06 00:08:42.600[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockInstitutionalInvestorsBuySell, data_id: 3025[0m
+25¤Ñ
+   ¦¨¥\122 ¥¢±Ñ0
+[4/6] ³vÀÉ§ì¾ú¥vªÑ»ù¡]122 ÀÉ¡A¨CÀÉ10¤Ñ¡^...
+   ¤é´Á: 2025-12-22 ~ 2026-01-06
+   [1/122] 1503 ... [32m2026-01-06 00:08:43.545[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1503[0m
+9¤Ñ [DEBUG: close=173.5]
+   [2/122] 2324 ... [32m2026-01-06 00:08:43.897[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2324[0m
+9¤Ñ [DEBUG: close=30.7]
+   [3/122] 8926 ... [32m2026-01-06 00:08:44.158[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 8926[0m
+9¤Ñ [DEBUG: close=41.4]
+   [4/122] 9958 ... [32m2026-01-06 00:08:44.433[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 9958[0m
+9¤Ñ
+   [5/122] 2348 ... [32m2026-01-06 00:08:44.801[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2348[0m
+9¤Ñ
+   [6/122] 1513 ... [32m2026-01-06 00:08:45.081[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1513[0m
+9¤Ñ
+   [7/122] 6024 ... [32m2026-01-06 00:08:45.348[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6024[0m
+9¤Ñ
+   [8/122] 8103 ... [32m2026-01-06 00:08:45.616[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 8103[0m
+9¤Ñ
+   [9/122] 2317 ... [32m2026-01-06 00:08:45.887[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2317[0m
+9¤Ñ
+   [10/122] 2395 ... [32m2026-01-06 00:08:46.204[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2395[0m
+9¤Ñ
+   [11/122] 3673 ... [32m2026-01-06 00:08:49.631[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3673[0m
+9¤Ñ
+   [12/122] 9904 ... [32m2026-01-06 00:08:50.001[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 9904[0m
+9¤Ñ
+   [13/122] 4904 ... [32m2026-01-06 00:08:50.980[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4904[0m
+9¤Ñ
+   [14/122] 4912 ... [32m2026-01-06 00:08:51.249[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4912[0m
+9¤Ñ
+   [15/122] 3023 ... [32m2026-01-06 00:08:51.886[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3023[0m
+9¤Ñ
+   [16/122] 3231 ... [32m2026-01-06 00:08:52.275[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3231[0m
+9¤Ñ
+   [17/122] 1216 ... [32m2026-01-06 00:08:52.548[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1216[0m
+9¤Ñ
+   [18/122] 3705 ... [32m2026-01-06 00:08:52.820[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3705[0m
+9¤Ñ
+   [19/122] 5288 ... [32m2026-01-06 00:08:53.088[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5288[0m
+9¤Ñ
+   [20/122] 1102 ... [32m2026-01-06 00:08:53.357[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1102[0m
+9¤Ñ
+   [21/122] 5388 ... [32m2026-01-06 00:08:53.626[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5388[0m
+9¤Ñ
+   [22/122] 6235 ... [32m2026-01-06 00:08:53.898[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6235[0m
+9¤Ñ
+   [23/122] 8070 ... [32m2026-01-06 00:08:54.168[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 8070[0m
+9¤Ñ
+   [24/122] 6239 ... [32m2026-01-06 00:08:54.553[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6239[0m
+9¤Ñ
+   [25/122] 1215 ... [32m2026-01-06 00:08:54.818[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1215[0m
+9¤Ñ
+   [26/122] 1477 ... [32m2026-01-06 00:08:55.091[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1477[0m
+9¤Ñ
+   [27/122] 5434 ... [32m2026-01-06 00:08:55.369[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5434[0m
+9¤Ñ
+   [28/122] 6605 ... [32m2026-01-06 00:08:55.643[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6605[0m
+9¤Ñ
+   [29/122] 5522 ... [32m2026-01-06 00:08:55.917[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5522[0m
+9¤Ñ
+   [30/122] 3028 ... [32m2026-01-06 00:08:56.297[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3028[0m
+9¤Ñ
+   [31/122] 6213 ... [32m2026-01-06 00:08:56.573[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6213[0m
+9¤Ñ
+   [32/122] 3033 ... [32m2026-01-06 00:08:56.851[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3033[0m
+9¤Ñ
+   [33/122] 2458 ... [32m2026-01-06 00:08:57.116[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2458[0m
+9¤Ñ
+   [34/122] 2645 ... [32m2026-01-06 00:08:57.406[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2645[0m
+9¤Ñ
+   [35/122] 5706 ... [32m2026-01-06 00:08:57.678[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5706[0m
+9¤Ñ
+   [36/122] 1319 ... [32m2026-01-06 00:08:57.944[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1319[0m
+9¤Ñ
+   [37/122] 2006 ... [32m2026-01-06 00:08:58.214[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2006[0m
+9¤Ñ
+   [38/122] 2247 ... [32m2026-01-06 00:08:58.486[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2247[0m
+9¤Ñ
+   [39/122] 6869 ... [32m2026-01-06 00:08:58.764[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6869[0m
+9¤Ñ
+   [40/122] 1231 ... [32m2026-01-06 00:08:59.206[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1231[0m
+9¤Ñ
+   [41/122] 3704 ... [32m2026-01-06 00:09:00.182[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3704[0m
+9¤Ñ
+   [42/122] 3545 ... [32m2026-01-06 00:09:00.461[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3545[0m
+9¤Ñ
+   [43/122] 1609 ... [32m2026-01-06 00:09:00.726[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1609[0m
+9¤Ñ
+   [44/122] 3019 ... [32m2026-01-06 00:09:00.997[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3019[0m
+9¤Ñ
+   [45/122] 5515 ... [32m2026-01-06 00:09:01.266[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5515[0m
+9¤Ñ
+   [46/122] 2492 ... [32m2026-01-06 00:09:01.526[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2492[0m
+9¤Ñ
+   [47/122] 5469 ... [32m2026-01-06 00:09:02.293[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5469[0m
+9¤Ñ
+   [48/122] 2377 ... [32m2026-01-06 00:09:02.560[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2377[0m
+9¤Ñ
+   [49/122] 3605 ... [32m2026-01-06 00:09:02.839[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3605[0m
+9¤Ñ
+   [50/122] 3596 ... [32m2026-01-06 00:09:03.106[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3596[0m
+9¤Ñ
+   [51/122] 2393 ... [32m2026-01-06 00:09:03.503[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2393[0m
+9¤Ñ
+   [52/122] 6415 ... [32m2026-01-06 00:09:03.892[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6415[0m
+9¤Ñ
+   [53/122] 1773 ... [32m2026-01-06 00:09:04.157[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1773[0m
+9¤Ñ
+   [54/122] 5534 ... [32m2026-01-06 00:09:04.431[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5534[0m
+9¤Ñ
+   [55/122] 2206 ... [32m2026-01-06 00:09:04.770[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2206[0m
+9¤Ñ
+   [56/122] 4915 ... [32m2026-01-06 00:09:05.037[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4915[0m
+9¤Ñ
+   [57/122] 2301 ... [32m2026-01-06 00:09:05.352[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2301[0m
+9¤Ñ
+   [58/122] 3013 ... [32m2026-01-06 00:09:05.670[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3013[0m
+9¤Ñ
+   [59/122] 2615 ... [32m2026-01-06 00:09:06.063[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2615[0m
+9¤Ñ
+   [60/122] 6438 ... [32m2026-01-06 00:09:06.521[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6438[0m
+9¤Ñ
+   [61/122] 9802 ... [32m2026-01-06 00:09:07.084[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 9802[0m
+9¤Ñ
+   [62/122] 5292 ... [32m2026-01-06 00:09:07.380[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 5292[0m
+9¤Ñ
+   [63/122] 1795 ... [32m2026-01-06 00:09:07.659[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1795[0m
+9¤Ñ
+   [64/122] 2436 ... [32m2026-01-06 00:09:07.922[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2436[0m
+9¤Ñ
+   [65/122] 3004 ... [32m2026-01-06 00:09:08.189[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3004[0m
+9¤Ñ
+   [66/122] 3130 ... [32m2026-01-06 00:09:08.458[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3130[0m
+9¤Ñ
+   [67/122] 2204 ... [32m2026-01-06 00:09:08.846[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2204[0m
+9¤Ñ
+   [68/122] 9927 ... [32m2026-01-06 00:09:09.529[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 9927[0m
+9¤Ñ
+   [69/122] 4763 ... [32m2026-01-06 00:09:09.922[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4763[0m
+9¤Ñ
+   [70/122] 4770 ... [32m2026-01-06 00:09:10.202[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4770[0m
+9¤Ñ
+   [71/122] 6862 ... [32m2026-01-06 00:09:10.478[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6862[0m
+9¤Ñ
+   [72/122] 1227 ... [32m2026-01-06 00:09:10.748[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1227[0m
+9¤Ñ
+   [73/122] 2303 ... [32m2026-01-06 00:09:11.015[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2303[0m
+9¤Ñ
+   [74/122] 1514 ... [32m2026-01-06 00:09:11.281[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1514[0m
+9¤Ñ
+   [75/122] 6214 ... [32m2026-01-06 00:09:11.548[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6214[0m
+9¤Ñ
+   [76/122] 6757 ... [32m2026-01-06 00:09:11.816[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6757[0m
+9¤Ñ
+   [77/122] 2382 ... [32m2026-01-06 00:09:12.090[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2382[0m
+9¤Ñ
+   [78/122] 1229 ... [32m2026-01-06 00:09:12.367[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1229[0m
+9¤Ñ
+   [79/122] 2498 ... [32m2026-01-06 00:09:12.720[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2498[0m
+9¤Ñ
+   [80/122] 2327 ... [32m2026-01-06 00:09:13.046[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2327[0m
+9¤Ñ
+   [81/122] 2347 ... [32m2026-01-06 00:09:14.518[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2347[0m
+9¤Ñ
+   [82/122] 1723 ... [32m2026-01-06 00:09:14.787[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1723[0m
+9¤Ñ
+   [83/122] 2915 ... [32m2026-01-06 00:09:15.170[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2915[0m
+9¤Ñ
+   [84/122] 6206 ... [32m2026-01-06 00:09:16.230[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6206[0m
+9¤Ñ
+   [85/122] 1210 ... [32m2026-01-06 00:09:16.609[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1210[0m
+9¤Ñ
+   [86/122] 2313 ... [32m2026-01-06 00:09:16.877[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2313[0m
+9¤Ñ
+   [87/122] 3010 ... [32m2026-01-06 00:09:17.144[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3010[0m
+9¤Ñ
+   [88/122] 3702 ... [32m2026-01-06 00:09:17.420[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3702[0m
+9¤Ñ
+   [89/122] 2412 ... [32m2026-01-06 00:09:17.800[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2412[0m
+9¤Ñ
+   [90/122] 9938 ... [32m2026-01-06 00:09:18.073[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 9938[0m
+9¤Ñ
+   [91/122] 8454 ... [32m2026-01-06 00:09:18.389[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 8454[0m
+9¤Ñ
+   [92/122] 1722 ... [32m2026-01-06 00:09:18.663[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1722[0m
+9¤Ñ
+   [93/122] 6189 ... [32m2026-01-06 00:09:18.936[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6189[0m
+9¤Ñ
+   [94/122] 6592 ... [32m2026-01-06 00:09:19.202[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6592[0m
+9¤Ñ
+   [95/122] 6957 ... [32m2026-01-06 00:09:19.472[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6957[0m
+9¤Ñ
+   [96/122] 2354 ... [32m2026-01-06 00:09:19.747[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2354[0m
+9¤Ñ
+   [97/122] 2451 ... [32m2026-01-06 00:09:20.009[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2451[0m
+9¤Ñ
+   [98/122] 6177 ... [32m2026-01-06 00:09:20.274[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6177[0m
+9¤Ñ
+   [99/122] 2363 ... [32m2026-01-06 00:09:20.654[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2363[0m
+9¤Ñ
+   [100/122] 2618 ... [32m2026-01-06 00:09:21.099[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2618[0m
+9¤Ñ
+   [101/122] 7765 ... [32m2026-01-06 00:09:21.575[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 7765[0m
+9¤Ñ
+   [102/122] 2727 ... [32m2026-01-06 00:09:21.844[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2727[0m
+9¤Ñ
+   [103/122] 2421 ... [32m2026-01-06 00:09:22.105[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2421[0m
+9¤Ñ
+   [104/122] 2636 ... [32m2026-01-06 00:09:22.372[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2636[0m
+9¤Ñ
+   [105/122] 3706 ... [32m2026-01-06 00:09:22.761[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3706[0m
+9¤Ñ
+   [106/122] 4938 ... [32m2026-01-06 00:09:23.140[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4938[0m
+9¤Ñ
+   [107/122] 2474 ... [32m2026-01-06 00:09:23.409[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2474[0m
+9¤Ñ
+   [108/122] 1720 ... [32m2026-01-06 00:09:23.675[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 1720[0m
+9¤Ñ
+   [109/122] 3413 ... [32m2026-01-06 00:09:23.949[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3413[0m
+9¤Ñ
+   [110/122] 3045 ... [32m2026-01-06 00:09:24.216[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3045[0m
+9¤Ñ
+   [111/122] 2497 ... [32m2026-01-06 00:09:24.489[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2497[0m
+9¤Ñ
+   [112/122] 3711 ... [32m2026-01-06 00:09:24.817[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3711[0m
+9¤Ñ
+   [113/122] 9924 ... [32m2026-01-06 00:09:25.079[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 9924[0m
+9¤Ñ
+   [114/122] 4958 ... [32m2026-01-06 00:09:25.378[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4958[0m
+9¤Ñ
+   [115/122] 2912 ... [32m2026-01-06 00:09:25.775[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2912[0m
+9¤Ñ
+   [116/122] 4104 ... [32m2026-01-06 00:09:26.206[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 4104[0m
+9¤Ñ
+   [117/122] 3036 ... [32m2026-01-06 00:09:29.347[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3036[0m
+9¤Ñ
+   [118/122] 6196 ... [32m2026-01-06 00:09:29.625[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6196[0m
+9¤Ñ
+   [119/122] 2211 ... [32m2026-01-06 00:09:31.268[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 2211[0m
+9¤Ñ
+   [120/122] 3042 ... [32m2026-01-06 00:09:31.556[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3042[0m
+9¤Ñ
+   [121/122] 6414 ... [32m2026-01-06 00:09:31.939[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 6414[0m
+9¤Ñ
+   [122/122] 3025 ... [32m2026-01-06 00:09:32.210[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockPrice, data_id: 3025[0m
+9¤Ñ
+   ¦¨¥\122 ¥¢±Ñ0
+[5/6] ³vÀÉ§ìÀç¦¬¡]122 ÀÉ¡^...
+   [1/122] 1503 ... [32m2026-01-06 00:09:32.491[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1503[0m
+YoY=0.0% [DEBUG: 11]
+   [2/122] 2324 ... [32m2026-01-06 00:09:32.953[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2324[0m
+YoY=0.0% [DEBUG: 11]
+   [3/122] 8926 ... [32m2026-01-06 00:09:33.220[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 8926[0m
+YoY=0.0% [DEBUG: 11]
+   [4/122] 9958 ... [32m2026-01-06 00:09:33.481[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 9958[0m
+YoY=0.0%
+   [5/122] 2348 ... [32m2026-01-06 00:09:33.742[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2348[0m
+YoY=0.0%
+   [6/122] 1513 ... [32m2026-01-06 00:09:34.123[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1513[0m
+YoY=0.0%
+   [7/122] 6024 ... [32m2026-01-06 00:09:34.385[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6024[0m
+YoY=0.0%
+   [8/122] 8103 ... [32m2026-01-06 00:09:34.649[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 8103[0m
+YoY=0.0%
+   [9/122] 2317 ... [32m2026-01-06 00:09:35.019[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2317[0m
+YoY=0.0%
+   [10/122] 2395 ... [32m2026-01-06 00:09:35.285[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2395[0m
+YoY=0.0%
+   [11/122] 3673 ... [32m2026-01-06 00:09:35.544[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3673[0m
+YoY=0.0%
+   [12/122] 9904 ... [32m2026-01-06 00:09:35.807[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 9904[0m
+YoY=0.0%
+   [13/122] 4904 ... [32m2026-01-06 00:09:36.069[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4904[0m
+YoY=0.0%
+   [14/122] 4912 ... [32m2026-01-06 00:09:36.332[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4912[0m
+YoY=0.0%
+   [15/122] 3023 ... [32m2026-01-06 00:09:36.597[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3023[0m
+YoY=0.0%
+   [16/122] 3231 ... [32m2026-01-06 00:09:36.859[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3231[0m
+YoY=0.0%
+   [17/122] 1216 ... [32m2026-01-06 00:09:37.127[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1216[0m
+YoY=0.0%
+   [18/122] 3705 ... [32m2026-01-06 00:09:37.409[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3705[0m
+YoY=0.0%
+   [19/122] 5288 ... [32m2026-01-06 00:09:37.678[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5288[0m
+YoY=0.0%
+   [20/122] 1102 ... [32m2026-01-06 00:09:37.961[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1102[0m
+YoY=0.0%
+   [21/122] 5388 ... [32m2026-01-06 00:09:38.258[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5388[0m
+YoY=0.0%
+   [22/122] 6235 ... [32m2026-01-06 00:09:38.526[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6235[0m
+YoY=0.0%
+   [23/122] 8070 ... [32m2026-01-06 00:09:38.796[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 8070[0m
+YoY=0.0%
+   [24/122] 6239 ... [32m2026-01-06 00:09:39.176[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6239[0m
+YoY=0.0%
+   [25/122] 1215 ... [32m2026-01-06 00:09:39.442[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1215[0m
+YoY=0.0%
+   [26/122] 1477 ... [32m2026-01-06 00:09:39.706[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1477[0m
+YoY=0.0%
+   [27/122] 5434 ... [32m2026-01-06 00:09:39.977[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5434[0m
+YoY=0.0%
+   [28/122] 6605 ... [32m2026-01-06 00:09:40.241[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6605[0m
+YoY=0.0%
+   [29/122] 5522 ... [32m2026-01-06 00:09:40.560[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5522[0m
+YoY=0.0%
+   [30/122] 3028 ... [32m2026-01-06 00:09:40.828[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3028[0m
+YoY=0.0%
+   [31/122] 6213 ... [32m2026-01-06 00:09:41.093[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6213[0m
+YoY=0.0%
+   [32/122] 3033 ... [32m2026-01-06 00:09:41.470[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3033[0m
+YoY=0.0%
+   [33/122] 2458 ... [32m2026-01-06 00:09:41.733[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2458[0m
+YoY=0.0%
+   [34/122] 2645 ... [32m2026-01-06 00:09:41.998[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2645[0m
+YoY=0.0%
+   [35/122] 5706 ... [32m2026-01-06 00:09:42.368[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5706[0m
+YoY=0.0%
+   [36/122] 1319 ... [32m2026-01-06 00:09:42.635[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1319[0m
+YoY=0.0%
+   [37/122] 2006 ... [32m2026-01-06 00:09:42.920[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2006[0m
+YoY=0.0%
+   [38/122] 2247 ... [32m2026-01-06 00:09:43.181[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2247[0m
+YoY=0.0%
+   [39/122] 6869 ... [32m2026-01-06 00:09:43.548[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6869[0m
+YoY=0.0%
+   [40/122] 1231 ... [32m2026-01-06 00:09:43.957[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1231[0m
+YoY=0.0%
+   [41/122] 3704 ... [32m2026-01-06 00:09:44.219[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3704[0m
+YoY=0.0%
+   [42/122] 3545 ... [32m2026-01-06 00:09:44.480[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3545[0m
+YoY=0.0%
+   [43/122] 1609 ... [32m2026-01-06 00:09:44.859[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1609[0m
+YoY=0.0%
+   [44/122] 3019 ... [32m2026-01-06 00:09:45.123[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3019[0m
+YoY=0.0%
+   [45/122] 5515 ... [32m2026-01-06 00:09:45.498[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5515[0m
+YoY=0.0%
+   [46/122] 2492 ... [32m2026-01-06 00:09:45.761[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2492[0m
+YoY=0.0%
+   [47/122] 5469 ... [32m2026-01-06 00:09:46.028[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5469[0m
+YoY=0.0%
+   [48/122] 2377 ... [32m2026-01-06 00:09:46.291[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2377[0m
+YoY=0.0%
+   [49/122] 3605 ... [32m2026-01-06 00:09:46.557[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3605[0m
+YoY=0.0%
+   [50/122] 3596 ... [32m2026-01-06 00:09:46.826[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3596[0m
+YoY=0.0%
+   [51/122] 2393 ... [32m2026-01-06 00:09:47.091[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2393[0m
+YoY=0.0%
+   [52/122] 6415 ... [32m2026-01-06 00:09:47.351[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6415[0m
+YoY=0.0%
+   [53/122] 1773 ... [32m2026-01-06 00:09:47.612[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1773[0m
+YoY=0.0%
+   [54/122] 5534 ... [32m2026-01-06 00:09:47.871[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5534[0m
+YoY=0.0%
+   [55/122] 2206 ... [32m2026-01-06 00:09:48.137[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2206[0m
+YoY=0.0%
+   [56/122] 4915 ... [32m2026-01-06 00:09:48.400[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4915[0m
+YoY=0.0%
+   [57/122] 2301 ... [32m2026-01-06 00:09:48.662[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2301[0m
+YoY=0.0%
+   [58/122] 3013 ... [32m2026-01-06 00:09:48.924[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3013[0m
+YoY=0.0%
+   [59/122] 2615 ... [32m2026-01-06 00:09:49.188[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2615[0m
+YoY=0.0%
+   [60/122] 6438 ... [32m2026-01-06 00:09:49.453[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6438[0m
+YoY=0.0%
+   [61/122] 9802 ... [32m2026-01-06 00:09:49.720[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 9802[0m
+YoY=0.0%
+   [62/122] 5292 ... [32m2026-01-06 00:09:50.071[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 5292[0m
+YoY=0.0%
+   [63/122] 1795 ... [32m2026-01-06 00:09:50.449[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1795[0m
+YoY=0.0%
+   [64/122] 2436 ... [32m2026-01-06 00:09:50.713[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2436[0m
+YoY=0.0%
+   [65/122] 3004 ... [32m2026-01-06 00:09:50.981[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3004[0m
+YoY=0.0%
+   [66/122] 3130 ... [32m2026-01-06 00:09:51.300[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3130[0m
+YoY=0.0%
+   [67/122] 2204 ... [32m2026-01-06 00:09:51.698[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2204[0m
+YoY=0.0%
+   [68/122] 9927 ... [32m2026-01-06 00:09:52.089[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 9927[0m
+YoY=0.0%
+   [69/122] 4763 ... [32m2026-01-06 00:09:52.360[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4763[0m
+YoY=0.0%
+   [70/122] 4770 ... [32m2026-01-06 00:09:52.622[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4770[0m
+YoY=0.0%
+   [71/122] 6862 ... [32m2026-01-06 00:09:53.000[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6862[0m
+YoY=0.0%
+   [72/122] 1227 ... [32m2026-01-06 00:09:53.268[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1227[0m
+YoY=0.0%
+   [73/122] 2303 ... [32m2026-01-06 00:09:53.643[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2303[0m
+YoY=0.0%
+   [74/122] 1514 ... [32m2026-01-06 00:09:53.917[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1514[0m
+YoY=0.0%
+   [75/122] 6214 ... [32m2026-01-06 00:09:54.185[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6214[0m
+YoY=0.0%
+   [76/122] 6757 ... [32m2026-01-06 00:09:54.449[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6757[0m
+YoY=0.0%
+   [77/122] 2382 ... [32m2026-01-06 00:09:54.823[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2382[0m
+YoY=0.0%
+   [78/122] 1229 ... [32m2026-01-06 00:09:55.084[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1229[0m
+YoY=0.0%
+   [79/122] 2498 ... [32m2026-01-06 00:09:55.345[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2498[0m
+YoY=0.0%
+   [80/122] 2327 ... [32m2026-01-06 00:09:55.715[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2327[0m
+YoY=0.0%
+   [81/122] 2347 ... [32m2026-01-06 00:09:55.973[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2347[0m
+YoY=0.0%
+   [82/122] 1723 ... [32m2026-01-06 00:09:56.240[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1723[0m
+YoY=0.0%
+   [83/122] 2915 ... [32m2026-01-06 00:09:56.504[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2915[0m
+YoY=0.0%
+   [84/122] 6206 ... [32m2026-01-06 00:09:56.774[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6206[0m
+YoY=0.0%
+   [85/122] 1210 ... [32m2026-01-06 00:09:57.039[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1210[0m
+YoY=0.0%
+   [86/122] 2313 ... [32m2026-01-06 00:09:57.299[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2313[0m
+YoY=0.0%
+   [87/122] 3010 ... [32m2026-01-06 00:09:57.559[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3010[0m
+YoY=0.0%
+   [88/122] 3702 ... [32m2026-01-06 00:09:57.824[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3702[0m
+YoY=0.0%
+   [89/122] 2412 ... [32m2026-01-06 00:09:58.088[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2412[0m
+YoY=0.0%
+   [90/122] 9938 ... [32m2026-01-06 00:09:58.348[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 9938[0m
+YoY=0.0%
+   [91/122] 8454 ... [32m2026-01-06 00:09:58.607[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 8454[0m
+YoY=0.0%
+   [92/122] 1722 ... [32m2026-01-06 00:09:59.072[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1722[0m
+YoY=0.0%
+   [93/122] 6189 ... [32m2026-01-06 00:09:59.440[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6189[0m
+YoY=0.0%
+   [94/122] 6592 ... [32m2026-01-06 00:09:59.702[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6592[0m
+YoY=0.0%
+   [95/122] 6957 ... [32m2026-01-06 00:09:59.964[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6957[0m
+YoY=0.0%
+   [96/122] 2354 ... [32m2026-01-06 00:10:00.226[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2354[0m
+YoY=0.0%
+   [97/122] 2451 ... [32m2026-01-06 00:10:00.509[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2451[0m
+YoY=0.0%
+   [98/122] 6177 ... [32m2026-01-06 00:10:00.783[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6177[0m
+YoY=0.0%
+   [99/122] 2363 ... [32m2026-01-06 00:10:01.219[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2363[0m
+YoY=0.0%
+   [100/122] 2618 ... [32m2026-01-06 00:10:01.665[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2618[0m
+YoY=0.0%
+   [101/122] 7765 ... [32m2026-01-06 00:10:02.100[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 7765[0m
+YoY=0.0%
+   [102/122] 2727 ... [32m2026-01-06 00:10:02.381[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2727[0m
+YoY=0.0%
+   [103/122] 2421 ... [32m2026-01-06 00:10:02.721[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2421[0m
+YoY=0.0%
+   [104/122] 2636 ... [32m2026-01-06 00:10:03.017[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2636[0m
+YoY=0.0%
+   [105/122] 3706 ... [32m2026-01-06 00:10:03.438[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3706[0m
+YoY=0.0%
+   [106/122] 4938 ... [32m2026-01-06 00:10:03.710[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4938[0m
+YoY=0.0%
+   [107/122] 2474 ... [32m2026-01-06 00:10:03.974[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2474[0m
+YoY=0.0%
+   [108/122] 1720 ... [32m2026-01-06 00:10:04.349[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 1720[0m
+YoY=0.0%
+   [109/122] 3413 ... [32m2026-01-06 00:10:04.768[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3413[0m
+YoY=0.0%
+   [110/122] 3045 ... [32m2026-01-06 00:10:05.050[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3045[0m
+YoY=0.0%
+   [111/122] 2497 ... [32m2026-01-06 00:10:05.308[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2497[0m
+YoY=0.0%
+   [112/122] 3711 ... [32m2026-01-06 00:10:05.832[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3711[0m
+YoY=0.0%
+   [113/122] 9924 ... [32m2026-01-06 00:10:06.098[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 9924[0m
+YoY=0.0%
+   [114/122] 4958 ... [32m2026-01-06 00:10:06.367[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4958[0m
+YoY=0.0%
+   [115/122] 2912 ... [32m2026-01-06 00:10:06.632[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2912[0m
+YoY=0.0%
+   [116/122] 4104 ... [32m2026-01-06 00:10:07.315[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 4104[0m
+YoY=0.0%
+   [117/122] 3036 ... [32m2026-01-06 00:10:07.576[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3036[0m
+YoY=0.0%
+   [118/122] 6196 ... [32m2026-01-06 00:10:07.939[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6196[0m
+YoY=0.0%
+   [119/122] 2211 ... [32m2026-01-06 00:10:08.310[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 2211[0m
+YoY=0.0%
+   [120/122] 3042 ... [32m2026-01-06 00:10:08.570[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3042[0m
+YoY=0.0%
+   [121/122] 6414 ... [32m2026-01-06 00:10:08.943[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 6414[0m
+YoY=0.0%
+   [122/122] 3025 ... [32m2026-01-06 00:10:09.213[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockMonthRevenue, data_id: 3025[0m
+YoY=0.0%
+   ¦¨¥\122 ¥¢±Ñ0
+[6/6] ³vÀÉ§ì°]³ø¡]122 ÀÉ¡^...
+   [1/122] 1503 ... [32m2026-01-06 00:10:09.480[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1503[0m
+¤ò§Q=0.0% [DEBUG: rev=0.0]
+   [2/122] 2324 ... [32m2026-01-06 00:10:09.876[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2324[0m
+¤ò§Q=0.0% [DEBUG: rev=0.0]
+   [3/122] 8926 ... [32m2026-01-06 00:10:10.233[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 8926[0m
+¤ò§Q=0.0% [DEBUG: rev=0.0]
+   [4/122] 9958 ... [32m2026-01-06 00:10:10.544[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 9958[0m
+¤ò§Q=0.0%
+   [5/122] 2348 ... [32m2026-01-06 00:10:10.864[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2348[0m
+¤ò§Q=0.0%
+   [6/122] 1513 ... [32m2026-01-06 00:10:15.826[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1513[0m
+¤ò§Q=0.0%
+   [7/122] 6024 ... [32m2026-01-06 00:10:16.158[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6024[0m
+¤ò§Q=0.0%
+   [8/122] 8103 ... [32m2026-01-06 00:10:16.465[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 8103[0m
+¤ò§Q=0.0%
+   [9/122] 2317 ... [32m2026-01-06 00:10:17.303[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2317[0m
+¤ò§Q=0.0%
+   [10/122] 2395 ... [32m2026-01-06 00:10:18.224[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2395[0m
+¤ò§Q=0.0%
+   [11/122] 3673 ... [32m2026-01-06 00:10:18.640[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3673[0m
+¤ò§Q=0.0%
+   [12/122] 9904 ... [32m2026-01-06 00:10:19.062[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 9904[0m
+¤ò§Q=0.0%
+   [13/122] 4904 ... [32m2026-01-06 00:10:19.329[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4904[0m
+¤ò§Q=0.0%
+   [14/122] 4912 ... [32m2026-01-06 00:10:21.971[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4912[0m
+¤ò§Q=0.0%
+   [15/122] 3023 ... [32m2026-01-06 00:10:22.267[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3023[0m
+¤ò§Q=0.0%
+   [16/122] 3231 ... [32m2026-01-06 00:10:22.592[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3231[0m
+¤ò§Q=0.0%
+   [17/122] 1216 ... [32m2026-01-06 00:10:22.920[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1216[0m
+¤ò§Q=0.0%
+   [18/122] 3705 ... [32m2026-01-06 00:10:23.695[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3705[0m
+¤ò§Q=0.0%
+   [19/122] 5288 ... [32m2026-01-06 00:10:24.121[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5288[0m
+¤ò§Q=0.0%
+   [20/122] 1102 ... [32m2026-01-06 00:10:24.548[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1102[0m
+¤ò§Q=0.0%
+   [21/122] 5388 ... [32m2026-01-06 00:10:24.894[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5388[0m
+¤ò§Q=0.0%
+   [22/122] 6235 ... [32m2026-01-06 00:10:25.203[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6235[0m
+¤ò§Q=0.0%
+   [23/122] 8070 ... [32m2026-01-06 00:10:25.470[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 8070[0m
+¤ò§Q=0.0%
+   [24/122] 6239 ... [32m2026-01-06 00:10:25.738[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6239[0m
+¤ò§Q=0.0%
+   [25/122] 1215 ... [32m2026-01-06 00:10:26.060[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1215[0m
+¤ò§Q=0.0%
+   [26/122] 1477 ... [32m2026-01-06 00:10:26.386[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1477[0m
+¤ò§Q=0.0%
+   [27/122] 5434 ... [32m2026-01-06 00:10:26.704[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5434[0m
+¤ò§Q=0.0%
+   [28/122] 6605 ... [32m2026-01-06 00:10:27.006[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6605[0m
+¤ò§Q=0.0%
+   [29/122] 5522 ... [32m2026-01-06 00:10:27.339[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5522[0m
+¤ò§Q=0.0%
+   [30/122] 3028 ... [32m2026-01-06 00:10:27.604[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3028[0m
+¤ò§Q=0.0%
+   [31/122] 6213 ... [32m2026-01-06 00:10:27.919[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6213[0m
+¤ò§Q=0.0%
+   [32/122] 3033 ... [32m2026-01-06 00:10:28.218[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3033[0m
+¤ò§Q=0.0%
+   [33/122] 2458 ... [32m2026-01-06 00:10:28.551[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2458[0m
+¤ò§Q=0.0%
+   [34/122] 2645 ... [32m2026-01-06 00:10:28.959[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2645[0m
+¤ò§Q=0.0%
+   [35/122] 5706 ... [32m2026-01-06 00:10:29.265[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5706[0m
+¤ò§Q=0.0%
+   [36/122] 1319 ... [32m2026-01-06 00:10:29.607[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1319[0m
+¤ò§Q=0.0%
+   [37/122] 2006 ... [32m2026-01-06 00:10:29.877[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2006[0m
+¤ò§Q=0.0%
+   [38/122] 2247 ... [32m2026-01-06 00:10:30.223[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2247[0m
+¤ò§Q=0.0%
+   [39/122] 6869 ... [32m2026-01-06 00:10:30.954[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6869[0m
+¤ò§Q=0.0%
+   [40/122] 1231 ... [32m2026-01-06 00:10:31.287[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1231[0m
+¤ò§Q=0.0%
+   [41/122] 3704 ... [32m2026-01-06 00:10:31.658[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3704[0m
+¤ò§Q=0.0%
+   [42/122] 3545 ... [32m2026-01-06 00:10:31.988[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3545[0m
+¤ò§Q=0.0%
+   [43/122] 1609 ... [32m2026-01-06 00:10:32.316[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1609[0m
+¤ò§Q=0.0%
+   [44/122] 3019 ... [32m2026-01-06 00:10:32.588[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3019[0m
+¤ò§Q=0.0%
+   [45/122] 5515 ... [32m2026-01-06 00:10:33.145[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5515[0m
+¤ò§Q=0.0%
+   [46/122] 2492 ... [32m2026-01-06 00:10:33.457[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2492[0m
+¤ò§Q=0.0%
+   [47/122] 5469 ... [32m2026-01-06 00:10:33.849[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5469[0m
+¤ò§Q=0.0%
+   [48/122] 2377 ... [32m2026-01-06 00:10:34.119[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2377[0m
+¤ò§Q=0.0%
+   [49/122] 3605 ... [32m2026-01-06 00:10:34.448[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3605[0m
+¤ò§Q=0.0%
+   [50/122] 3596 ... [32m2026-01-06 00:10:34.782[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3596[0m
+¤ò§Q=0.0%
+   [51/122] 2393 ... [32m2026-01-06 00:10:35.093[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2393[0m
+¤ò§Q=0.0%
+   [52/122] 6415 ... [32m2026-01-06 00:10:35.392[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6415[0m
+¤ò§Q=0.0%
+   [53/122] 1773 ... [32m2026-01-06 00:10:35.731[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1773[0m
+¤ò§Q=0.0%
+   [54/122] 5534 ... [32m2026-01-06 00:10:36.343[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5534[0m
+¤ò§Q=0.0%
+   [55/122] 2206 ... [32m2026-01-06 00:10:36.690[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2206[0m
+¤ò§Q=0.0%
+   [56/122] 4915 ... [32m2026-01-06 00:10:37.134[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4915[0m
+¤ò§Q=0.0%
+   [57/122] 2301 ... [32m2026-01-06 00:10:37.593[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2301[0m
+¤ò§Q=0.0%
+   [58/122] 3013 ... [32m2026-01-06 00:10:37.904[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3013[0m
+¤ò§Q=0.0%
+   [59/122] 2615 ... [32m2026-01-06 00:10:38.289[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2615[0m
+¤ò§Q=0.0%
+   [60/122] 6438 ... [32m2026-01-06 00:10:38.628[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6438[0m
+¤ò§Q=0.0%
+   [61/122] 9802 ... [32m2026-01-06 00:10:38.901[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 9802[0m
+¤ò§Q=0.0%
+   [62/122] 5292 ... [32m2026-01-06 00:10:39.209[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 5292[0m
+¤ò§Q=0.0%
+   [63/122] 1795 ... [32m2026-01-06 00:10:39.527[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1795[0m
+¤ò§Q=0.0%
+   [64/122] 2436 ... [32m2026-01-06 00:10:39.832[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2436[0m
+¤ò§Q=0.0%
+   [65/122] 3004 ... [32m2026-01-06 00:10:40.591[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3004[0m
+¤ò§Q=0.0%
+   [66/122] 3130 ... [32m2026-01-06 00:10:41.129[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3130[0m
+¤ò§Q=0.0%
+   [67/122] 2204 ... [32m2026-01-06 00:10:41.537[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2204[0m
+¤ò§Q=0.0%
+   [68/122] 9927 ... [32m2026-01-06 00:10:42.045[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 9927[0m
+¤ò§Q=0.0%
+   [69/122] 4763 ... [32m2026-01-06 00:10:42.380[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4763[0m
+¤ò§Q=0.0%
+   [70/122] 4770 ... [32m2026-01-06 00:10:42.875[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4770[0m
+¤ò§Q=0.0%
+   [71/122] 6862 ... [32m2026-01-06 00:10:43.195[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6862[0m
+¤ò§Q=0.0%
+   [72/122] 1227 ... [32m2026-01-06 00:10:48.255[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1227[0m
+¤ò§Q=0.0%
+   [73/122] 2303 ... [32m2026-01-06 00:10:48.631[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2303[0m
+¤ò§Q=0.0%
+   [74/122] 1514 ... [32m2026-01-06 00:10:49.009[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1514[0m
+¤ò§Q=0.0%
+   [75/122] 6214 ... [32m2026-01-06 00:10:49.330[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6214[0m
+¤ò§Q=0.0%
+   [76/122] 6757 ... [32m2026-01-06 00:10:49.642[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6757[0m
+¤ò§Q=0.0%
+   [77/122] 2382 ... [32m2026-01-06 00:10:49.951[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2382[0m
+¤ò§Q=0.0%
+   [78/122] 1229 ... [32m2026-01-06 00:10:50.394[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1229[0m
+¤ò§Q=0.0%
+   [79/122] 2498 ... [32m2026-01-06 00:10:50.660[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2498[0m
+¤ò§Q=0.0%
+   [80/122] 2327 ... [32m2026-01-06 00:10:50.960[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2327[0m
+¤ò§Q=0.0%
+   [81/122] 2347 ... [32m2026-01-06 00:10:51.517[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2347[0m
+¤ò§Q=0.0%
+   [82/122] 1723 ... [32m2026-01-06 00:10:51.954[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1723[0m
+¤ò§Q=0.0%
+   [83/122] 2915 ... [32m2026-01-06 00:10:52.409[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2915[0m
+¤ò§Q=0.0%
+   [84/122] 6206 ... [32m2026-01-06 00:10:52.729[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6206[0m
+¤ò§Q=0.0%
+   [85/122] 1210 ... [32m2026-01-06 00:10:53.078[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1210[0m
+¤ò§Q=0.0%
+   [86/122] 2313 ... [32m2026-01-06 00:10:53.431[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2313[0m
+¤ò§Q=0.0%
+   [87/122] 3010 ... [32m2026-01-06 00:10:53.751[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3010[0m
+¤ò§Q=0.0%
+   [88/122] 3702 ... [32m2026-01-06 00:10:54.094[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3702[0m
+¤ò§Q=0.0%
+   [89/122] 2412 ... [32m2026-01-06 00:10:54.513[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2412[0m
+¤ò§Q=0.0%
+   [90/122] 9938 ... [32m2026-01-06 00:10:54.823[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 9938[0m
+¤ò§Q=0.0%
+   [91/122] 8454 ... [32m2026-01-06 00:10:55.115[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 8454[0m
+¤ò§Q=0.0%
+   [92/122] 1722 ... [32m2026-01-06 00:10:55.529[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1722[0m
+¤ò§Q=0.0%
+   [93/122] 6189 ... [32m2026-01-06 00:10:55.964[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6189[0m
+¤ò§Q=0.0%
+   [94/122] 6592 ... [32m2026-01-06 00:10:56.331[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6592[0m
+¤ò§Q=0.0%
+   [95/122] 6957 ... [32m2026-01-06 00:10:56.667[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6957[0m
+¤ò§Q=0.0%
+   [96/122] 2354 ... [32m2026-01-06 00:10:56.934[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2354[0m
+¤ò§Q=0.0%
+   [97/122] 2451 ... [32m2026-01-06 00:10:57.234[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2451[0m
+¤ò§Q=0.0%
+   [98/122] 6177 ... [32m2026-01-06 00:10:57.556[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6177[0m
+¤ò§Q=0.0%
+   [99/122] 2363 ... [32m2026-01-06 00:10:57.852[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2363[0m
+¤ò§Q=0.0%
+   [100/122] 2618 ... [32m2026-01-06 00:10:58.315[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2618[0m
+¤ò§Q=0.0%
+   [101/122] 7765 ... [32m2026-01-06 00:10:58.726[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 7765[0m
+¤ò§Q=0.0%
+   [102/122] 2727 ... [32m2026-01-06 00:10:59.266[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2727[0m
+¤ò§Q=0.0%
+   [103/122] 2421 ... [32m2026-01-06 00:10:59.543[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2421[0m
+¤ò§Q=0.0%
+   [104/122] 2636 ... [32m2026-01-06 00:10:59.854[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2636[0m
+¤ò§Q=0.0%
+   [105/122] 3706 ... [32m2026-01-06 00:11:00.180[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3706[0m
+¤ò§Q=0.0%
+   [106/122] 4938 ... [32m2026-01-06 00:11:00.527[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4938[0m
+¤ò§Q=0.0%
+   [107/122] 2474 ... [32m2026-01-06 00:11:00.851[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2474[0m
+¤ò§Q=0.0%
+   [108/122] 1720 ... [32m2026-01-06 00:11:01.158[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 1720[0m
+¤ò§Q=0.0%
+   [109/122] 3413 ... [32m2026-01-06 00:11:01.455[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3413[0m
+¤ò§Q=0.0%
+   [110/122] 3045 ... [32m2026-01-06 00:11:01.746[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3045[0m
+¤ò§Q=0.0%
+   [111/122] 2497 ... [32m2026-01-06 00:11:02.085[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2497[0m
+¤ò§Q=0.0%
+   [112/122] 3711 ... [32m2026-01-06 00:11:02.428[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3711[0m
+¤ò§Q=0.0%
+   [113/122] 9924 ... [32m2026-01-06 00:11:02.855[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 9924[0m
+¤ò§Q=0.0%
+   [114/122] 4958 ... [32m2026-01-06 00:11:03.151[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4958[0m
+¤ò§Q=0.0%
+   [115/122] 2912 ... [32m2026-01-06 00:11:03.507[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2912[0m
+¤ò§Q=0.0%
+   [116/122] 4104 ... [32m2026-01-06 00:11:03.832[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 4104[0m
+¤ò§Q=0.0%
+   [117/122] 3036 ... [32m2026-01-06 00:11:04.139[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3036[0m
+¤ò§Q=0.0%
+   [118/122] 6196 ... [32m2026-01-06 00:11:04.585[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6196[0m
+¤ò§Q=0.0%
+   [119/122] 2211 ... [32m2026-01-06 00:11:04.850[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 2211[0m
+¤ò§Q=0.0%
+   [120/122] 3042 ... [32m2026-01-06 00:11:05.260[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3042[0m
+¤ò§Q=0.0%
+   [121/122] 6414 ... [32m2026-01-06 00:11:05.725[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 6414[0m
+¤ò§Q=0.0%
+   [122/122] 3025 ... [32m2026-01-06 00:11:06.061[0m | [1mINFO    [0m | [36mFinMind.data.finmind_api[0m:[36mget_data[0m:[36m171[0m - [1mdownload Dataset.TaiwanStockFinancialStatements, data_id: 3025[0m
+¤ò§Q=0.0%
+   ¦¨¥\122 ¥¢±Ñ0
+
+¿z¿ï­Ô¿ïªÑ...
+  PE ¿z¿ï«á: 122 ÀÉ
+
+³Ì²×³q¹L: 0 ÀÉ
+Traceback (most recent call last):
+  File "D:\claude-project\STOCK_HUNTER\scan_v4_simple.py", line 538, in <module>
+    main()
+    ~~~~^^
+  File "D:\claude-project\STOCK_HUNTER\scan_v4_simple.py", line 527, in main
+    save_results(results)
+    ~~~~~~~~~~~~^^^^^^^^^
+  File "D:\claude-project\STOCK_HUNTER\scan_v4_simple.py", line 501, in save_results
+    print(f'\u2705 ¤w¦s: {daily_file}')
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp950' codec can't encode character '\u2705' in position 0: illegal multibyte sequence
