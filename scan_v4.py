@@ -51,9 +51,9 @@ ARGS = parser.parse_args()
 
 # FinMind API Tokens (第一個是 Backer 付費版 1600/hr)
 FINMIND_TOKENS = [
+    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wNSAyMzowODozMSIsInVzZXJfaWQiOiJhdGl0aSIsImVtYWlsIjoiYXRpdGk0MzYxQGdtYWlsLmNvbSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.MEcPu8FHrrY2ES1j26NRO9Dg9E2ekEhM4B5rlCPidSI',  # 2026-01-05 最新付費版
     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMyAwMDoxODoyNSIsInVzZXJfaWQiOiJhdGl0aSIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.0AoJDWaK-mWt1OhdyL6JdOI5TOkSpNEe-tDoI34aHjI',
     'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAyMjowNTozNSIsInVzZXJfaWQiOiJhdGl0aTQzNiIsImlwIjoiMTExLjI0My4xNDIuOTkifQ.ejONnKY_3b9tqA7wh47d2r5yfUKCFWybdNSkrJp3C10',
-    'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJkYXRlIjoiMjAyNi0wMS0wMSAyMjowODo1OCIsInVzZXJfaWQiOiJ4aWFpIiwiaXAiOiIxMTEuMjQzLjE0Mi45OSJ9.-sWtQw0UY8FkMCR8Tg_Lp9kO-UkRhjLTqRrlDXXpk10',
 ]
 CURRENT_TOKEN_INDEX = 0
 
@@ -254,70 +254,29 @@ def calculate_batch_profit(price):
         },
     }
 
-def fetch_historical_prices(ticker, days=10):
+def fetch_historical_prices(ticker, days=10, cache=None):
     """
-    抓取歷史股價（用於計算 5 日漲幅、5 日均量）
-    使用 FinMind API (比證交所穩定)
+    v4.2: 從快取讀取歷史股價（不再呼叫 API）
+    用於計算 5 日漲幅、5 日均量、MA10/MA20、RSI
+
+    參數:
+        ticker: 股票代號
+        days: 需要幾天資料
+        cache: historical_data_cache 字典
+
     返回: [(date, close, volume), ...]，最新的在前面
     """
-    max_retries = len(FINMIND_TOKENS)
+    if cache is None or ticker not in cache:
+        return []
 
-    for attempt in range(max_retries):
-        try:
-            from FinMind.data import DataLoader
-            dl = DataLoader()
-            dl.login_by_token(api_token=get_finmind_token())
-
-            # 計算日期範圍
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=days+5)  # 多抓幾天避免假日
-
-            start_str = start_date.strftime('%Y-%m-%d')
-            end_str = end_date.strftime('%Y-%m-%d')
-
-            # 使用 FinMind 抓歷史股價
-            df = dl.taiwan_stock_daily(
-                stock_id=ticker,
-                start_date=start_str,
-                end_date=end_str
-            )
-
-            if df is None or df.empty:
-                return []
-
-            prices = []
-            for _, row in df.iterrows():
-                try:
-                    date_str = str(row.get('date', '')).replace('-', '')  # 2025-12-30 → 20251230
-                    close = float(row.get('close', 0))
-                    volume = int(row.get('Trading_Volume', 0)) // 1000  # 轉成張
-
-                    if close > 0 and volume > 0:
-                        prices.append((date_str, close, volume))
-                except:
-                    continue
-
-            # 只取最近 N 天，新的在前
-            return sorted(prices, key=lambda x: x[0], reverse=True)[:days]
-
-        except ImportError:
-            print(f'   [{ticker}] FinMind 未安裝')
-            return []
-        except Exception as e:
-            if attempt < max_retries - 1:
-                rotate_token()
-                continue
-            else:
-                print(f'   [{ticker}] 歷史股價抓取失敗（已重試 {max_retries} 次）: {e}')
-                return []
-
-    return []
+    # 直接從快取讀取，已經排序好了（新的在前）
+    return cache[ticker][:days]
 
 
 def fetch_institutional_history_for_stocks(tickers, days=7):
     """
-    逐檔抓取法人買賣超 (v3.2 修正版 + TOKEN 輪替)
-    改成逐檔抓取，避免 FinMind 免費版 API 限制
+    批量抓取法人買賣超 (v4.2 優化版 - 一次抓全市場)
+    改用批量抓取，從 122 次 API 呼叫降到 1 次！
 
     參數:
         tickers: 股票代號清單 ['2330', '2603', ...]
@@ -341,97 +300,106 @@ def fetch_institutional_history_for_stocks(tickers, days=7):
     end_str = end_date.strftime('%Y-%m-%d')
 
     print(f'   法人資料範圍: {start_str} ~ {end_str}')
-    print(f'   逐檔抓取 {len(tickers)} 檔法人資料...')
+    print(f'   [v4.2] 批量抓取全市場法人資料（1次API呼叫）...')
 
-    result = {}
-    success_count = 0
-    retry_count = 0
+    # v4.2: 一次抓全市場法人資料（不指定 stock_id）
     max_retries = len(FINMIND_TOKENS)
+    df_all = None
 
-    for i, ticker in enumerate(tickers, 1):
-        fetched = False
+    for attempt in range(max_retries):
+        try:
+            dl = DataLoader()
+            dl.login_by_token(api_token=get_finmind_token())
 
-        for attempt in range(max_retries):
-            try:
-                dl = DataLoader()
-                dl.login_by_token(api_token=get_finmind_token())
+            # 批量抓取：不指定 stock_id = 抓全市場
+            df_all = dl.taiwan_stock_institutional_investors(
+                start_date=start_str,
+                end_date=end_str
+            )
 
-                # 逐檔抓取
-                df = dl.taiwan_stock_institutional_investors(
-                    stock_id=ticker,
-                    start_date=start_str,
-                    end_date=end_str
-                )
-
-                if df is None or df.empty:
-                    fetched = True
-                    break
-
-                # 整理該檔股票的法人資料
-                ticker_data = {}
-
-                for _, row in df.iterrows():
-                    date_str = str(row.get('date', '')).replace('-', '')
-                    name = str(row.get('name', '')).strip()
-                    buy = int(row.get('buy', 0))
-                    sell = int(row.get('sell', 0))
-                    net = (buy - sell) // 1000  # 轉成張
-
-                    if not date_str:
-                        continue
-
-                    if date_str not in ticker_data:
-                        ticker_data[date_str] = {
-                            'date': date_str,
-                            'foreign': 0,
-                            'trust': 0,
-                            'total': 0
-                        }
-
-                    # 累加外資和投信
-                    if 'Foreign_Investor' in name:
-                        ticker_data[date_str]['foreign'] += net
-                    elif 'Investment_Trust' in name:
-                        ticker_data[date_str]['trust'] += net
-
-                    ticker_data[date_str]['total'] = (
-                        ticker_data[date_str]['foreign'] +
-                        ticker_data[date_str]['trust']
-                    )
-
-                # 轉成 list 並排序
-                if ticker_data:
-                    result[ticker] = sorted(
-                        ticker_data.values(),
-                        key=lambda x: x['date'],
-                        reverse=True
-                    )
-                    success_count += 1
-
-                fetched = True
+            if df_all is not None and not df_all.empty:
+                print(f'   [OK] 取得全市場法人資料 ({len(df_all)} 筆原始資料)')
                 break
-
-            except Exception as e:
+            else:
+                print(f'   [WARN] 嘗試 {attempt + 1}/{max_retries} 無資料')
                 if attempt < max_retries - 1:
                     rotate_token()
-                    retry_count += 1
-                    time.sleep(0.3)
-                    continue
-                else:
-                    if i <= 3:  # 只顯示前 3 筆錯誤
-                        print(f'      [{ticker}] 法人失敗（已重試 {max_retries} 次）: {e}')
-                    if len(HEALTH_CHECK['errors']) < 3:
-                        HEALTH_CHECK['errors'].append(f"法人API: {str(e)[:50]}")
-                    break
+                    time.sleep(1)
 
-        # 進度顯示 + 避免被擋
-        if i % 20 == 0:
-            print(f'      法人進度: {i}/{len(tickers)} ({success_count} 成功, {retry_count} 重試)')
-            time.sleep(0.5)
+        except Exception as e:
+            error_msg = str(e).lower()
+            is_rate_limit = ('429' in error_msg or 'rate limit' in error_msg or 'too many' in error_msg)
 
+            print(f'   [ERROR] 法人API失敗 (嘗試 {attempt + 1}/{max_retries}): {e}')
+
+            if attempt < max_retries - 1:
+                if is_rate_limit:
+                    rotate_token()  # 只在 Rate Limit 時切換 Token
+                    print('   [WARN] 偵測到 Rate Limit，切換 Token 重試')
+                time.sleep(1)
+            else:
+                HEALTH_CHECK['errors'].append(f"法人API: {str(e)[:50]}")
+                return {}
+
+    if df_all is None or df_all.empty:
+        print('   [ERROR] 法人資料抓取失敗')
+        return {}
+
+    # 整理資料：按股票代號分組
+    result = {}
+    tickers_set = set(tickers)
+
+    for _, row in df_all.iterrows():
+        stock_id = str(row.get('stock_id', '')).strip()
+
+        # 只處理我們需要的股票
+        if stock_id not in tickers_set:
+            continue
+
+        date_str = str(row.get('date', '')).replace('-', '')
+        name = str(row.get('name', '')).strip()
+        buy = int(row.get('buy', 0))
+        sell = int(row.get('sell', 0))
+        net = (buy - sell) // 1000  # 轉成張
+
+        if not date_str:
+            continue
+
+        # 初始化股票資料結構
+        if stock_id not in result:
+            result[stock_id] = {}
+
+        if date_str not in result[stock_id]:
+            result[stock_id][date_str] = {
+                'date': date_str,
+                'foreign': 0,
+                'trust': 0,
+                'total': 0
+            }
+
+        # 累加外資和投信
+        if 'Foreign_Investor' in name:
+            result[stock_id][date_str]['foreign'] += net
+        elif 'Investment_Trust' in name:
+            result[stock_id][date_str]['trust'] += net
+
+        result[stock_id][date_str]['total'] = (
+            result[stock_id][date_str]['foreign'] +
+            result[stock_id][date_str]['trust']
+        )
+
+    # 轉成 list 並排序
+    for stock_id in result:
+        result[stock_id] = sorted(
+            result[stock_id].values(),
+            key=lambda x: x['date'],
+            reverse=True
+        )
+
+    success_count = len(result)
     HEALTH_CHECK['inst_success'] = success_count
     HEALTH_CHECK['inst_total'] = len(tickers)
-    print(f'   取得 {success_count}/{len(tickers)} 檔法人資料 (共重試 {retry_count} 次)')
+    print(f'   [OK] 整理完成：{success_count}/{len(tickers)} 檔有法人資料')
     return result
 
 
@@ -766,42 +734,42 @@ def main():
 
     # === Offline 模式：直接讀取快取 ===
     if ARGS.offline:
-        print('\n📂 【OFFLINE 模式】使用本地快取，不呼叫 API')
+        print('\n[OFFLINE] 使用本地快取，不呼叫 API')
         print('=' * 80)
-        
+
         # 找最新的 history 檔案
         history_dir = 'data/history'
         if not os.path.exists(history_dir):
-            print('❌ 錯誤: data/history/ 目錄不存在，請先跑 git pull')
+            print('[ERROR] data/history/ 目錄不存在，請先跑 git pull')
             return
-        
+
         # 找最新的 json 檔案（排除 all_history.json）
-        json_files = [f for f in os.listdir(history_dir) 
+        json_files = [f for f in os.listdir(history_dir)
                       if f.endswith('.json') and f != 'all_history.json']
         if not json_files:
-            print('❌ 錯誤: data/history/ 沒有資料檔案')
+            print('[ERROR] data/history/ 沒有資料檔案')
             return
-        
+
         latest_file = sorted(json_files)[-1]  # 按日期排序取最新
         cache_path = os.path.join(history_dir, latest_file)
-        
+
         with open(cache_path, 'r', encoding='utf-8') as f:
             cache_data = json.load(f)
-        
+
         # 顯示資料來源資訊
         data_date = cache_data.get('date', '未知')
         cache_time = cache_data.get('timestamp', '未知')
         stock_count = cache_data.get('count', 0)
-        
-        print(f'📅 資料日期: {data_date}')
-        print(f'⏰ 快取時間: {cache_time}')
-        print(f'📊 股票數量: {stock_count} 檔')
+
+        print(f'[DATA] 資料日期: {data_date}')
+        print(f'[TIME] 快取時間: {cache_time}')
+        print(f'[COUNT] 股票數量: {stock_count} 檔')
         print('=' * 80)
-        
+
         # 檢查資料是否過舊
         today = datetime.now().strftime('%Y-%m-%d')
         if data_date != today:
-            print(f'⚠️ 警告: 資料日期 {data_date} 非今日 {today}')
+            print(f'[WARN] 資料日期 {data_date} 非今日 {today}')
             print('   如需最新資料，請使用: python scan_v4.py')
         
         # 轉換為 output_results 需要的格式
@@ -845,46 +813,72 @@ def main():
         print('詳細結果已存到 scan_result_v4.txt')
         return
 
-    # 1. 抓取當日股價 (改用 FinMind 全市場，17:30 就有資料)
-    print('\n[1/5] 抓取當日股價...')
+    # 1. 抓取當日股價 + 歷史30天 (v4.2 優化：一次抓完，供後續使用)
+    print('\n[1/5] 抓取全市場股價（含30天歷史）...')
     stocks = {}
+    historical_data_cache = {}  # 新增：快取歷史股價
 
     try:
         from FinMind.data import DataLoader
         dl = DataLoader()
         dl.login_by_token(api_token=get_finmind_token())
 
-        # 抓最近一個交易日的股價（可能是今天或昨天）
-        # 先試今天，沒資料就往前找
+        # v4.2: 一次抓取最近30天全市場股價
         today = datetime.now()
-        df = None
-        data_date = None
-        
-        for days_back in range(3):  # 最多往前找 3 天（週末）
-            check_date = (today - timedelta(days=days_back)).strftime('%Y-%m-%d')
-            print(f'   正在從 FinMind 抓取 {check_date} 全市場股價...')
-            
-            df = dl.taiwan_stock_daily(
-                start_date=check_date,
-                end_date=check_date
-            )
-            
-            if df is not None and not df.empty:
-                data_date = check_date
-                print(f'   ✅ 取得 {check_date} 資料 ({len(df)} 筆)')
-                break
-            else:
-                print(f'   ⚠️ {check_date} 無資料，往前找...')
-        
+        start_date = (today - timedelta(days=35)).strftime('%Y-%m-%d')  # 多抓5天避免假日
+        end_date = today.strftime('%Y-%m-%d')
+
+        print(f'   [v4.2] 批量抓取：{start_date} ~ {end_date}')
+
+        df = dl.taiwan_stock_daily(
+            start_date=start_date,
+            end_date=end_date
+        )
+
         if df is None or df.empty:
-            print('   ❌ FinMind 無資料，改用證交所 API')
+            print('   [ERROR] FinMind 無資料')
             raise Exception("FinMind 無資料")
 
-        # 記錄資料日期
-        HEALTH_CHECK['data_date'] = df['date'].iloc[0] if not df.empty else ''
+        print(f'   [OK] 取得全市場歷史股價 ({len(df)} 筆原始資料)')
 
-        # 解析 FinMind 資料格式
+        # 找最新交易日
+        df_sorted = df.sort_values('date', ascending=False)
+        data_date = str(df_sorted['date'].iloc[0]) if not df_sorted.empty else ''
+        HEALTH_CHECK['data_date'] = data_date
+
+        print(f'   [OK] 最新交易日：{data_date}')
+
+        # v4.2: 建立歷史資料快取（按股票代號分組）
+        print('   [v4.2] 建立歷史資料快取...')
         for _, row in df.iterrows():
+            ticker = str(row.get('stock_id', '')).strip()
+            if not (ticker.isdigit() and len(ticker) == 4):
+                continue
+            if is_excluded_stock(ticker):
+                continue
+
+            date_str = str(row.get('date', '')).replace('-', '')
+            close = float(row.get('close', 0))
+            volume = int(row.get('Trading_turnover', 0))  # 張數
+
+            if close > 0 and volume > 0:
+                if ticker not in historical_data_cache:
+                    historical_data_cache[ticker] = []
+                historical_data_cache[ticker].append((date_str, close, volume))
+
+        # 排序：新的在前
+        for ticker in historical_data_cache:
+            historical_data_cache[ticker] = sorted(
+                historical_data_cache[ticker],
+                key=lambda x: x[0],
+                reverse=True
+            )
+
+        print(f'   [OK] 快取建立完成：{len(historical_data_cache)} 檔股票')
+
+        # 解析最新交易日的股價資料（用於篩選）
+        df_latest = df_sorted[df_sorted['date'] == data_date]
+        for _, row in df_latest.iterrows():
             ticker = str(row.get('stock_id', '')).strip()
 
             # 只要 4 位數股票代號
@@ -931,7 +925,7 @@ def main():
     except Exception as e:
         # Fallback: 改用證交所 STOCK_DAY API (個股查詢，資料正確)
         print(f'   FinMind 失敗 ({e})，改用證交所 STOCK_DAY API...')
-        print('   ⚠️ 這會比較慢（需逐檔查詢），但資料正確')
+        print('   [WARN] 這會比較慢（需逐檔查詢），但資料正確')
         
         # 先取得股票清單
         url_list = 'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'
@@ -1060,12 +1054,13 @@ def main():
 
     # 4. 抓取歷史股價（計算 5 日漲幅、均量）
     print('\n[4/5] 計算歷史技術指標...')
-    print('   (這會花一點時間，請稍候...)')
+    print('   [v4.2] 從快取讀取，無需 API 呼叫')
 
     historical_data = {}
     count = 0
     for ticker in candidate_tickers:  # 改用 candidate_tickers (已經過 PE 篩選)
-        prices = fetch_historical_prices(ticker, days=20)  # v3.3: 改成 20 天支援 RSI14
+        # v4.2: 從快取讀取，不呼叫 API
+        prices = fetch_historical_prices(ticker, days=20, cache=historical_data_cache)
         if prices:
             day5_change = calculate_5day_change(prices)
             avg_volume = calculate_5day_avg_volume(prices)
@@ -1078,11 +1073,8 @@ def main():
                     '5day_avg_volume': avg_volume
                 }
                 count += 1
-                if count % 10 == 0:
-                    print(f'   已處理 {count} 檔...')
-                    time.sleep(2)  # 避免被擋
 
-    print(f'   取得 {len(historical_data)} 檔歷史資料 (資料完整)')
+    print(f'   [OK] 處理完成：{len(historical_data)}/{len(candidate_tickers)} 檔有歷史資料')
 
     # 5. 抓取財報（毛利率、營業利益率）
     print('\n[5/6] 抓取財報資料...')
