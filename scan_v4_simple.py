@@ -150,10 +150,29 @@ def fetch_all_stocks():
 def fetch_pe_ratios(stocks):
     print('[2/6] 抓 PE 本益比...')
     url = 'https://www.twse.com.tw/rwd/zh/afterTrading/BWIBBU_d?date='
-    date_str = datetime.now().strftime('%Y%m%d')
+
+    # 嘗試今天，如果沒資料就用昨天（凌晨時證交所還沒更新）
+    for days_back in range(3):
+        date_str = (datetime.now() - timedelta(days=days_back)).strftime('%Y%m%d')
+        try:
+            print(f'   嘗試日期: {date_str}...', end=' ')
+            resp = requests.get(url + date_str, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10, verify=False)
+            data = resp.json()
+
+            if data.get('data') and len(data.get('data', [])) > 0:
+                print(f'OK ({len(data["data"])} 筆)')
+                break
+            else:
+                print('無資料')
+                continue
+        except Exception as e:
+            print(f'錯誤: {e}')
+            continue
+    else:
+        print('   [ERROR] 無法取得 PE 資料')
+        return {}
+
     try:
-        resp = requests.get(url + date_str, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10, verify=False)
-        data = resp.json()
         pe_data = {}
         stock_names = {}
         for item in data.get('data', []):
@@ -178,7 +197,7 @@ def fetch_pe_ratios(stocks):
                 stocks[ticker]['name'] = stock_names[ticker]
         return pe_data
     except Exception as e:
-        print(f'   錯誤: {e}')
+        print(f'   [ERROR] 解析 PE 資料失敗: {e}')
         return {}
 
 # ===== 步驟3：法人（FOR 迴圈，5天）=====
