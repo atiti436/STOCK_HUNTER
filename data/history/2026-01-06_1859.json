@@ -1,0 +1,26 @@
+{
+  "date": "2026-01-06",
+  "timestamp": "2026-01-06T18:59:38.208497",
+  "count": 1,
+  "stocks": [
+    {
+      "ticker": "2395",
+      "name": "研華",
+      "price": 288.0,
+      "change_pct": -0.52,
+      "pe": 24.72,
+      "inst_5day": 403,
+      "inst_1month": -3284,
+      "inst_leader": "外資",
+      "buy_days": 2,
+      "5day_change": 0.35,
+      "revenue_yoy": 0,
+      "rsi": 71.7,
+      "stop_loss": 282.81,
+      "take_profit": 345.6,
+      "stop_note": "守MA20",
+      "ma10": 286.35,
+      "ma20": 282.81
+    }
+  ]
+}
