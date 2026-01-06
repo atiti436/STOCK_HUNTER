@@ -26,8 +26,8 @@ jobs:
           pip install --upgrade pip
           pip install FinMind pandas requests urllib3
 
-      - name: Run stock screening (v4.0)
-        run: python scan_v4.py
+      - name: Run stock screening (v5.2)
+        run: python scan_20260106.py
 
       - name: Push to Line BOT
         env:
