@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install FinMind pandas requests urllib3
+          pip install FinMind pandas requests urllib3 tqdm
 
       - name: Run stock screening (v5.2)
         run: python scan_20260106.py
