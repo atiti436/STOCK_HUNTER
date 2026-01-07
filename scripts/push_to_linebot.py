@@ -36,54 +36,63 @@ def parse_stock_count(content):
 
 
 def format_line_message(content):
-    """格式化 Line 訊息（v3.4 劇本小卡版）"""
+    """格式化 Line 訊息（v5.3 極簡行動卡版）"""
     stock_count = parse_stock_count(content)
     today = datetime.now().strftime('%Y-%m-%d')
 
     if stock_count == 0:
         # 沒有股票時發送簡短訊息
-        message = f"""📊 選股 BOT v3.4 - {today}
+        message = f"""📊 選股 BOT v5.3 - {today}
 
 ❌ 今日無符合條件的股票
 
 篩選條件：
 ✅ 法人連續買超 ≥2天
-✅ 體質健康 (PE<35, 營收YoY>0%)
-✅ 還沒噴 (5日漲<10%, RSI<80)
-✅ 有量能 (今日量>5日均)"""
+✅ 體質健康 (PE<35)
+✅ 還沒噴 (5日漲<15%, RSI<85)
+✅ 有量能 (>800張)"""
     else:
-        # 找劇本小卡區塊
+        # 優先找「極簡行動卡」區塊（v5.3 新增）
         lines = content.split('\n')
-        script_card_lines = []
-        in_script_card = False
-        
+        card_lines = []
+        in_card = False
+        card_keyword = '【極簡行動卡】'
+
+        # 如果找不到極簡行動卡，降級找 ATR 劇本小卡
+        if card_keyword not in content:
+            card_keyword = '【v5.2 ATR 劇本小卡】'
+        if card_keyword not in content:
+            card_keyword = '【劇本小卡】'
+
         for line in lines:
-            if '【劇本小卡】' in line:
-                in_script_card = True
+            if card_keyword in line:
+                in_card = True
                 continue
-            if in_script_card:
-                if line.startswith('===') or line.startswith('⚠️'):
+            if in_card:
+                # 停止條件：遇到警告或下一個標題區塊
+                if line.startswith('⚠️') or '【' in line:
                     break
+                # 跳過分隔線（= 或 ─）
+                if line.strip() and not line.strip().replace('=', '').replace('━', ''):
+                    continue
                 if line.strip():
-                    script_card_lines.append(line)
-        
-        if script_card_lines:
-            # 只取前 5 檔的劇本小卡（避免訊息過長）
-            # 每檔約 4 行，所以取 20 行
-            script_text = '\n'.join(script_card_lines[:20])
-            
-            message = f"""📊 選股 BOT v3.4 - {today}
+                    card_lines.append(line)
+
+        if card_lines:
+            # v5.3 極簡行動卡每檔約 10 行，取前 3 檔（30 行內）
+            # LINE 訊息限制 5000 字，30 行約 1000 字
+            card_text = '\n'.join(card_lines[:35])
+
+            message = f"""📊 選股 BOT v5.3 - {today}
 
 ✅ 找到 {stock_count} 檔推薦股票
 
-{script_text}
-篩選條件：
-✅ 法人連續買超 ≥2天
-✅ 體質健康 (PE<35, 營收YoY>0%)
-✅ 還沒噴 (5日漲<10%, RSI<80)"""
+{card_text}
+
+篩選條件：法人買超≥2天, PE<35, 5日漲<15%"""
         else:
             # 降級：用舊格式
-            message = f"""📊 選股 BOT v3.4 - {today}
+            message = f"""📊 選股 BOT v5.3 - {today}
 
 ✅ 找到 {stock_count} 檔推薦股票
 請查看完整結果檔案"""

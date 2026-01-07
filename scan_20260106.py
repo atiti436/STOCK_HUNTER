@@ -1315,7 +1315,13 @@ def output_results(results):
                    f"{r['change_pct']:>+6.2f}% {type_icon:<4} "
                    f"{r['inst_5day']:>+10,} {r['inst_leader']:<6} {tags_str:<15} {reasons_str:<25}\n")
             f.write(line)
-            print(line.strip())
+            # Windows 終端可能無法顯示 emoji，改用 safe print
+            try:
+                print(line.strip())
+            except UnicodeEncodeError:
+                # Fallback: 移除 emoji 後再印
+                line_safe = line.replace('🔥', '*').replace('⭐', '+').replace('✅', 'v').replace('🐰', 'R').replace('🐢', 'T').replace('🚶', '-')
+                print(line_safe.strip())
 
         f.write(f'\n共 {len(results)} 檔\n')
         
@@ -1344,6 +1350,10 @@ def output_results(results):
                 t1_pct = (r['t1'] - r['price']) / r['price'] * 100
                 t2_pct = (r['t2'] - r['price']) / r['price'] * 100
                 
+                # v5.3 新增：建議入場價 (收盤價 - 0.5*ATR ~ 收盤價)
+                entry_low = round(r['price'] - 0.5 * atr, 0)
+                entry_high = round(r['price'], 0)
+                
                 # 評分符號 (v5.2: 最高 8 分)
                 if score >= 6:
                     score_icon = '🔥👑'  # 超強
@@ -1365,10 +1375,56 @@ def output_results(results):
                     f.write(f"   📊 營收: YoY {revenue_yoy:+.1f}%\n")
                 
                 f.write(f"   ────────────────────────────────────\n")
+                f.write(f"   💵 進場: ${entry_low:.0f}~${entry_high:.0f} (回檔0.5ATR接)\n")
                 f.write(f"   🛡️ 停損: ${r['stop_loss']:.1f} ({stop_pct:+.1f}%)  跌破快逃\n")
                 f.write(f"   🎯 T1:   ${r['t1']:.1f} ({t1_pct:+.1f}%)  先賣一半\n")
                 f.write(f"   🚀 T2:   ${r['t2']:.1f} ({t2_pct:+.1f}%)  趨勢滿足\n")
                 f.write('\n')
+            
+            # === v5.3 新增：Format C 極簡行動卡 (LINE/手機適用) ===
+            f.write('\n' + '=' * 60 + '\n')
+            f.write('📱 【極簡行動卡】LINE推送用\n')
+            f.write('=' * 60 + '\n\n')
+            
+            for r in results[:6]:  # 最多 6 檔
+                score = r.get('score', 0)
+                stock_type = r.get('stock_type', '普通')
+                type_icon = '🐰' if stock_type == '兔子' else ('🐢' if stock_type == '烏龜' else '🚶')
+                atr = r.get('atr', 0)
+                
+                # 評分符號
+                score_icon = '🔥' if score >= 5 else ('⭐' if score >= 4 else '✅')
+                
+                # 建議入場價
+                entry_low = int(r['price'] - 0.5 * atr)
+                entry_high = int(r['price'])
+                
+                # 籌碼標籤
+                margin_tags = []
+                if r.get('margin_3day_change', 0) < 0:
+                    margin_tags.append('資減')
+                if r.get('short_3day_change', 0) > 0:
+                    margin_tags.append('軋空')
+                chip_str = '+'.join(margin_tags) if margin_tags else ''
+                
+                # 停損停利整數
+                stop_int = int(r['stop_loss'])
+                stop_pct = int((r['stop_loss'] - r['price']) / r['price'] * 100)
+                t1_int = int(r['t1'])
+                t2_int = int(r['t2'])
+                t1_pct = int((r['t1'] - r['price']) / r['price'] * 100)
+                t2_pct = int((r['t2'] - r['price']) / r['price'] * 100)
+                
+                f.write('━' * 25 + '\n')
+                f.write(f"{score_icon} {r['name']} {r['ticker']} ${r['price']:.1f}\n")
+                f.write('━' * 25 + '\n')
+                f.write(f"{type_icon} {'活潑股' if stock_type == '兔子' else ('牛皮股' if stock_type == '烏龜' else '普通股')}｜{r['inst_leader']}連{r['buy_days']}買\n")
+                f.write(f"📈 {r['inst_5day']:+,}張｜{chip_str}\n" if chip_str else f"📈 {r['inst_5day']:+,}張\n")
+                f.write('\n')
+                f.write(f"💵 進場: {entry_low}~{entry_high}\n")
+                f.write(f"🛡️ 停損: {stop_int} ({stop_pct}%)\n")
+                f.write(f"🎯 目標: {t1_int}/{t2_int} (+{t1_pct}%/+{t2_pct}%)\n")
+                f.write('━' * 25 + '\n\n')
         
         # 警告摘要
         if warnings:

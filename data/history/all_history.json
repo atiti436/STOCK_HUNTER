@@ -340,5 +340,168 @@
         "bias_ma20": 1.83
       }
     ]
+  },
+  {
+    "date": "2026-01-07",
+    "timestamp": "2026-01-07T19:27:45.811792",
+    "count": 4,
+    "stocks": [
+      {
+        "ticker": "2492",
+        "name": "華新科",
+        "price": 132.0,
+        "change_pct": 1.93,
+        "pe": 26.76,
+        "inst_5day": 7751,
+        "inst_1month": 2228,
+        "inst_leader": "外資",
+        "buy_days": 5,
+        "5day_change": 12.82,
+        "revenue_yoy": 0,
+        "rsi": 84.9,
+        "atr": 4.29,
+        "atr_pct": 3.25,
+        "stock_type": "兔子",
+        "stop_loss": 123.4,
+        "t1": 140.6,
+        "t2": 149.2,
+        "stop_note": "2xATR (-6.5%)",
+        "ma10": 120.45,
+        "ma20": 118.41,
+        "margin_3day_change": -399,
+        "short_3day_change": 109,
+        "score": 7,
+        "score_reasons": [
+          "法人買超",
+          "連5天",
+          "攻擊",
+          "量增",
+          "穩漲",
+          "資減",
+          "軋空"
+        ],
+        "tags": [
+          "[已漲]",
+          "[攻擊]",
+          "[資減]",
+          "[軋空]"
+        ],
+        "bias_ma20": 11.48
+      },
+      {
+        "ticker": "8103",
+        "name": "瀚荃",
+        "price": 92.9,
+        "change_pct": 0.22,
+        "pe": 27.18,
+        "inst_5day": 1968,
+        "inst_1month": -1369,
+        "inst_leader": "外資",
+        "buy_days": 3,
+        "5day_change": 8.28,
+        "revenue_yoy": 0,
+        "rsi": 57.8,
+        "atr": 4.48,
+        "atr_pct": 4.82,
+        "stock_type": "兔子",
+        "stop_loss": 83.9,
+        "t1": 101.9,
+        "t2": 110.8,
+        "stop_note": "2xATR (-9.7%)",
+        "ma10": 87.08,
+        "ma20": 87.64,
+        "margin_3day_change": -86,
+        "short_3day_change": 7,
+        "score": 7,
+        "score_reasons": [
+          "法人買超",
+          "連3天",
+          "攻擊",
+          "量增",
+          "穩漲",
+          "資減",
+          "軋空"
+        ],
+        "tags": [
+          "[攻擊]",
+          "[資減]",
+          "[軋空]"
+        ],
+        "bias_ma20": 6.0
+      },
+      {
+        "ticker": "1503",
+        "name": "士電",
+        "price": 171.5,
+        "change_pct": 1.18,
+        "pe": 26.9,
+        "inst_5day": 425,
+        "inst_1month": 1304,
+        "inst_leader": "外資",
+        "buy_days": 3,
+        "5day_change": 0.88,
+        "revenue_yoy": 0,
+        "rsi": 63.4,
+        "atr": 3.0,
+        "atr_pct": 1.75,
+        "stock_type": "普通",
+        "stop_loss": 165.5,
+        "t1": 177.5,
+        "t2": 183.5,
+        "stop_note": "2xATR (-3.5%)",
+        "ma10": 171.1,
+        "ma20": 170.38,
+        "margin_3day_change": -92,
+        "short_3day_change": -4,
+        "score": 5,
+        "score_reasons": [
+          "法人買超",
+          "連3天",
+          "量增",
+          "穩漲",
+          "資減"
+        ],
+        "tags": [
+          "[資減]"
+        ],
+        "bias_ma20": 0.66
+      },
+      {
+        "ticker": "2327",
+        "name": "國巨*",
+        "price": 253.0,
+        "change_pct": -0.2,
+        "pe": 25.4,
+        "inst_5day": 40452,
+        "inst_1month": 7479,
+        "inst_leader": "混合",
+        "buy_days": 5,
+        "5day_change": 9.52,
+        "revenue_yoy": 0,
+        "rsi": 79.4,
+        "atr": 6.79,
+        "atr_pct": 2.68,
+        "stock_type": "兔子",
+        "stop_loss": 239.4,
+        "t1": 266.6,
+        "t2": 280.2,
+        "stop_note": "2xATR (-5.4%)",
+        "ma10": 233.95,
+        "ma20": 230.03,
+        "margin_3day_change": 2472,
+        "short_3day_change": 171,
+        "score": 3,
+        "score_reasons": [
+          "法人買超",
+          "連5天",
+          "軋空"
+        ],
+        "tags": [
+          "[整理]",
+          "[軋空]"
+        ],
+        "bias_ma20": 9.99
+      }
+    ]
   }
 ]

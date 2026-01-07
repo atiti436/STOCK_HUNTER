@@ -38,6 +38,6 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add data/history/*.json scan_result_v4.txt || true
+          git add data/history/*.json data/raw/*.json scan_result_v3.txt scan_result_v4.txt || true
           git diff --staged --quiet || git commit -m "data: auto-save scan result $(date +%Y-%m-%d)"
           git push || true
