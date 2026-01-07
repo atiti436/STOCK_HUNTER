@@ -26,7 +26,7 @@ jobs:
           pip install --upgrade pip
           pip install FinMind pandas requests urllib3 tqdm
 
-      - name: Run stock screening (v5.2)
+      - name: Run stock screening (v5.3)
         run: python scan_20260106.py
 
       - name: Push to Line BOT
