@@ -11,6 +11,8 @@ on:
 jobs:
   scan-and-notify:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # 允許 commit 和 push
 
     steps:
       - name: Checkout repository
