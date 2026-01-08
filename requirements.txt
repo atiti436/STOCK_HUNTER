@@ -1,6 +1,14 @@
-# LINE 轉發站依賴 (精簡版)
-# 2026-01-01 重構：移除 FinMind, pandas, google-generativeai, APScheduler
+# LINE 轉發站 + 掃描依賴
+# 2026-01-08 更新：加入 FinMind 支援 zeabur_cron.py
+
+# LINE Bot
 Flask==2.3.0
 line-bot-sdk==2.4.2
-requests
 gunicorn==21.2.0
+
+# 掃描需求
+FinMind>=1.0.0
+pandas
+requests
+urllib3
+tqdm
