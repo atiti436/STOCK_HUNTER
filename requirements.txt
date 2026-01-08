@@ -1,5 +1,5 @@
 # LINE 轉發站 + 掃描依賴
-# 2026-01-08 更新：加入 FinMind 支援 zeabur_cron.py
+# 2026-01-08 更新：加入 FinMind 支援 + APScheduler 排程
 
 # LINE Bot
 Flask==2.3.0
@@ -12,3 +12,7 @@ pandas
 requests
 urllib3
 tqdm
+
+# 定時排程
+APScheduler>=3.10.0
+

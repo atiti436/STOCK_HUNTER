@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-LINE 訊息轉發站 (精簡版)
-只負責接收 GitHub Actions 推送的訊息，轉發到 LINE
-不做任何股票掃描運算
-
+LINE 訊息轉發站 + 定時掃描
 2026-01-01 重構：從 stock_hunter_v3.py (122KB) 精簡至此版本
+2026-01-08 更新：整合 APScheduler 定時掃描
+
+功能：
+1. 接收 GitHub Actions 推送的訊息，轉發到 LINE
+2. 每日 20:30 自動執行掃描並推送（APScheduler）
 """
 
 import os
@@ -24,7 +26,14 @@ app = Flask(__name__)
 line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-print("🚀 LINE 轉發站啟動 (精簡版)", flush=True)
+# ==================== 啟動排程器 ====================
+try:
+    from scheduler import start_scheduler
+    scheduler = start_scheduler()
+    print("🚀 LINE 轉發站啟動 (含定時掃描)", flush=True)
+except Exception as e:
+    print(f"⚠️ 排程器啟動失敗: {e}", flush=True)
+    print("🚀 LINE 轉發站啟動 (純轉發模式)", flush=True)
 
 
 # ==================== 健康檢查 ====================
