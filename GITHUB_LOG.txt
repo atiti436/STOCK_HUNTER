@@ -1,0 +1,869 @@
+scan-and-notify
+succeeded 5 minutes ago in 6m 34s
+Search logs
+1s
+Current runner version: '2.330.0'
+Runner Image Provisioner
+Operating System
+Runner Image
+GITHUB_TOKEN Permissions
+Secret source: Actions
+Prepare workflow directory
+Prepare all required actions
+Getting action download info
+Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+Complete job name: scan-and-notify
+1s
+Run actions/checkout@v4
+Syncing repository: atiti436/STOCK_HUNTER
+Getting Git version info
+Temporarily overriding HOME='/home/runner/work/_temp/bd1cf201-1a2b-4285-a4b2-ed083c1c1dea' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/STOCK_HUNTER/STOCK_HUNTER
+Deleting the contents of '/home/runner/work/STOCK_HUNTER/STOCK_HUNTER'
+Initializing the repository
+Disabling automatic garbage collection
+Setting up auth
+Fetching the repository
+Determining the checkout info
+/usr/bin/git sparse-checkout disable
+/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Checking out the ref
+/usr/bin/git log -1 --format=%H
+4bc9c44cfd40ec55edb34488674a318f489d7d3c
+0s
+Run actions/setup-python@v5
+Installed versions
+21s
+Run pip install --upgrade pip
+Requirement already satisfied: pip in /opt/hostedtoolcache/Python/3.10.19/x64/lib/python3.10/site-packages (25.3)
+Collecting FinMind
+  Downloading finmind-1.9.3-py3-none-any.whl.metadata (7.4 kB)
+Collecting pandas
+  Downloading pandas-2.3.3-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl.metadata (91 kB)
+Collecting requests
+  Downloading requests-2.32.5-py3-none-any.whl.metadata (4.9 kB)
+Collecting urllib3
+  Downloading urllib3-2.6.2-py3-none-any.whl.metadata (6.6 kB)
+Collecting tqdm
+  Downloading tqdm-4.67.1-py3-none-any.whl.metadata (57 kB)
+Collecting numpy>=1.19.5 (from FinMind)
+  Downloading numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (62 kB)
+Collecting pydantic>=1.6.1 (from FinMind)
+  Downloading pydantic-2.12.5-py3-none-any.whl.metadata (90 kB)
+Collecting ta~=0.5.25 (from FinMind)
+  Downloading ta-0.5.25.tar.gz (20 kB)
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Getting requirements to build wheel: started
+  Getting requirements to build wheel: finished with status 'done'
+  Preparing metadata (pyproject.toml): started
+  Preparing metadata (pyproject.toml): finished with status 'done'
+Collecting pytest>=6.2.2 (from FinMind)
+  Downloading pytest-9.0.2-py3-none-any.whl.metadata (7.6 kB)
+Collecting lxml>=4.6.3 (from FinMind)
+  Downloading lxml-6.0.2-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl.metadata (3.6 kB)
+Collecting pyecharts>=1.9.0 (from FinMind)
+  Downloading pyecharts-2.0.9-py3-none-any.whl.metadata (1.6 kB)
+Collecting ipython>=7.16.1 (from FinMind)
+  Downloading ipython-8.38.0-py3-none-any.whl.metadata (5.1 kB)
+Collecting loguru>=0.5.3 (from FinMind)
+  Downloading loguru-0.7.3-py3-none-any.whl.metadata (22 kB)
+Requirement already satisfied: setuptools>=49.2.1 in /opt/hostedtoolcache/Python/3.10.19/x64/lib/python3.10/site-packages (from FinMind) (79.0.1)
+Collecting aiohttp>=3.7.4.post0 (from FinMind)
+  Downloading aiohttp-3.13.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (8.1 kB)
+Collecting flask>=2.0.1 (from FinMind)
+  Downloading flask-3.1.2-py3-none-any.whl.metadata (3.2 kB)
+Collecting importlib-metadata>=4.8.1 (from FinMind)
+  Downloading importlib_metadata-8.7.1-py3-none-any.whl.metadata (4.7 kB)
+Collecting nest-asyncio>=1.6.0 (from FinMind)
+  Downloading nest_asyncio-1.6.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting python-dateutil>=2.8.2 (from pandas)
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting pytz>=2020.1 (from pandas)
+  Downloading pytz-2025.2-py2.py3-none-any.whl.metadata (22 kB)
+Collecting tzdata>=2022.7 (from pandas)
+  Downloading tzdata-2025.3-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting charset_normalizer<4,>=2 (from requests)
+  Downloading charset_normalizer-3.4.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (37 kB)
+Collecting idna<4,>=2.5 (from requests)
+  Downloading idna-3.11-py3-none-any.whl.metadata (8.4 kB)
+Collecting certifi>=2017.4.17 (from requests)
+  Downloading certifi-2026.1.4-py3-none-any.whl.metadata (2.5 kB)
+Collecting aiohappyeyeballs>=2.5.0 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl.metadata (5.9 kB)
+Collecting aiosignal>=1.4.0 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading aiosignal-1.4.0-py3-none-any.whl.metadata (3.7 kB)
+Collecting async-timeout<6.0,>=4.0 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading async_timeout-5.0.1-py3-none-any.whl.metadata (5.1 kB)
+Collecting attrs>=17.3.0 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading attrs-25.4.0-py3-none-any.whl.metadata (10 kB)
+Collecting frozenlist>=1.1.1 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading frozenlist-1.8.0-cp310-cp310-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (20 kB)
+Collecting multidict<7.0,>=4.5 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading multidict-6.7.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (5.3 kB)
+Collecting propcache>=0.2.0 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading propcache-0.4.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (13 kB)
+Collecting yarl<2.0,>=1.17.0 (from aiohttp>=3.7.4.post0->FinMind)
+  Downloading yarl-1.22.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (75 kB)
+Collecting typing-extensions>=4.1.0 (from multidict<7.0,>=4.5->aiohttp>=3.7.4.post0->FinMind)
+  Downloading typing_extensions-4.15.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting blinker>=1.9.0 (from flask>=2.0.1->FinMind)
+  Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+Collecting click>=8.1.3 (from flask>=2.0.1->FinMind)
+  Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+Collecting itsdangerous>=2.2.0 (from flask>=2.0.1->FinMind)
+  Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting jinja2>=3.1.2 (from flask>=2.0.1->FinMind)
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting markupsafe>=2.1.1 (from flask>=2.0.1->FinMind)
+  Downloading markupsafe-3.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.7 kB)
+Collecting werkzeug>=3.1.0 (from flask>=2.0.1->FinMind)
+  Downloading werkzeug-3.1.4-py3-none-any.whl.metadata (4.0 kB)
+Collecting zipp>=3.20 (from importlib-metadata>=4.8.1->FinMind)
+  Downloading zipp-3.23.0-py3-none-any.whl.metadata (3.6 kB)
+Collecting decorator (from ipython>=7.16.1->FinMind)
+  Downloading decorator-5.2.1-py3-none-any.whl.metadata (3.9 kB)
+Collecting exceptiongroup (from ipython>=7.16.1->FinMind)
+  Downloading exceptiongroup-1.3.1-py3-none-any.whl.metadata (6.7 kB)
+Collecting jedi>=0.16 (from ipython>=7.16.1->FinMind)
+  Downloading jedi-0.19.2-py2.py3-none-any.whl.metadata (22 kB)
+Collecting matplotlib-inline (from ipython>=7.16.1->FinMind)
+  Downloading matplotlib_inline-0.2.1-py3-none-any.whl.metadata (2.3 kB)
+Collecting pexpect>4.3 (from ipython>=7.16.1->FinMind)
+  Downloading pexpect-4.9.0-py2.py3-none-any.whl.metadata (2.5 kB)
+Collecting prompt_toolkit<3.1.0,>=3.0.41 (from ipython>=7.16.1->FinMind)
+  Downloading prompt_toolkit-3.0.52-py3-none-any.whl.metadata (6.4 kB)
+Collecting pygments>=2.4.0 (from ipython>=7.16.1->FinMind)
+  Downloading pygments-2.19.2-py3-none-any.whl.metadata (2.5 kB)
+Collecting stack_data (from ipython>=7.16.1->FinMind)
+  Downloading stack_data-0.6.3-py3-none-any.whl.metadata (18 kB)
+Collecting traitlets>=5.13.0 (from ipython>=7.16.1->FinMind)
+  Downloading traitlets-5.14.3-py3-none-any.whl.metadata (10 kB)
+Collecting wcwidth (from prompt_toolkit<3.1.0,>=3.0.41->ipython>=7.16.1->FinMind)
+  Downloading wcwidth-0.2.14-py2.py3-none-any.whl.metadata (15 kB)
+Collecting parso<0.9.0,>=0.8.4 (from jedi>=0.16->ipython>=7.16.1->FinMind)
+  Downloading parso-0.8.5-py2.py3-none-any.whl.metadata (8.3 kB)
+Collecting ptyprocess>=0.5 (from pexpect>4.3->ipython>=7.16.1->FinMind)
+  Downloading ptyprocess-0.7.0-py2.py3-none-any.whl.metadata (1.3 kB)
+Collecting annotated-types>=0.6.0 (from pydantic>=1.6.1->FinMind)
+  Downloading annotated_types-0.7.0-py3-none-any.whl.metadata (15 kB)
+Collecting pydantic-core==2.41.5 (from pydantic>=1.6.1->FinMind)
+  Downloading pydantic_core-2.41.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (7.3 kB)
+Collecting typing-inspection>=0.4.2 (from pydantic>=1.6.1->FinMind)
+  Downloading typing_inspection-0.4.2-py3-none-any.whl.metadata (2.6 kB)
+Collecting prettytable (from pyecharts>=1.9.0->FinMind)
+  Downloading prettytable-3.17.0-py3-none-any.whl.metadata (34 kB)
+Collecting simplejson (from pyecharts>=1.9.0->FinMind)
+  Downloading simplejson-3.20.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (3.2 kB)
+Collecting iniconfig>=1.0.1 (from pytest>=6.2.2->FinMind)
+  Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Collecting packaging>=22 (from pytest>=6.2.2->FinMind)
+  Downloading packaging-25.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting pluggy<2,>=1.5 (from pytest>=6.2.2->FinMind)
+  Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Collecting tomli>=1 (from pytest>=6.2.2->FinMind)
+  Downloading tomli-2.3.0-py3-none-any.whl.metadata (10 kB)
+Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas)
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Collecting executing>=1.2.0 (from stack_data->ipython>=7.16.1->FinMind)
+  Downloading executing-2.2.1-py2.py3-none-any.whl.metadata (8.9 kB)
+Collecting asttokens>=2.1.0 (from stack_data->ipython>=7.16.1->FinMind)
+  Downloading asttokens-3.0.1-py3-none-any.whl.metadata (4.9 kB)
+Collecting pure-eval (from stack_data->ipython>=7.16.1->FinMind)
+  Downloading pure_eval-0.2.3-py3-none-any.whl.metadata (6.3 kB)
+Downloading finmind-1.9.3-py3-none-any.whl (65 kB)
+Downloading pandas-2.3.3-cp310-cp310-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (12.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.8/12.8 MB 229.7 MB/s  0:00:00
+Downloading requests-2.32.5-py3-none-any.whl (64 kB)
+Downloading urllib3-2.6.2-py3-none-any.whl (131 kB)
+Downloading charset_normalizer-3.4.4-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (153 kB)
+Downloading idna-3.11-py3-none-any.whl (71 kB)
+Downloading tqdm-4.67.1-py3-none-any.whl (78 kB)
+Downloading aiohttp-3.13.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.7/1.7 MB 192.3 MB/s  0:00:00
+Downloading async_timeout-5.0.1-py3-none-any.whl (6.2 kB)
+Downloading multidict-6.7.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (241 kB)
+Downloading yarl-1.22.0-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (346 kB)
+Downloading aiohappyeyeballs-2.6.1-py3-none-any.whl (15 kB)
+Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+Downloading attrs-25.4.0-py3-none-any.whl (67 kB)
+Downloading certifi-2026.1.4-py3-none-any.whl (152 kB)
+Downloading flask-3.1.2-py3-none-any.whl (103 kB)
+Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+Downloading click-8.3.1-py3-none-any.whl (108 kB)
+Downloading frozenlist-1.8.0-cp310-cp310-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (219 kB)
+Downloading importlib_metadata-8.7.1-py3-none-any.whl (27 kB)
+Downloading ipython-8.38.0-py3-none-any.whl (831 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 831.8/831.8 kB 119.0 MB/s  0:00:00
+Downloading prompt_toolkit-3.0.52-py3-none-any.whl (391 kB)
+Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+Downloading jedi-0.19.2-py2.py3-none-any.whl (1.6 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.6/1.6 MB 170.2 MB/s  0:00:00
+Downloading parso-0.8.5-py2.py3-none-any.whl (106 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading loguru-0.7.3-py3-none-any.whl (61 kB)
+Downloading lxml-6.0.2-cp310-cp310-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (5.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.3/5.3 MB 230.9 MB/s  0:00:00
+Downloading markupsafe-3.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (20 kB)
+Downloading nest_asyncio-1.6.0-py3-none-any.whl (5.2 kB)
+Downloading numpy-2.2.6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (16.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.8/16.8 MB 256.4 MB/s  0:00:00
+Downloading pexpect-4.9.0-py2.py3-none-any.whl (63 kB)
+Downloading propcache-0.4.1-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (196 kB)
+Downloading ptyprocess-0.7.0-py2.py3-none-any.whl (13 kB)
+Downloading pydantic-2.12.5-py3-none-any.whl (463 kB)
+Downloading pydantic_core-2.41.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (2.1 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.1/2.1 MB 184.0 MB/s  0:00:00
+Downloading annotated_types-0.7.0-py3-none-any.whl (13 kB)
+Downloading pyecharts-2.0.9-py3-none-any.whl (153 kB)
+Downloading pygments-2.19.2-py3-none-any.whl (1.2 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 156.7 MB/s  0:00:00
+Downloading pytest-9.0.2-py3-none-any.whl (374 kB)
+Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+Downloading exceptiongroup-1.3.1-py3-none-any.whl (16 kB)
+Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Downloading packaging-25.0-py3-none-any.whl (66 kB)
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading pytz-2025.2-py2.py3-none-any.whl (509 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading tomli-2.3.0-py3-none-any.whl (14 kB)
+Downloading traitlets-5.14.3-py3-none-any.whl (85 kB)
+Downloading typing_extensions-4.15.0-py3-none-any.whl (44 kB)
+Downloading typing_inspection-0.4.2-py3-none-any.whl (14 kB)
+Downloading tzdata-2025.3-py2.py3-none-any.whl (348 kB)
+Downloading werkzeug-3.1.4-py3-none-any.whl (224 kB)
+Downloading zipp-3.23.0-py3-none-any.whl (10 kB)
+Downloading decorator-5.2.1-py3-none-any.whl (9.2 kB)
+Downloading matplotlib_inline-0.2.1-py3-none-any.whl (9.5 kB)
+Downloading prettytable-3.17.0-py3-none-any.whl (34 kB)
+Downloading simplejson-3.20.2-cp310-cp310-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl (138 kB)
+Downloading stack_data-0.6.3-py3-none-any.whl (24 kB)
+Downloading asttokens-3.0.1-py3-none-any.whl (27 kB)
+Downloading executing-2.2.1-py2.py3-none-any.whl (28 kB)
+Downloading pure_eval-0.2.3-py3-none-any.whl (11 kB)
+Downloading wcwidth-0.2.14-py2.py3-none-any.whl (37 kB)
+Building wheels for collected packages: ta
+  Building wheel for ta (pyproject.toml): started
+  Building wheel for ta (pyproject.toml): finished with status 'done'
+  Created wheel for ta: filename=ta-0.5.25-py3-none-any.whl size=24933 sha256=12517c1e75c0c86de19992b7b1e7767d3add060e1456c36b0a4be419ca9f92b5
+  Stored in directory: /home/runner/.cache/pip/wheels/d4/bd/c4/0dda911b5461ee856352cd8c9e16472229bb51c95e74b74c08
+Successfully built ta
+Installing collected packages: pytz, pure-eval, ptyprocess, zipp, wcwidth, urllib3, tzdata, typing-extensions, traitlets, tqdm, tomli, six, simplejson, pygments, propcache, pluggy, pexpect, parso, packaging, numpy, nest-asyncio, markupsafe, lxml, loguru, itsdangerous, iniconfig, idna, frozenlist, executing, decorator, click, charset_normalizer, certifi, blinker, attrs, async-timeout, asttokens, annotated-types, aiohappyeyeballs, werkzeug, typing-inspection, stack_data, requests, python-dateutil, pydantic-core, prompt_toolkit, prettytable, multidict, matplotlib-inline, jinja2, jedi, importlib-metadata, exceptiongroup, aiosignal, yarl, pytest, pyecharts, pydantic, pandas, ipython, flask, ta, aiohttp, FinMind
+
+Successfully installed FinMind-1.9.3 aiohappyeyeballs-2.6.1 aiohttp-3.13.3 aiosignal-1.4.0 annotated-types-0.7.0 asttokens-3.0.1 async-timeout-5.0.1 attrs-25.4.0 blinker-1.9.0 certifi-2026.1.4 charset_normalizer-3.4.4 click-8.3.1 decorator-5.2.1 exceptiongroup-1.3.1 executing-2.2.1 flask-3.1.2 frozenlist-1.8.0 idna-3.11 importlib-metadata-8.7.1 iniconfig-2.3.0 ipython-8.38.0 itsdangerous-2.2.0 jedi-0.19.2 jinja2-3.1.6 loguru-0.7.3 lxml-6.0.2 markupsafe-3.0.3 matplotlib-inline-0.2.1 multidict-6.7.0 nest-asyncio-1.6.0 numpy-2.2.6 packaging-25.0 pandas-2.3.3 parso-0.8.5 pexpect-4.9.0 pluggy-1.6.0 prettytable-3.17.0 prompt_toolkit-3.0.52 propcache-0.4.1 ptyprocess-0.7.0 pure-eval-0.2.3 pydantic-2.12.5 pydantic-core-2.41.5 pyecharts-2.0.9 pygments-2.19.2 pytest-9.0.2 python-dateutil-2.9.0.post0 pytz-2025.2 requests-2.32.5 simplejson-3.20.2 six-1.17.0 stack_data-0.6.3 ta-0.5.25 tomli-2.3.0 tqdm-4.67.1 traitlets-5.14.3 typing-extensions-4.15.0 typing-inspection-0.4.2 tzdata-2025.3 urllib3-2.6.2 wcwidth-0.2.14 werkzeug-3.1.4 yarl-1.22.0 zipp-3.23.0
+6m 8s
+Run python scan_20260106.py
+2026-01-07 14:28:18.047 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:18.210 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:18.211 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 
+2026-01-07 14:28:28.809 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:28.993 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:28.993 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1215
+2026-01-07 14:28:31.103 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:31.272 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:31.272 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1319
+2026-01-07 14:28:32.799 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:32.965 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:32.965 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1477
+2026-01-07 14:28:34.928 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:35.100 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:35.100 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1503
+2026-01-07 14:28:36.800 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:36.967 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:36.967 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1513
+2026-01-07 14:28:39.018 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:39.192 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:39.192 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1514
+2026-01-07 14:28:40.991 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:41.163 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:41.163 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1736
+2026-01-07 14:28:55.709 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:55.878 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:55.878 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 1795
+2026-01-07 14:28:57.493 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:57.662 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:57.663 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2211
+2026-01-07 14:28:59.615 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:59.787 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:28:59.788 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2228
+2026-01-07 14:29:01.804 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:01.973 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:01.973 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2316
+2026-01-07 14:29:03.226 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:03.388 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:03.389 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2317
+2026-01-07 14:29:05.050 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:05.242 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:05.242 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2327
+2026-01-07 14:29:07.301 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:07.473 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:07.473 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2375
+2026-01-07 14:29:09.358 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:09.531 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:09.531 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2376
+2026-01-07 14:29:11.339 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:11.509 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:11.509 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2377
+2026-01-07 14:29:18.004 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:18.175 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:18.175 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2382
+2026-01-07 14:29:20.172 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:20.347 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:20.347 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2385
+2026-01-07 14:29:21.714 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:21.877 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:21.877 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2395
+2026-01-07 14:29:23.100 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:23.276 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:23.276 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2412
+2026-01-07 14:29:24.853 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:25.027 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:25.027 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2421
+2026-01-07 14:29:26.668 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:26.835 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:26.836 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2439
+2026-01-07 14:29:28.210 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:28.378 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:28.379 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2449
+2026-01-07 14:29:30.337 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:30.511 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:30.511 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2458
+2026-01-07 14:29:31.979 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:32.154 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:32.154 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2472
+2026-01-07 14:29:33.245 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:33.415 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:33.415 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2474
+2026-01-07 14:29:34.968 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:35.144 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:35.144 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2476
+2026-01-07 14:29:37.190 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:37.353 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:37.353 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2492
+2026-01-07 14:29:38.787 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:38.958 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:38.959 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2493
+2026-01-07 14:29:40.730 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:40.904 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:40.904 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2603
+2026-01-07 14:29:42.313 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:42.483 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:42.483 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2645
+2026-01-07 14:29:43.877 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:44.049 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:44.049 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 2912
+2026-01-07 14:29:45.840 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:46.011 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:46.012 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3005
+2026-01-07 14:29:47.379 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:47.543 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:47.543 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3010
+2026-01-07 14:29:49.004 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:49.178 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:49.178 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3013
+2026-01-07 14:29:50.722 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:50.890 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:50.890 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3014
+2026-01-07 14:29:52.149 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:52.322 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:52.322 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3019
+2026-01-07 14:29:54.007 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:54.194 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:54.194 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3023
+2026-01-07 14:29:55.613 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:55.784 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:55.784 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3026
+2026-01-07 14:29:57.501 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:57.673 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:29:57.673 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3036
+2026-01-07 14:29:59.909 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:00.073 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:00.074 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3045
+2026-01-07 14:30:08.294 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:08.467 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:08.468 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3231
+2026-01-07 14:30:09.952 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:10.120 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:10.120 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3413
+2026-01-07 14:30:11.321 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:11.495 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:11.496 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3592
+2026-01-07 14:30:12.585 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:12.758 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:12.758 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3706
+2026-01-07 14:30:14.373 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:14.546 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:14.546 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 3711
+2026-01-07 14:30:22.778 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:22.945 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:22.945 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 4958
+2026-01-07 14:30:24.093 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:24.263 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:24.263 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 4961
+2026-01-07 14:30:25.709 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:25.878 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:25.878 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 5469
+2026-01-07 14:30:27.568 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:27.742 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:27.742 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6176
+2026-01-07 14:30:29.170 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:29.338 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:29.339 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6191
+2026-01-07 14:30:31.097 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:31.270 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:31.270 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6197
+2026-01-07 14:30:32.691 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:32.863 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:32.863 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6206
+2026-01-07 14:30:34.574 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:34.751 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:34.752 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6239
+2026-01-07 14:30:36.534 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:36.706 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:36.706 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6257
+2026-01-07 14:30:39.489 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:39.662 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:39.662 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6271
+2026-01-07 14:30:41.980 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:42.155 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:42.155 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6278
+2026-01-07 14:30:43.564 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:43.731 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:43.731 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6285
+2026-01-07 14:30:45.117 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:45.290 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:45.291 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6414
+2026-01-07 14:30:46.734 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:46.904 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:46.904 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6672
+2026-01-07 14:30:48.586 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:48.749 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:48.749 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6753
+2026-01-07 14:30:52.931 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:53.108 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:53.109 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 6768
+2026-01-07 14:30:54.309 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:54.481 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:54.481 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 8016
+2026-01-07 14:30:56.081 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:56.254 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:56.255 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 8103
+2026-01-07 14:30:57.359 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:57.532 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:57.532 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 8114
+2026-01-07 14:30:58.805 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:58.972 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:30:58.972 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 8261
+2026-01-07 14:31:02.018 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:02.217 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:02.218 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 8454
+2026-01-07 14:31:03.512 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:03.716 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:03.716 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 9802
+2026-01-07 14:31:08.942 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:09.117 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:09.117 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 9910
+2026-01-07 14:31:10.212 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:10.384 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:10.384 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockInstitutionalInvestorsBuySell, data_id: 9939
+2026-01-07 14:31:11.491 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:11.663 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:11.663 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1215
+2026-01-07 14:31:12.744 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:12.915 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:12.915 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1319
+2026-01-07 14:31:14.476 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:14.651 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:14.651 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1477
+2026-01-07 14:31:16.087 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:16.253 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:16.253 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1503
+2026-01-07 14:31:19.853 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:20.026 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:20.026 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1513
+2026-01-07 14:31:21.229 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:21.398 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:21.398 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1514
+2026-01-07 14:31:23.651 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:23.823 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:23.823 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1736
+2026-01-07 14:31:24.911 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:25.082 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:25.082 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 1795
+2026-01-07 14:31:26.185 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:26.356 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:26.357 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2211
+2026-01-07 14:31:27.710 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:27.884 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:27.884 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2228
+2026-01-07 14:31:31.080 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:31.253 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:31.253 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2316
+2026-01-07 14:31:32.352 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:32.536 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:32.536 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2317
+2026-01-07 14:31:33.663 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:33.839 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:33.839 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2327
+2026-01-07 14:31:34.927 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:35.101 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:35.101 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2375
+2026-01-07 14:31:36.173 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:36.345 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:36.345 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2376
+2026-01-07 14:31:40.356 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:40.528 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:40.528 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2377
+2026-01-07 14:31:41.654 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:41.825 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:41.825 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2382
+2026-01-07 14:31:43.381 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:43.555 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:43.555 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2385
+2026-01-07 14:31:44.642 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:44.816 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:44.816 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2395
+2026-01-07 14:31:45.895 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:46.066 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:46.066 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2412
+2026-01-07 14:31:49.255 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:49.432 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:49.432 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2421
+2026-01-07 14:31:50.537 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:50.714 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:50.714 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2439
+2026-01-07 14:31:51.789 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:51.967 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:51.967 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2449
+2026-01-07 14:31:53.044 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:53.267 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:53.267 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2458
+2026-01-07 14:31:54.348 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:54.519 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:54.519 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2472
+2026-01-07 14:31:57.682 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:57.853 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:31:57.853 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2474
+2026-01-07 14:32:01.486 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:01.664 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:01.664 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2476
+2026-01-07 14:32:03.030 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:03.203 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:03.203 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2492
+2026-01-07 14:32:11.996 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:12.164 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:12.164 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2493
+2026-01-07 14:32:13.367 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:13.678 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:13.678 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2603
+2026-01-07 14:32:16.841 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:17.007 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:17.007 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2645
+2026-01-07 14:32:18.206 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:18.379 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:18.379 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 2912
+2026-01-07 14:32:19.801 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:19.979 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:19.979 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3005
+2026-01-07 14:32:21.090 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:21.283 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:21.283 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3010
+2026-01-07 14:32:22.394 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:22.567 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:22.567 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3013
+2026-01-07 14:32:23.773 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:23.952 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:23.952 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3014
+2026-01-07 14:32:25.037 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:25.206 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:25.206 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3019
+2026-01-07 14:32:26.336 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:26.505 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:26.505 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3023
+2026-01-07 14:32:27.557 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:27.738 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:27.739 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3026
+2026-01-07 14:32:29.125 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:29.296 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:29.296 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3036
+2026-01-07 14:32:34.370 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:34.538 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:34.538 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3045
+2026-01-07 14:32:35.634 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:35.806 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:35.806 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3231
+2026-01-07 14:32:36.884 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:37.052 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:37.052 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3413
+2026-01-07 14:32:38.147 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:38.320 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:38.320 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3592
+2026-01-07 14:32:39.410 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:39.582 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:39.582 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3706
+2026-01-07 14:32:40.648 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:40.820 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:40.820 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 3711
+2026-01-07 14:32:41.979 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:42.154 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:42.154 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 4958
+2026-01-07 14:32:43.845 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:44.014 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:44.014 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 4961
+2026-01-07 14:32:45.132 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:45.308 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:45.308 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 5469
+2026-01-07 14:32:46.407 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:46.584 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:46.585 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6176
+2026-01-07 14:32:54.511 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:54.677 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:54.677 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6191
+2026-01-07 14:32:55.804 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:56.015 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:56.015 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6197
+2026-01-07 14:32:57.092 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:57.261 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:57.261 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6206
+2026-01-07 14:32:58.324 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:58.487 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:58.487 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6239
+2026-01-07 14:32:59.566 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:59.735 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:32:59.736 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6257
+2026-01-07 14:33:00.823 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:00.996 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:00.996 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6271
+2026-01-07 14:33:02.118 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:02.291 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:02.291 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6278
+2026-01-07 14:33:03.493 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:03.664 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:03.664 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6285
+2026-01-07 14:33:04.833 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:05.002 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:05.002 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6414
+2026-01-07 14:33:06.054 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:06.222 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:06.222 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6672
+2026-01-07 14:33:09.312 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:09.485 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:09.485 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6753
+2026-01-07 14:33:10.543 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:10.715 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:10.716 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 6768
+2026-01-07 14:33:20.411 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:21.121 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:21.295 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:21.296 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 8103
+2026-01-07 14:33:22.385 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:22.559 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:22.560 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 8114
+2026-01-07 14:33:23.742 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:23.909 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:23.909 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 8261
+2026-01-07 14:33:24.986 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:25.152 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:25.153 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 8454
+2026-01-07 14:33:26.256 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:26.422 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:26.422 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 9802
+2026-01-07 14:33:27.478 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:27.645 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:27.645 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 9910
+2026-01-07 14:33:28.732 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:28.904 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:28.904 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockPrice, data_id: 9939
+2026-01-07 14:33:29.938 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:30.137 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:30.138 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMonthRevenue, data_id: 
+2026-01-07 14:33:30.699 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMonthRevenue, data_id: 
+2026-01-07 14:33:30.901 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMonthRevenue, data_id: 
+2026-01-07 14:33:31.907 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:32.076 | INFO     | FinMind.data.finmind_api:login_by_token:84 - Login success
+2026-01-07 14:33:32.076 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3706
+2026-01-07 14:33:32.636 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 8103
+2026-01-07 14:33:33.244 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 9939
+2026-01-07 14:33:33.436 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1736
+2026-01-07 14:33:33.819 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 4961
+2026-01-07 14:33:34.194 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6239
+2026-01-07 14:33:34.389 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 8114
+2026-01-07 14:33:34.579 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2395
+2026-01-07 14:33:34.774 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 9910
+2026-01-07 14:33:35.253 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2912
+2026-01-07 14:33:35.690 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2421
+2026-01-07 14:33:35.907 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2317
+2026-01-07 14:33:36.171 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3014
+2026-01-07 14:33:36.707 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6414
+2026-01-07 14:33:36.904 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2439
+2026-01-07 14:33:37.097 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2316
+2026-01-07 14:33:37.292 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6768
+2026-01-07 14:33:37.506 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 8454
+2026-01-07 14:33:40.113 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2492
+2026-01-07 14:33:40.521 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1477
+2026-01-07 14:33:41.250 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3026
+2026-01-07 14:33:47.847 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3036
+2026-01-07 14:33:48.313 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1514
+2026-01-07 14:33:48.717 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3413
+2026-01-07 14:33:48.911 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 4958
+2026-01-07 14:33:49.376 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6285
+2026-01-07 14:33:49.568 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 8016
+2026-01-07 14:33:49.759 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6197
+2026-01-07 14:33:50.061 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1503
+2026-01-07 14:33:50.983 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2382
+2026-01-07 14:33:51.184 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2476
+2026-01-07 14:33:51.390 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3592
+2026-01-07 14:33:51.585 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3711
+2026-01-07 14:33:51.781 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3023
+2026-01-07 14:33:57.879 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6278
+2026-01-07 14:33:58.348 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2493
+2026-01-07 14:33:58.547 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3231
+2026-01-07 14:33:58.738 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2458
+2026-01-07 14:33:59.042 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2472
+2026-01-07 14:34:03.975 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3045
+2026-01-07 14:34:04.473 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3019
+2026-01-07 14:34:04.778 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 5469
+2026-01-07 14:34:05.100 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3013
+2026-01-07 14:34:05.414 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2474
+2026-01-07 14:34:05.727 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1319
+2026-01-07 14:34:05.943 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2603
+2026-01-07 14:34:06.194 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2645
+2026-01-07 14:34:06.504 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 8261
+2026-01-07 14:34:06.773 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6753
+2026-01-07 14:34:11.071 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2385
+2026-01-07 14:34:15.399 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1795
+2026-01-07 14:34:15.807 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 9802
+2026-01-07 14:34:16.567 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6176
+2026-01-07 14:34:17.092 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3010
+2026-01-07 14:34:17.849 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2211
+2026-01-07 14:34:18.135 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2377
+2026-01-07 14:34:18.739 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6191
+2026-01-07 14:34:19.171 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1513
+2026-01-07 14:34:19.632 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2228
+2026-01-07 14:34:20.089 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 1215
+2026-01-07 14:34:21.706 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2376
+2026-01-07 14:34:21.968 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2412
+2026-01-07 14:34:22.165 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 3005
+2026-01-07 14:34:22.364 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2449
+2026-01-07 14:34:22.622 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6206
+2026-01-07 14:34:22.870 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6271
+2026-01-07 14:34:23.149 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6672
+2026-01-07 14:34:23.700 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 6257
+2026-01-07 14:34:23.894 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2327
+2026-01-07 14:34:24.446 | INFO     | FinMind.data.finmind_api:get_data:153 - download TaiwanStockMarginPurchaseShortSale, data_id: 2375
+================================================================================
+選股條件 v5.2 - 融資券+YoY版 (法人買、散戶走、有軋空潛力)
+================================================================================
+
+[1/5] 抓取當日股價 (FinMind)...
+   查詢日期: 2026-01-07
+   最新交易日: 2026-01-07
+   [RAW] 已存 2296 檔原始資料: data/raw/2026-01-07_1428_prices.json
+   基本篩選後: 125 檔
+
+[2/5] 抓取本益比...
+   取得 807 檔 PE 資料
+   用 PE < 35 再篩選... (v3.2 放寬)
+   PE 篩選後: 70 檔 (準備查法人)
+
+[3/5] 抓取法人買賣超...
+   法人資料範圍: 2025-12-07 ~ 2026-01-06
+   逐檔抓取 70 檔法人資料...
+      法人進度: 20/70 (20 成功, 0 重試)
+      法人進度: 40/70 (40 成功, 0 重試)
+      法人進度: 60/70 (60 成功, 0 重試)
+   取得 70/70 檔法人資料 (共重試 0 次)
+
+[4/5] 計算歷史技術指標...
+   (這會花一點時間，請稍候...)
+   已處理 10 檔...
+   已處理 20 檔...
+   已處理 30 檔...
+   已處理 40 檔...
+   已處理 50 檔...
+   已處理 60 檔...
+   [8016] 歷史股價抓取失敗（已重試 1 次）: <Response [500]>
+   取得 69 檔歷史資料 (資料完整)
+
+[5/8] 抓取財報資料...
+   (暫時跳過財報檢查,避免 API 問題)
+
+[6/8] 抓取營收 YoY...
+   [v5.2] 批量抓取營收（今年+去年，2 次 API）...
+   [INFO] 今年無資料，fallback 到 2025-12
+   最新營收月份: 2025/12
+   今年資料: 322 筆, 去年資料: 1883 筆
+   取得 22/70 檔營收 YoY
+
+[7/8] 抓取融資融券資料 [v5.2]...
+   [v5.2] 逐檔抓取融資融券資料 (70 檔)...
+   融資券查詢範圍: 2025-12-28 ~ 2026-01-07
+      融資券進度: 20/70 (20 成功)
+      融資券進度: 40/70 (40 成功)
+      融資券進度: 60/70 (60 成功)
+   取得 70/70 檔融資券資料
+
+[8/8] 最終篩選...
+1 🔥7 2492   華新科          132.0  +1.93% 🐰        +7,751 外資     [已漲][攻擊][資減][軋空] 法人買超,連5天,攻擊,量增,穩漲,資減,軋空
+2 🔥6 8103   瀚荃            92.9  +0.22% 🐰        +1,968 外資     [攻擊][軋空]        法人買超,連3天,攻擊,量增,穩漲,軋空
+3 🔥5 1503   士電           171.5  +1.18% 🚶          +425 外資     [資減]            法人買超,連3天,量增,穩漲,資減
+4 ⭐4 2327   國巨*          253.0  -0.20% 🐰       +40,452 混合     [整理][資減][軋空]    法人買超,連5天,資減,軋空
+📁 歷史資料已存: data/history/2026-01-07_1434.json
+📊 總歷史資料: 6 天
+
+================================================================================
+[OK] 符合條件（推薦買入）: 4 檔
+詳細結果已存到 scan_result_v3.txt
+2s
+Run python scripts/push_to_linebot.py
+讀取選股結果...
+[*] 讀取: scan_result_v4.txt
+
+準備推送的訊息:
+============================================================
+📊 選股 BOT v5.3 - 2026-01-07
+
+❌ 今日無符合條件的股票
+
+篩選條件：
+✅ 法人連續買超 ≥2天
+✅ 體質健康 (PE<35)
+✅ 還沒噴 (5日漲<15%, RSI<85)
+✅ 有量能 (>800張)
+============================================================
+
+推送到 Line BOT: ***
+[OK] Line 訊息推送成功
+[OK] 完成
+0s
+Run git config --local user.email "action@github.com"
+The following paths are ignored by one of your .gitignore files:
+data/raw/2026-01-07_1428_prices.json
+hint: Use -f if you really want to add them.
+hint: Disable this message with "git config set advice.addIgnoredFile false"
+[main 1fd14f2] data: auto-save scan result 2026-01-07
+ 3 files changed, 271 insertions(+), 65 deletions(-)
+ create mode 100644 data/history/2026-01-07_1434.json
+remote: Permission to atiti436/STOCK_HUNTER.git denied to github-actions[bot].
+fatal: unable to access 'https://github.com/atiti436/STOCK_HUNTER/': The requested URL returned error: 403
+0s
+Post job cleanup.
+0s
+Post job cleanup.
+/usr/bin/git version
+git version 2.52.0
+Temporarily overriding HOME='/home/runner/work/_temp/5cdb8e2b-65dc-4572-a6e8-376fd9266802' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+/usr/bin/git config --global --add safe.directory /home/runner/work/STOCK_HUNTER/STOCK_HUNTER
+/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+http.https://github.com/.extraheader
+/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+0s
+Cleaning up orphan processes
