@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-選股條件 v5.2 篩選器 (融資券 + YoY + ATR 劇本小卡)
+選股條件 v5.3 篩選器 (均線多頭標籤)
 目標：找「法人有在買、籌碼乾淨、趨勢向上」的股票
 
 篩選條件:
@@ -20,10 +20,13 @@
 - 法人5日累積 > 300 張
 - 法人1月累積 > -10,000 張
 
-【v5.2 新增：Bonus 加分】
+【v5.2 Bonus 加分】
 - 融資3日減 + 法人買 → +1 [資減]
 - 融券3日增 → +1 [軋空]
 - 營收 YoY > 0% → +1
+
+【v5.3 新增：均線標籤】
+- MA5 > MA10 → [多頭] (只加標籤，不影響評分)
 
 輸出說明:
 - 只輸出 >= 3 分股票
@@ -1108,7 +1111,8 @@ def main():
         prices_list = hist['prices']  # [(date, close, volume), ...] 最新在前
         closes = [p[1] for p in prices_list]
         
-        # 計算 MA10 和 MA20
+        # 計算 MA5, MA10 和 MA20 (v5.3: 加入 MA5 用於多頭判斷)
+        ma5 = sum(closes[:5]) / 5 if len(closes) >= 5 else None
         ma10 = sum(closes[:10]) / 10 if len(closes) >= 10 else None
         ma20 = sum(closes[:20]) / 20 if len(closes) >= 20 else sum(closes) / len(closes)
         
@@ -1152,6 +1156,9 @@ def main():
             tags.append('[整理]')
         if bias_ma20 > 1 and stock['change_pct'] > 0:
             tags.append('[攻擊]')
+        # v5.3: 均線多頭排列 (MA5 > MA10) - 只加標籤不加分
+        if ma5 is not None and ma10 is not None and ma5 > ma10:
+            tags.append('[多頭]')
 
         # 1. [籌碼] 法人有在顧 (+1~2)
         if inst_5day > 0:
