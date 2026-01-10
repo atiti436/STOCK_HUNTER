@@ -72,8 +72,8 @@ def format_line_message(content):
                 # 停止條件：遇到警告或下一個標題區塊
                 if line.startswith('⚠️') or '【' in line:
                     break
-                # 跳過分隔線（= 或 ─）
-                if line.strip() and not line.strip().replace('=', '').replace('━', ''):
+                # 跳過 === 標題線，但保留 ━━━ 分隔線
+                if line.strip() and not line.strip().replace('=', ''):
                     continue
                 if line.strip():
                     card_lines.append(line)
