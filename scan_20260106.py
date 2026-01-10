@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-選股條件 v5.3 篩選器 (均線多頭標籤)
+選股條件 v5.4 篩選器 (投信加權版)
 目標：找「法人有在買、籌碼乾淨、趨勢向上」的股票
 
 篩選條件:
@@ -25,12 +25,17 @@
 - 融券3日增 → +1 [軋空]
 - 營收 YoY > 0% → +1
 
-【v5.3 新增：均線標籤】
-- MA5 > MA10 → [多頭] (只加標籤，不影響評分)
+【v5.3 均線標籤】
+- MA5 > MA10 → [多頭]
+
+【v5.4 投信加權】🆕
+- 投信今日買超 > 0 → +1 [投信]
+- 投信連買 >= 2 天 → +1
+- 投信買超 > 外資買超 → [土洋對作]
 
 輸出說明:
 - 只輸出 >= 3 分股票
-- 適合短波段操作 (3-10 天)
+- 適合當沖/隔日沖，最長 5 天
 """
 
 import os
@@ -1159,6 +1164,26 @@ def main():
         # v5.3: 均線多頭排列 (MA5 > MA10) - 只加標籤不加分
         if ma5 is not None and ma10 is not None and ma5 > ma10:
             tags.append('[多頭]')
+        
+        # === v5.4 新增：投信標籤 ===
+        # 計算投信相關數據
+        trust_5day = sum(r['trust'] for r in inst[:5]) if len(inst) >= 5 else sum(r['trust'] for r in inst)
+        foreign_5day = sum(r['foreign'] for r in inst[:5]) if len(inst) >= 5 else sum(r['foreign'] for r in inst)
+        trust_today = inst[0]['trust'] if inst else 0
+        
+        # 計算投信連買天數
+        trust_buy_days = 0
+        for record in inst:
+            if record['trust'] > 0:
+                trust_buy_days += 1
+            else:
+                break
+        
+        # 投信標籤
+        if trust_today > 0:
+            tags.append('[投信]')
+        if trust_5day > foreign_5day and trust_5day > 0:
+            tags.append('[土洋對作]')
 
         # 1. [籌碼] 法人有在顧 (+1~2)
         if inst_5day > 0:
@@ -1204,6 +1229,17 @@ def main():
         if revenue_yoy > 0:
             score += 1
             score_reasons.append(f"YoY+{revenue_yoy:.0f}%")
+        
+        # === v5.4 新增：投信加分 ===
+        # 8. [投信買] 投信今日買超 (+1) - 投信短打適合隔日沖
+        if trust_today > 0:
+            score += 1
+            score_reasons.append("投信買")
+        
+        # 9. [投信連買] 投信連續買超 >= 2 天 (+1)
+        if trust_buy_days >= 2:
+            score += 1
+            score_reasons.append(f"投信連{trust_buy_days}天")
 
         # v5.1: 只顯示 >= 3 分的股票
         if score < 3:
