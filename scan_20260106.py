@@ -49,6 +49,7 @@ import argparse
 # 解析命令列參數
 parser = argparse.ArgumentParser(description='選股條件 v5.2 (融資券 + YoY)')
 parser.add_argument('--offline', action='store_true', help='使用本地快取，不呼叫 API')
+parser.add_argument('--date', type=str, help='指定日期 (YYYY-MM-DD)，用於查詢歷史資料。預設=今天')
 ARGS = parser.parse_args()
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -869,19 +870,22 @@ def main():
     dl = DataLoader()
     dl.login_by_token(api_token=get_finmind_token())
     
-    # 批量抓取：只指定 start_date = 今天（Backer 專屬功能）
-    today = datetime.now()
-    today_str = today.strftime('%Y-%m-%d')
+    # 批量抓取：使用指定日期或今天
+    if ARGS.date:
+        target_date_str = ARGS.date
+        print(f'   指定日期: {target_date_str}')
+    else:
+        target_date_str = datetime.now().strftime('%Y-%m-%d')
+        print(f'   查詢日期: {target_date_str}')
     
-    print(f'   查詢日期: {today_str}')
-    
-    # 嘗試今天，如果沒資料就往前找
-    df = dl.taiwan_stock_daily(start_date=today_str)
+    # 抓取資料
+    df = dl.taiwan_stock_daily(start_date=target_date_str)
     
     if df is None or df.empty:
-        # 嘗試昨天
-        yesterday_str = (today - timedelta(days=1)).strftime('%Y-%m-%d')
-        print(f'   今天無資料，嘗試 {yesterday_str}...')
+        # 嘗試往前一天
+        target_date = datetime.strptime(target_date_str, '%Y-%m-%d')
+        yesterday_str = (target_date - timedelta(days=1)).strftime('%Y-%m-%d')
+        print(f'   {target_date_str} 無資料，嘗試 {yesterday_str}...')
         df = dl.taiwan_stock_daily(start_date=yesterday_str)
     
     if df is None or df.empty:
@@ -1047,6 +1051,84 @@ def main():
     # 7. v5.2 新增：抓取融資融券資料
     print('\n[7/8] 抓取融資融券資料 [v5.2]...')
     margin_data = fetch_margin_data(candidate_tickers)
+
+    # === 存完整候選資料 (篩選前) - 供離線版本比較用 ===
+    print('\n[7.5/8] 存完整候選資料 (篩選前)...')
+    candidates_full = []
+    for ticker in candidate_tickers:
+        stock = stocks.get(ticker)
+        if not stock:
+            continue
+        
+        pe = pe_data.get(ticker, 0)
+        inst = institutional.get(ticker, [])
+        hist = historical_data.get(ticker, {})
+        rev = revenue_data.get(ticker, {})
+        margin = margin_data.get(ticker, {})
+        
+        # 計算基本指標
+        inst_5day = sum(r['total'] for r in inst[:5]) if inst else 0
+        inst_1month = sum(r['total'] for r in inst) if inst else 0
+        buy_days = count_institutional_buy_days(inst)
+        inst_leader = analyze_institutional_leader(inst)
+        
+        day5_change = hist.get('5day_change', 0)
+        avg_volume = hist.get('5day_avg_volume', 0)
+        prices_list = hist.get('prices', [])
+        
+        # MA 計算
+        closes = [p[1] for p in prices_list] if prices_list else []
+        ma5 = sum(closes[:5]) / 5 if len(closes) >= 5 else None
+        ma10 = sum(closes[:10]) / 10 if len(closes) >= 10 else None
+        ma20 = sum(closes[:20]) / 20 if len(closes) >= 20 else (sum(closes) / len(closes) if closes else 0)
+        
+        # RSI
+        rsi = 50
+        if len(prices_list) >= 15:
+            closes_for_rsi = [p[1] for p in prices_list]
+            rsi = calculate_rsi(closes_for_rsi, period=14)
+        
+        # ATR
+        atr_value, atr_pct, stock_type = calculate_atr(prices_list, period=14) if prices_list else (0, 0, '普通')
+        
+        candidates_full.append({
+            'ticker': ticker,
+            'name': stock.get('name', ''),
+            'price': stock['price'],
+            'change_pct': stock['change_pct'],
+            'volume': stock['volume'],
+            'pe': pe,
+            'inst_5day': inst_5day,
+            'inst_1month': inst_1month,
+            'buy_days': buy_days,
+            'inst_leader': inst_leader,
+            '5day_change': round(day5_change, 2) if day5_change else 0,
+            'avg_volume': int(avg_volume) if avg_volume else 0,
+            'revenue_yoy': rev.get('yoy', 0),
+            'rsi': round(rsi, 1),
+            'ma5': round(ma5, 2) if ma5 else None,
+            'ma10': round(ma10, 2) if ma10 else None,
+            'ma20': round(ma20, 2) if ma20 else None,
+            'atr': round(atr_value, 2) if atr_value else 0,
+            'atr_pct': round(atr_pct, 2) if atr_pct else 0,
+            'stock_type': stock_type,
+            'margin_3day_change': margin.get('margin_3day_change', 0),
+            'short_3day_change': margin.get('short_3day_change', 0),
+            'is_margin_decrease': margin.get('is_margin_decrease', False),
+            'is_short_increase': margin.get('is_short_increase', False),
+        })
+    
+    # 存到 raw 目錄
+    candidates_file = f'{raw_dir}/{latest_date}_{run_time}_candidates.json'
+    with open(candidates_file, 'w', encoding='utf-8') as f:
+        json.dump({
+            'date': str(latest_date),
+            'timestamp': datetime.now().isoformat(),
+            'count': len(candidates_full),
+            'note': '篩選前完整候選資料，可用於離線版本比較',
+            'stocks': candidates_full
+        }, f, ensure_ascii=False, indent=2)
+    print(f'   [RAW] 已存 {len(candidates_full)} 檔完整候選資料: {candidates_file}')
 
     # 8. 最終篩選
     print('\n[8/8] 最終篩選...')
