@@ -19,6 +19,9 @@ import sys
 import subprocess
 from datetime import datetime
 
+# 取得腳本所在目錄（解決 cwd 問題）
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 def log(msg):
     """帶時間戳的 log"""
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -42,7 +45,7 @@ def run_scan():
     
     try:
         result = subprocess.run(
-            [sys.executable, 'scan_20260106.py'],
+            [sys.executable, os.path.join(SCRIPT_DIR, 'scan_20260106.py')],
             capture_output=True,
             text=True,
             timeout=300  # 5 分鐘超時
@@ -73,7 +76,7 @@ def run_push():
     
     try:
         result = subprocess.run(
-            [sys.executable, 'scripts/push_to_linebot.py'],
+            [sys.executable, os.path.join(SCRIPT_DIR, 'scripts', 'push_to_linebot.py')],
             capture_output=True,
             text=True,
             timeout=30
