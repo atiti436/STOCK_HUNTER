@@ -45,19 +45,32 @@ def run_daily_scan():
             log(f"❌ 掃描失敗: {result.stderr[:200]}")
             return
         
-        # Step 2: 推送到 LINE
-        log("📤 執行 push_to_linebot.py...")
-        result = subprocess.run(
-            [sys.executable, os.path.join(SCRIPT_DIR, 'scripts', 'push_to_linebot.py')],
-            capture_output=True,
-            text=True,
-            timeout=30
-        )
-        
-        if result.returncode == 0:
-            log("✅ LINE 推送成功")
-        else:
-            log(f"❌ LINE 推送失敗: {result.stderr[:200]}")
+        # Step 2: 推送到 LINE（改用 HTTP API）
+        log("📤 推送到 LINE...")
+        try:
+            import requests
+            
+            # 讀取掃描結果
+            result_file = os.path.join(SCRIPT_DIR, 'scan_result_v3.txt')
+            if os.path.exists(result_file):
+                with open(result_file, 'r', encoding='utf-8') as f:
+                    message = f.read()
+                
+                linebot_url = os.environ.get('LINEBOT_URL', 'http://localhost:8080')
+                response = requests.post(
+                    f"{linebot_url}/push_scan_result",
+                    json={"message": message},
+                    timeout=30
+                )
+                
+                if response.status_code == 200:
+                    log("✅ LINE 推送成功")
+                else:
+                    log(f"❌ LINE 推送失敗: {response.status_code}")
+            else:
+                log(f"❌ 找不到結果檔案: {result_file}")
+        except Exception as e:
+            log(f"❌ LINE 推送異常: {e}")
         
         log("🎉 每日任務完成！")
         log("=" * 50)
