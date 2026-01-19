@@ -904,30 +904,26 @@ def main():
     raw_dir = 'data/raw'
     os.makedirs(raw_dir, exist_ok=True)
     run_time = datetime.now().strftime('%H%M')
-    raw_file = f'{raw_dir}/{latest_date}_{run_time}_prices.json'
     
-    # 轉成可存的格式
-    raw_data = []
+    # 儲存全市場收盤價（供 V7 驗證用）
+    all_market_prices = {}
     for _, row in df_latest.iterrows():
         ticker = str(row.get('stock_id', '')).strip()
         if not (ticker.isdigit() and len(ticker) == 4):
             continue
         try:
-            raw_data.append({
-                'ticker': ticker,
+            all_market_prices[ticker] = {
                 'close': float(row.get('close', 0)),
                 'open': float(row.get('open', 0)),
                 'high': float(row.get('max', 0)),
                 'low': float(row.get('min', 0)),
                 'spread': float(row.get('spread', 0)),
                 'volume': int(row.get('Trading_Volume', 0)) // 1000,
-            })
+            }
         except:
             continue
     
-    with open(raw_file, 'w', encoding='utf-8') as f:
-        json.dump({'date': str(latest_date), 'count': len(raw_data), 'stocks': raw_data}, f, ensure_ascii=False, indent=2)
-    print(f'   [RAW] 已存 {len(raw_data)} 檔原始資料: {raw_file}')
+    print(f'   [RAW] 全市場 {len(all_market_prices)} 檔收盤價（將存入 candidates.json）')
     
     # 用 spread 計算漲跌幅（spread = 今收 - 昨收）
     stocks = {}
@@ -1118,17 +1114,18 @@ def main():
             'is_short_increase': margin.get('is_short_increase', False),
         })
     
-    # 存到 raw 目錄
+    # 存到 raw 目錄（包含全市場收盤價，方便 V7 驗證）
     candidates_file = f'{raw_dir}/{latest_date}_{run_time}_candidates.json'
     with open(candidates_file, 'w', encoding='utf-8') as f:
         json.dump({
             'date': str(latest_date),
             'timestamp': datetime.now().isoformat(),
             'count': len(candidates_full),
-            'note': '篩選前完整候選資料，可用於離線版本比較',
-            'stocks': candidates_full
+            'note': '完整候選資料 + 全市場收盤價，用於版本比較和 V7 驗證',
+            'stocks': candidates_full,
+            'all_prices': all_market_prices,  # 全市場收盤價（供 V7 驗證用）
         }, f, ensure_ascii=False, indent=2)
-    print(f'   [RAW] 已存 {len(candidates_full)} 檔完整候選資料: {candidates_file}')
+    print(f'   [RAW] 已存 {len(candidates_full)} 檔候選 + {len(all_market_prices)} 檔收盤價: {candidates_file}')
 
     # 8. 最終篩選
     print('\n[8/8] 最終篩選...')

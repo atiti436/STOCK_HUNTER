@@ -53,6 +53,7 @@ def health_check():
 def push_scan_result():
     """
     接收 GitHub Actions 的選股結果，推送到 LINE
+    超過 4500 字自動分割成多則訊息
     """
     try:
         data = request.get_json()
@@ -61,9 +62,29 @@ def push_scan_result():
         if not message:
             return jsonify({"error": "No message provided"}), 400
         
-        # 廣播給所有追蹤者
-        line_bot_api.broadcast(TextSendMessage(text=message))
-        print(f"✅ 已廣播訊息 ({len(message)} 字)", flush=True)
+        # 分割訊息（LINE 限制 5000 字，保守用 4500）
+        MAX_LENGTH = 4500
+        if len(message) <= MAX_LENGTH:
+            line_bot_api.broadcast(TextSendMessage(text=message))
+            print(f"✅ 已廣播訊息 ({len(message)} 字)", flush=True)
+        else:
+            # 按段落分割
+            chunks = []
+            current_chunk = ""
+            for line in message.split('\n'):
+                if len(current_chunk) + len(line) + 1 > MAX_LENGTH:
+                    if current_chunk:
+                        chunks.append(current_chunk)
+                    current_chunk = line
+                else:
+                    current_chunk = current_chunk + '\n' + line if current_chunk else line
+            if current_chunk:
+                chunks.append(current_chunk)
+            
+            # 分則發送
+            for i, chunk in enumerate(chunks, 1):
+                line_bot_api.broadcast(TextSendMessage(text=chunk))
+                print(f"✅ 已廣播訊息 ({i}/{len(chunks)}, {len(chunk)} 字)", flush=True)
         
         return jsonify({"status": "ok", "message_length": len(message)})
     
