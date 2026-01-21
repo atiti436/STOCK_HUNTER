@@ -14,7 +14,7 @@ with open(date_file, 'r', encoding='utf-8') as f:
 stocks = data['stocks']
 print(f'=== {data.get("date", "?")} 完整候選: {len(stocks)} 檔 ===\n')
 
-v4, v5, v6, v6s, v7 = [], [], [], [], []
+v4, v5, v6, v6s, v7, v7s = [], [], [], [], [], []
 
 for s in stocks:
     t = s['ticker']
@@ -28,6 +28,10 @@ for s in stocks:
     ma5 = s.get('ma5', 0)
     ma10 = s.get('ma10', 0)
     ma20 = s.get('ma20', 0)
+    
+    # KD 值（從 candidates.json 取得，如果沒有則設為 None）
+    k9 = s.get('k9', None)
+    d9 = s.get('d9', None)
     
     # 共同條件
     base = (30 <= p <= 300) and (bd >= 2) and (i5 > 300)
@@ -67,6 +71,16 @@ for s in stocks:
     )
     if v7_cond:
         v7.append(s)
+    
+    # V7* (V9): V7 + KD 翻揚
+    # KD 黃金交叉：K > D 或 K 轉折向上
+    kd_bullish = False
+    if k9 is not None and d9 is not None:
+        kd_bullish = k9 > d9  # K 值大於 D 值 = 黃金交叉
+    
+    v7s_cond = v7_cond and kd_bullish
+    if v7s_cond:
+        v7s.append(s)
 
 print('【選股數量】')
 print(f'V4 (穩健): {len(v4):2} 檔  | 5日<10%, YoY>0')
@@ -74,6 +88,7 @@ print(f'V5 (寬鬆): {len(v5):2} 檔  | 5日<15%, 無YoY')
 print(f'V6 (嚴格): {len(v6):2} 檔  | 5日<5%, YoY>0')
 print(f'V6*(短線): {len(v6s):2} 檔  | 5日<5%, 無YoY')
 print(f'V7 (狙擊): {len(v7):2} 檔  | 今日跌, 近支撐, 主力在')
+print(f'V7*(KD翻): {len(v7s):2} 檔  | V7 + K>D 確認')
 print()
 
 def show(name, lst, max_show=8):

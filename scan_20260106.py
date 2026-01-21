@@ -127,6 +127,80 @@ def calculate_rsi(prices, period=14):
     return round(rsi, 1)
 
 
+def calculate_kd(prices, period=9):
+    """
+    計算 KD 指標 (隨機指標) - v7* 新增
+    
+    參數:
+        prices: 價格列表 [(date, close, volume, high, low), ...] 最新在前
+        period: RSV 週期，預設 9
+    
+    返回:
+        (k9, d9) 或 (None, None) 如果資料不足
+        - k9: K 值 (0-100)
+        - d9: D 值 (0-100)
+    """
+    if len(prices) < period:
+        return None, None
+    
+    # 取最近 period 天的資料
+    recent = prices[:period]
+    
+    # 今日收盤價
+    close = recent[0][1]
+    
+    # period 天內的最高價和最低價
+    highs = [p[3] if len(p) >= 4 else p[1] for p in recent]
+    lows = [p[4] if len(p) >= 5 else p[1] for p in recent]
+    
+    highest = max(highs)
+    lowest = min(lows)
+    
+    # RSV 計算：(今日收盤 - N日最低) / (N日最高 - N日最低) * 100
+    if highest == lowest:
+        rsv = 50  # 避免除以零
+    else:
+        rsv = (close - lowest) / (highest - lowest) * 100
+    
+    # K9 和 D9 的平滑計算 (簡化版：使用 RSV 的移動平均)
+    # 標準公式：K = 2/3 * 前日K + 1/3 * RSV
+    # 這裡用簡化版：K ≈ RSV, D = K 的 3 日平均
+    
+    # 計算最近 3 天的 RSV 來算 K 和 D
+    if len(prices) >= period + 2:
+        rsv_list = []
+        for i in range(3):
+            if i + period <= len(prices):
+                recent_i = prices[i:i+period]
+                close_i = recent_i[0][1]
+                highs_i = [p[3] if len(p) >= 4 else p[1] for p in recent_i]
+                lows_i = [p[4] if len(p) >= 5 else p[1] for p in recent_i]
+                highest_i = max(highs_i)
+                lowest_i = min(lows_i)
+                if highest_i != lowest_i:
+                    rsv_i = (close_i - lowest_i) / (highest_i - lowest_i) * 100
+                else:
+                    rsv_i = 50
+                rsv_list.append(rsv_i)
+        
+        if len(rsv_list) >= 3:
+            # K = 2/3 * 前日K + 1/3 * RSV (迭代計算)
+            k = 50  # 初始值
+            for r in reversed(rsv_list):
+                k = (2/3) * k + (1/3) * r
+            
+            # D = 2/3 * 前日D + 1/3 * K (再平滑一次)
+            d = (2/3) * 50 + (1/3) * k  # 簡化計算
+            
+            return round(k, 2), round(d, 2)
+    
+    # 資料不足時用簡化版
+    k9 = rsv
+    d9 = rsv * 0.9  # 粗略估計
+    
+    return round(k9, 2), round(d9, 2)
+
+
 def calculate_atr(prices, period=14):
     """
     計算 ATR (Average True Range) - v5.1 新增
@@ -1084,6 +1158,11 @@ def main():
             closes_for_rsi = [p[1] for p in prices_list]
             rsi = calculate_rsi(closes_for_rsi, period=14)
         
+        # KD (v7* 新增)
+        k9, d9 = None, None
+        if len(prices_list) >= 11:  # 需要至少 9+2 天資料
+            k9, d9 = calculate_kd(prices_list, period=9)
+        
         # ATR
         atr_value, atr_pct, stock_type = calculate_atr(prices_list, period=14) if prices_list else (0, 0, '普通')
         
@@ -1102,6 +1181,8 @@ def main():
             'avg_volume': int(avg_volume) if avg_volume else 0,
             'revenue_yoy': rev.get('yoy', 0),
             'rsi': round(rsi, 1),
+            'k9': k9,  # v7* 新增
+            'd9': d9,  # v7* 新增
             'ma5': round(ma5, 2) if ma5 else None,
             'ma10': round(ma10, 2) if ma10 else None,
             'ma20': round(ma20, 2) if ma20 else None,

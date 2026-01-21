@@ -1,0 +1,47 @@
+{
+  "date": "2026-01-21",
+  "timestamp": "2026-01-21T21:40:50.626848",
+  "count": 1,
+  "stocks": [
+    {
+      "ticker": "2439",
+      "name": "美律",
+      "price": 107.5,
+      "change_pct": 1.9,
+      "pe": 16.75,
+      "inst_5day": 4598,
+      "inst_1month": 7869,
+      "inst_leader": "外資",
+      "buy_days": 2,
+      "5day_change": -1.38,
+      "revenue_yoy": 9.54,
+      "rsi": 68.0,
+      "atr": 2.96,
+      "atr_pct": 2.76,
+      "stock_type": "兔子",
+      "stop_loss": 101.6,
+      "t1": 113.4,
+      "t2": 119.3,
+      "stop_note": "2xATR (-5.5%)",
+      "ma10": 105.05,
+      "ma20": 101.66,
+      "margin_3day_change": -72,
+      "short_3day_change": -10,
+      "score": 6,
+      "score_reasons": [
+        "法人買超",
+        "攻擊",
+        "量增",
+        "穩漲",
+        "資減",
+        "YoY+10%"
+      ],
+      "tags": [
+        "[攻擊]",
+        "[多頭]",
+        "[資減]"
+      ],
+      "bias_ma20": 5.75
+    }
+  ]
+}
