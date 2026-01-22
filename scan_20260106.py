@@ -129,76 +129,76 @@ def calculate_rsi(prices, period=14):
 
 def calculate_kd(prices, period=9):
     """
-    計算 KD 指標 (隨機指標) - v7* 新增
-    
+    計算標準 KD(9,3,3) 指標 - V9 MVP
+
+    標準公式:
+        RSV(t) = (Close(t) - Low9) / (High9 - Low9) * 100
+        K(t) = (2/3) * K(t-1) + (1/3) * RSV(t)
+        D(t) = (2/3) * D(t-1) + (1/3) * K(t)
+
     參數:
         prices: 價格列表 [(date, close, volume, high, low), ...] 最新在前
         period: RSV 週期，預設 9
-    
+
     返回:
-        (k9, d9) 或 (None, None) 如果資料不足
-        - k9: K 值 (0-100)
-        - d9: D 值 (0-100)
+        dict {
+            'K_value': float,    # 今日 K 值
+            'D_value': float,    # 今日 D 值
+            'K_prev': float,     # 昨日 K 值 (用於判斷金叉)
+            'D_prev': float,     # 昨日 D 值 (用於判斷金叉)
+        }
+        或 None 如果資料不足
     """
-    if len(prices) < period:
-        return None, None
-    
-    # 取最近 period 天的資料
-    recent = prices[:period]
-    
-    # 今日收盤價
-    close = recent[0][1]
-    
-    # period 天內的最高價和最低價
-    highs = [p[3] if len(p) >= 4 else p[1] for p in recent]
-    lows = [p[4] if len(p) >= 5 else p[1] for p in recent]
-    
-    highest = max(highs)
-    lowest = min(lows)
-    
-    # RSV 計算：(今日收盤 - N日最低) / (N日最高 - N日最低) * 100
-    if highest == lowest:
-        rsv = 50  # 避免除以零
-    else:
-        rsv = (close - lowest) / (highest - lowest) * 100
-    
-    # K9 和 D9 的平滑計算 (簡化版：使用 RSV 的移動平均)
-    # 標準公式：K = 2/3 * 前日K + 1/3 * RSV
-    # 這裡用簡化版：K ≈ RSV, D = K 的 3 日平均
-    
-    # 計算最近 3 天的 RSV 來算 K 和 D
-    if len(prices) >= period + 2:
-        rsv_list = []
-        for i in range(3):
-            if i + period <= len(prices):
-                recent_i = prices[i:i+period]
-                close_i = recent_i[0][1]
-                highs_i = [p[3] if len(p) >= 4 else p[1] for p in recent_i]
-                lows_i = [p[4] if len(p) >= 5 else p[1] for p in recent_i]
-                highest_i = max(highs_i)
-                lowest_i = min(lows_i)
-                if highest_i != lowest_i:
-                    rsv_i = (close_i - lowest_i) / (highest_i - lowest_i) * 100
-                else:
-                    rsv_i = 50
-                rsv_list.append(rsv_i)
-        
-        if len(rsv_list) >= 3:
-            # K = 2/3 * 前日K + 1/3 * RSV (迭代計算)
-            k = 50  # 初始值
-            for r in reversed(rsv_list):
-                k = (2/3) * k + (1/3) * r
-            
-            # D = 2/3 * 前日D + 1/3 * K (再平滑一次)
-            d = (2/3) * 50 + (1/3) * k  # 簡化計算
-            
-            return round(k, 2), round(d, 2)
-    
-    # 資料不足時用簡化版
-    k9 = rsv
-    d9 = rsv * 0.9  # 粗略估計
-    
-    return round(k9, 2), round(d9, 2)
+    # 需要至少 period + 1 天資料 (今天 + 昨天 + period-1 天歷史)
+    if len(prices) < period + 1:
+        return None
+
+    # 反轉數據，讓舊的在前（方便迭代計算）
+    prices_reversed = list(reversed(prices[:period + 10]))  # 多取一些確保計算穩定
+
+    # 初始化 K, D
+    k = 50.0
+    d = 50.0
+    k_prev = 50.0
+    d_prev = 50.0
+
+    # 從第 period 天開始計算（前 period-1 天用來計算第一個 RSV）
+    for i in range(period - 1, len(prices_reversed)):
+        # 取最近 period 天的資料（包含今天）
+        window = prices_reversed[i - period + 1 : i + 1]
+
+        # 今日收盤價
+        close_today = window[-1][1]
+
+        # period 天內的最高價和最低價
+        highs = [p[3] if len(p) >= 4 else p[1] for p in window]
+        lows = [p[4] if len(p) >= 5 else p[1] for p in window]
+
+        high_9 = max(highs)
+        low_9 = min(lows)
+
+        # 計算 RSV
+        if high_9 == low_9:
+            rsv = 50.0  # 避免除以零
+        else:
+            rsv = (close_today - low_9) / (high_9 - low_9) * 100
+
+        # 保存前一天的 K, D
+        k_prev = k
+        d_prev = d
+
+        # 計算今日 K: K = (2/3) * K_prev + (1/3) * RSV
+        k = (2.0 / 3.0) * k_prev + (1.0 / 3.0) * rsv
+
+        # 計算今日 D: D = (2/3) * D_prev + (1/3) * K
+        d = (2.0 / 3.0) * d_prev + (1.0 / 3.0) * k
+
+    return {
+        'K_value': round(k, 2),
+        'D_value': round(d, 2),
+        'K_prev': round(k_prev, 2),
+        'D_prev': round(d_prev, 2),
+    }
 
 
 def calculate_atr(prices, period=14):
@@ -1158,14 +1158,45 @@ def main():
             closes_for_rsi = [p[1] for p in prices_list]
             rsi = calculate_rsi(closes_for_rsi, period=14)
         
-        # KD (v7* 新增)
+        # KD (V9 MVP 新增)
+        kd_data = None
         k9, d9 = None, None
-        if len(prices_list) >= 11:  # 需要至少 9+2 天資料
-            k9, d9 = calculate_kd(prices_list, period=9)
+        if len(prices_list) >= 10:  # 需要至少 9+1 天資料
+            kd_data = calculate_kd(prices_list, period=9)
+            if kd_data:
+                k9 = kd_data['K_value']
+                d9 = kd_data['D_value']
         
         # ATR
         atr_value, atr_pct, stock_type = calculate_atr(prices_list, period=14) if prices_list else (0, 0, '普通')
-        
+
+        # 投信數據 (v5.4)
+        trust_5day = sum(r['trust'] for r in inst[:5]) if len(inst) >= 5 else sum(r['trust'] for r in inst) if inst else 0
+        foreign_5day = sum(r['foreign'] for r in inst[:5]) if len(inst) >= 5 else sum(r['foreign'] for r in inst) if inst else 0
+        trust_today = inst[0]['trust'] if inst else 0
+
+        # 計算投信連買天數
+        trust_buy_days = 0
+        for record in inst:
+            if record['trust'] > 0:
+                trust_buy_days += 1
+            else:
+                break
+
+        # K_zone 判斷 (V9 MVP)
+        k_zone = None
+        k_prev, d_prev = None, None
+        if kd_data:
+            k_val = kd_data['K_value']
+            k_prev = kd_data['K_prev']
+            d_prev = kd_data['D_prev']
+            if k_val >= 80:
+                k_zone = 'Risky'  # 排除
+            elif k_val <= 50:
+                k_zone = 'Ideal'
+            else:
+                k_zone = 'OK'
+
         candidates_full.append({
             'ticker': ticker,
             'name': stock.get('name', ''),
@@ -1181,8 +1212,13 @@ def main():
             'avg_volume': int(avg_volume) if avg_volume else 0,
             'revenue_yoy': rev.get('yoy', 0),
             'rsi': round(rsi, 1),
-            'k9': k9,  # v7* 新增
-            'd9': d9,  # v7* 新增
+            'k9': k9,
+            'd9': d9,
+            'K_value': k9,  # V9 MVP
+            'D_value': d9,  # V9 MVP
+            'K_prev': k_prev,  # V9 MVP
+            'D_prev': d_prev,  # V9 MVP
+            'K_zone': k_zone,  # V9 MVP
             'ma5': round(ma5, 2) if ma5 else None,
             'ma10': round(ma10, 2) if ma10 else None,
             'ma20': round(ma20, 2) if ma20 else None,
@@ -1193,6 +1229,11 @@ def main():
             'short_3day_change': margin.get('short_3day_change', 0),
             'is_margin_decrease': margin.get('is_margin_decrease', False),
             'is_short_increase': margin.get('is_short_increase', False),
+            # 投信數據 (v5.4)
+            'trust_today': trust_today,
+            'trust_5day': trust_5day,
+            'foreign_5day': foreign_5day,
+            'trust_buy_days': trust_buy_days,
         })
     
     # 存到 raw 目錄（包含全市場收盤價，方便 V7 驗證）
@@ -1202,11 +1243,89 @@ def main():
             'date': str(latest_date),
             'timestamp': datetime.now().isoformat(),
             'count': len(candidates_full),
-            'note': '完整候選資料 + 全市場收盤價，用於版本比較和 V7 驗證',
+            'v9_spec': 'MVP-20260122',  # V9 MVP
+            'kd_version': 'KD(9,3,3)',  # V9 MVP
+            'note': '完整候選資料 + 全市場收盤價，用於版本比較和 V7/V9 驗證',
             'stocks': candidates_full,
             'all_prices': all_market_prices,  # 全市場收盤價（供 V7 驗證用）
         }, f, ensure_ascii=False, indent=2)
     print(f'   [RAW] 已存 {len(candidates_full)} 檔候選 + {len(all_market_prices)} 檔收盤價: {candidates_file}')
+
+    # === V9 MVP: 漏斗篩選 ===
+    print('\n[V9] 開始漏斗篩選...')
+
+    # Universe 計數
+    universe_count = len(all_market_prices)
+    after_base_count = len(candidates_full)
+
+    print(f'  Universe: {universe_count}')
+    print(f'  After BASE: {after_base_count}')
+
+    # V7 篩選：連續 3 天 Close > MA20 AND 連續 3 天 Volume < MA(Volume,20) * 0.8
+    v7_candidates = []
+    for stock in candidates_full:
+        ticker = stock['ticker']
+        hist = historical_data.get(ticker, {})
+        if not hist:
+            continue
+
+        prices_list = hist['prices']  # [(date, close, volume, high, low), ...] 最新在前
+
+        if len(prices_list) < 20:
+            continue
+
+        # 計算 MA20
+        closes = [p[1] for p in prices_list]
+        volumes = [p[2] for p in prices_list]
+        ma20_price = sum(closes[:20]) / 20
+        ma20_volume = sum(volumes[:20]) / 20
+
+        # 檢查連續 3 天 Close > MA20
+        trend_ok = all(closes[i] > ma20_price for i in range(3))
+
+        # 檢查連續 3 天 Volume < MA20_Volume * 0.8
+        squeeze_ok = all(volumes[i] < ma20_volume * 0.8 for i in range(3))
+
+        if trend_ok and squeeze_ok:
+            stock['v7_pass'] = True
+            v7_candidates.append(stock)
+
+    after_v7_count = len(v7_candidates)
+    print(f'  After V7: {after_v7_count}')
+
+    # V9 篩選：K > D AND K_prev <= D_prev AND K > K_prev AND K < 80
+    v9_candidates = []
+    excluded_highk = []
+
+    for stock in v7_candidates:
+        k_val = stock.get('K_value')
+        d_val = stock.get('D_value')
+        k_prev = stock.get('K_prev')
+        d_prev = stock.get('D_prev')
+
+        if k_val is None or d_val is None or k_prev is None or d_prev is None:
+            continue
+
+        # K >= 80 必須排除
+        if k_val >= 80:
+            excluded_highk.append(stock)
+            continue
+
+        # 金叉條件：K > D (今天) AND K_prev <= D_prev (昨天死叉或平) AND K > K_prev (K 上升)
+        golden_cross = (k_val > d_val) and (k_prev <= d_prev) and (k_val > k_prev)
+
+        if golden_cross:
+            stock['v9_pass'] = True
+            v9_candidates.append(stock)
+
+    after_v9_count = len(v9_candidates)
+    excluded_highk_count = len(excluded_highk)
+
+    print(f'  After V9: {after_v9_count}')
+    print(f'  Excluded HighK (K>=80): {excluded_highk_count}')
+
+    print(f'\n[V9] 漏斗篩選完成')
+    print(f'  Universe: {universe_count} -> After BASE: {after_base_count} -> After V7: {after_v7_count} -> After V9: {after_v9_count} -> Excluded HighK: {excluded_highk_count}')
 
     # 8. 最終篩選
     print('\n[8/8] 最終篩選...')
@@ -1584,50 +1703,74 @@ def output_results(results):
                 f.write(f"   🚀 T2:   ${r['t2']:.1f} ({t2_pct:+.1f}%)  趨勢滿足\n")
                 f.write('\n')
             
-            # === v5.3 新增：Format C 極簡行動卡 (LINE/手機適用) ===
+            # === v5.4 極簡行動卡 (LINE推送專用) ===
             f.write('\n' + '=' * 60 + '\n')
             f.write('📱 【極簡行動卡】LINE推送用\n')
             f.write('=' * 60 + '\n\n')
-            
+
+            # 取得大盤資訊
+            market_change = HEALTH_CHECK.get('market_change_pct', 0)
+            market_sign = '+' if market_change >= 0 else ''
+            data_date = HEALTH_CHECK.get('data_date', datetime.now().strftime('%Y-%m-%d'))
+
+            # 開頭框線
+            f.write('━' * 25 + '\n')
+            f.write(f"📊 {data_date} 選股 (大盤{market_sign}{market_change:.2f}%)\n")
+            f.write('━' * 25 + '\n\n')
+
             for r in results[:6]:  # 最多 6 檔
                 score = r.get('score', 0)
                 stock_type = r.get('stock_type', '普通')
                 type_icon = '🐰' if stock_type == '兔子' else ('🐢' if stock_type == '烏龜' else '🚶')
                 atr = r.get('atr', 0)
-                
-                # 評分符號
+
+                # 評分符號 (滿分8分)
                 score_icon = '🔥' if score >= 5 else ('⭐' if score >= 4 else '✅')
-                
+
                 # 建議入場價
                 entry_low = int(r['price'] - 0.5 * atr)
                 entry_high = int(r['price'])
-                
-                # 籌碼標籤
-                margin_tags = []
-                if r.get('margin_3day_change', 0) < 0:
-                    margin_tags.append('資減')
-                if r.get('short_3day_change', 0) > 0:
-                    margin_tags.append('軋空')
-                chip_str = '+'.join(margin_tags) if margin_tags else ''
-                
+
                 # 停損停利整數
                 stop_int = int(r['stop_loss'])
-                stop_pct = int((r['stop_loss'] - r['price']) / r['price'] * 100)
                 t1_int = int(r['t1'])
                 t2_int = int(r['t2'])
-                t1_pct = int((r['t1'] - r['price']) / r['price'] * 100)
-                t2_pct = int((r['t2'] - r['price']) / r['price'] * 100)
-                
-                f.write('━' * 25 + '\n')
-                f.write(f"{score_icon} {r['name']} {r['ticker']} ${r['price']:.1f}\n")
-                f.write('━' * 25 + '\n')
-                f.write(f"{type_icon} {'活潑股' if stock_type == '兔子' else ('牛皮股' if stock_type == '烏龜' else '普通股')}｜{r['inst_leader']}連{r['buy_days']}買\n")
-                f.write(f"📈 {r['inst_5day']:+,}張｜{chip_str}\n" if chip_str else f"📈 {r['inst_5day']:+,}張\n")
-                f.write('\n')
-                f.write(f"💵 進場: {entry_low}~{entry_high}\n")
-                f.write(f"🛡️ 停損: {stop_int} ({stop_pct}%)\n")
-                f.write(f"🎯 目標: {t1_int}/{t2_int} (+{t1_pct}%/+{t2_pct}%)\n")
-                f.write('━' * 25 + '\n\n')
+
+                # 籌碼+特殊標籤
+                chip_tags = []
+                if r.get('margin_3day_change', 0) < 0:
+                    chip_tags.append('資減')
+                if r.get('short_3day_change', 0) > 0:
+                    chip_tags.append('軋空')
+
+                # 投信買入
+                if '投信買' in r.get('score_reasons', []):
+                    chip_tags.append('投信')
+
+                # YoY 顯著成長
+                yoy = r.get('yoy_growth', 0)
+                if yoy >= 10:
+                    chip_tags.append(f"YoY+{int(yoy)}%")
+
+                # 注意股警示
+                warning_text = ''
+                if '注意股' in r['name'] or r.get('is_warning_stock', False):
+                    warning_text = '   ⚠️注意股 建議觀望\n'
+
+                # 組合第二行文字
+                chip_line = f"   {r['inst_leader']}連{r['buy_days']}買"
+                if chip_tags:
+                    chip_line += '｜' + '｜'.join(chip_tags)
+
+                # 輸出格式 (3行精簡)
+                f.write(f"{score_icon} {r['name']} {r['ticker']} ${r['price']:.1f} ⟨{score}分⟩{type_icon}\n")
+                f.write(f"{chip_line}\n")
+                if warning_text:
+                    f.write(warning_text)
+                f.write(f"   💵{entry_low}~{entry_high}｜🛡️{stop_int}｜🎯{t1_int}/{t2_int}\n\n")
+
+            # 結尾框線
+            f.write('━' * 25 + '\n')
         
         # 警告摘要
         if warnings:
