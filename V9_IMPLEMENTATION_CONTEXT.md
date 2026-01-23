@@ -1,31 +1,44 @@
 # V9 Implementation Context (for AI Resume)
 
+> [!CAUTION]
+> **🚨 版本定義不一致！** 詳見 [`HANDOFF_V7_ISSUE.md`](./HANDOFF_V7_ISSUE.md)
+> - `scan_20260106.py` 的 V7 = 量縮蓄勢
+> - `scan_all_versions.py` 的 V7 = Daily Dip
+> - 用戶尚未決定如何統一
+
 ## 任務目標
-在 `scan_20260106.py` 實作 V9 MVP 版本
+整理 V7/V8/V9 版本定義，確保人機理解一致
 
-## 核心規範（來自 CC3.txt）
+## 版本定義（2026-01-23 確認）
 
-### V7 極簡版（量縮蓄勢）
+### V7 Daily Dip（回檔狙擊）✅ 已驗證
 ```python
-# 只有 2 個條件
-1. 連續 3 天 Close > MA20
-2. 連續 3 天 Volume < MA(Volume,20) * 0.8
+# 找「強勢股回檔到支撐」
+- 今日跌 -4%~0%           # 必須有跌
+- 接近 MA10/MA20（乖離<2%） # 回到均線支撐
+- 均線多頭 MA10 > MA20
+- 法人5日 > 500
+- RSI < 70
+- 5日漲幅 -5%~5%          # 橫盤或小回檔
+```
+**實績**：1/16、1/20 各選出 3 檔，包含聯茂連續出現 ✅
+
+### V8 量縮蓄勢（實驗中）📝 待驗證
+```python
+# 找「多頭整理縮量」
+1. 連續 3 天 Close > MA20   # 站穩均線
+2. 連續 3 天 Volume < MA(Volume,20) * 0.8  # 量縮整理
+```
+**問題**：聯茂無法被選到（量沒有連續縮 3 天）
+
+### V9 = V7 + KD 確認
+```python
+# V7 通過後，加上 KD 觸發
+- K > D AND K_prev <= D_prev  # 剛金叉
+- K >= 80 → 排除（過熱）
+- K <= 50 → Ideal（低檔翻揚）
 ```
 
-### V9 嚴格版（KD 觸發）
-```python
-# Trigger（抓第一天金叉）
-K > D AND K_prev <= D_prev AND K > K_prev
-
-# Position Filter
-K >= 80 → 排除
-K <= 50 → Ideal
-50 < K < 80 → OK
-```
-
-### KD 規格
-- 標準 KD(9,3,3) 公式
-- RSV 方法（9日）
 
 ## 漏斗流程
 ```

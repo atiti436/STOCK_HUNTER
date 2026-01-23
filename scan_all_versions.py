@@ -68,14 +68,73 @@ else:
     print('=' * 60)
     print('[FULL SCAN] 完整掃描模式（呼叫 API）')
     print('=' * 60)
-    print('[WARNING] 暫未實作，請使用 scan_20260106.py')
-    print('[WARNING] 或使用 --dry-run 進行乾測試')
-    sys.exit(1)
+    print()
+
+    # 步驟 1: 執行 scan_20260106.py 產生 candidates.json
+    print('[1/2] 執行 BASE 篩選（產生候選池）...')
+    import subprocess
+
+    script_dir = Path(__file__).parent
+    scan_script = script_dir / 'scan_20260106.py'
+
+    if not scan_script.exists():
+        print(f'❌ 找不到 scan_20260106.py: {scan_script}')
+        sys.exit(1)
+
+    # 執行掃描程式（只產生 candidates.json，不做後續篩選）
+    # 注意：scan_20260106.py 會執行完整流程，包括 V7/V9 篩選
+    # 但我們只需要它產生的 candidates.json
+    try:
+        result = subprocess.run(
+            ['python', str(scan_script)],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding='utf-8'
+        )
+        # 顯示輸出的前幾行（確認有執行）
+        output_lines = result.stdout.split('\n')[:20]
+        for line in output_lines:
+            if line.strip():
+                print(f'  {line}')
+        print('  ...')
+        print()
+    except subprocess.CalledProcessError as e:
+        print(f'❌ 執行 scan_20260106.py 失敗')
+        print(f'錯誤訊息: {e.stderr}')
+        sys.exit(1)
+
+    # 步驟 2: 讀取產生的 candidates.json
+    print('[2/2] 讀取候選池資料...')
+    raw_dir = Path('d:/claude-project/STOCK_HUNTER/data/raw')
+
+    # 尋找最新的 candidates.json
+    candidates_files = sorted(raw_dir.glob('*_candidates.json'), reverse=True)
+
+    if not candidates_files:
+        print('❌ 找不到 candidates.json 檔案')
+        sys.exit(1)
+
+    candidates_file = candidates_files[0]
+    print(f'[FILE] 讀取檔案: {candidates_file.name}')
+
+    with open(candidates_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    stocks = data['stocks']
+    date_str = data.get('date', '?')
+    count = len(stocks)
+
+    print(f'[DATA] 日期: {date_str}')
+    print(f'[DATA] 候選數: {count} 檔')
+    print()
+    print('=' * 60)
+    print()
 
 # ===== Part 2: 多版本篩選邏輯 (複製自 compare_versions_v7.py) =====
 print('[1/3] 套用多版本篩選邏輯...')
 
-v4, v5, v6, v6s, v7, v7s = [], [], [], [], [], []
+v4, v5, v6, v6s, v7, v8, v7s = [], [], [], [], [], [], []
 v5_with_score = []  # V5 + 評分系統
 
 for s in stocks:
@@ -229,28 +288,53 @@ for s in stocks:
     if v7_cond:
         v7.append(s)
 
-    # V7* (V9): V7 + KD 翻揚
-    # KD 黃金交叉：K > D 或 K 轉折向上
+    # V8: 量縮蓄勢版
+    # 連續 3 天 Close > MA20 AND 連續 3 天 Volume < MA(Volume,20) * 0.8
+    v8_cond = False
+    prices_list = s.get('prices', [])
+    if len(prices_list) >= 20 and ma20 > 0:
+        # prices_list 格式: [(date, close, volume, high, low), ...] 最新在前
+        closes = [p[1] for p in prices_list]
+        volumes = [p[2] for p in prices_list]
+
+        # 計算 MA20 Volume
+        ma20_volume = sum(volumes[:20]) / 20 if len(volumes) >= 20 else 0
+
+        if ma20_volume > 0:
+            # 檢查連續 3 天 Close > MA20
+            trend_ok = all(closes[i] > ma20 for i in range(min(3, len(closes))))
+
+            # 檢查連續 3 天 Volume < MA20_Volume * 0.8
+            squeeze_ok = all(volumes[i] < ma20_volume * 0.8 for i in range(min(3, len(volumes))))
+
+            v8_cond = trend_ok and squeeze_ok
+
+    if v8_cond:
+        v8.append(s)
+
+    # V9: V7 + KD 金叉確認
+    # V7 通過後，加上 KD 確認止跌訊號
     kd_bullish = False
     if k9 is not None and d9 is not None:
         kd_bullish = k9 > d9  # K 值大於 D 值 = 黃金交叉
 
-    v7s_cond = v7_cond and kd_bullish
-    if v7s_cond:
-        v7s.append(s)
+    v9_cond = v7_cond and kd_bullish
+    if v9_cond:
+        v7s.append(s)  # 變數名保持 v7s 向下相容
 
 print(f'   V4 (穩健): {len(v4):2} 檔  | 5日<10%, YoY>0')
 print(f'   V5 (寬鬆): {len(v5):2} 檔  | 5日<15%, 無YoY')
 print(f'   V6 (嚴格): {len(v6):2} 檔  | 5日<5%, YoY>0')
 print(f'   V6*(短線): {len(v6s):2} 檔  | 5日<5%, 無YoY')
 print(f'   V7 (狙擊): {len(v7):2} 檔  | 今日跌, 近支撐, 主力在')
+print(f'   V8 (量縮): {len(v8):2} 檔  | 連3天站MA20, 量縮')
 print(f'   V9 (KD翻): {len(v7s):2} 檔  | V7 + K>D 確認')
 print()
 
 # ===== Part 3: 產生輸出 =====
 print('[2/3] 產生多版本報告...')
 
-def get_version_label(s, v4_set, v5_set, v6_set, v6s_set, v7_set, v9_set):
+def get_version_label(s, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set):
     """產生版本標籤字串"""
     t = s['ticker']
     versions = []
@@ -259,6 +343,7 @@ def get_version_label(s, v4_set, v5_set, v6_set, v6s_set, v7_set, v9_set):
     if t in v6_set: versions.append('V6')
     if t in v6s_set: versions.append('V6*')
     if t in v7_set: versions.append('V7')
+    if t in v8_set: versions.append('V8')
     if t in v9_set: versions.append('V9')
 
     if len(versions) >= 4:
@@ -268,7 +353,7 @@ def get_version_label(s, v4_set, v5_set, v6_set, v6s_set, v7_set, v9_set):
     else:
         return '⟨' + ' '.join(versions) + '⟩'
 
-def generate_full_report(v4, v5, v6, v6s, v7, v9, date_str):
+def generate_full_report(v4, v5, v6, v6s, v7, v8, v9, date_str):
     """產生完整多版本報告"""
     lines = []
     lines.append('=' * 60)
@@ -282,6 +367,7 @@ def generate_full_report(v4, v5, v6, v6s, v7, v9, date_str):
     lines.append(f'V6 (嚴格): {len(v6):2} 檔  | 5日<5%, YoY>0')
     lines.append(f'V6*(短線): {len(v6s):2} 檔  | 5日<5%, 無YoY')
     lines.append(f'V7 (狙擊): {len(v7):2} 檔  | 今日跌, 近支撐, 主力在')
+    lines.append(f'V8 (量縮): {len(v8):2} 檔  | 連3天站MA20, 量縮')
     lines.append(f'V9 (KD翻): {len(v9):2} 檔  | V7 + K>D 確認')
     lines.append('')
 
@@ -291,11 +377,12 @@ def generate_full_report(v4, v5, v6, v6s, v7, v9, date_str):
     v6_set = {s['ticker'] for s in v6}
     v6s_set = {s['ticker'] for s in v6s}
     v7_set = {s['ticker'] for s in v7}
+    v8_set = {s['ticker'] for s in v8}
     v9_set = {s['ticker'] for s in v9}
 
     # 合併所有股票
     all_tickers = {}
-    for lst in [v4, v5, v6, v6s, v7, v9]:
+    for lst in [v4, v5, v6, v6s, v7, v8, v9]:
         for s in lst:
             t = s['ticker']
             if t not in all_tickers:
@@ -310,6 +397,7 @@ def generate_full_report(v4, v5, v6, v6s, v7, v9, date_str):
         if t in v6_set: cnt += 1
         if t in v6s_set: cnt += 1
         if t in v7_set: cnt += 1
+        if t in v8_set: cnt += 1
         if t in v9_set: cnt += 1
         return cnt
 
@@ -327,7 +415,7 @@ def generate_full_report(v4, v5, v6, v6s, v7, v9, date_str):
         t = s['ticker']
         name = s.get('name', '')[:4]
         price = s['price']
-        label = get_version_label(s, v4_set, v5_set, v6_set, v6s_set, v7_set, v9_set)
+        label = get_version_label(s, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set)
 
         vcnt = count_versions(s)
         if vcnt >= 4:
@@ -348,8 +436,8 @@ def generate_full_report(v4, v5, v6, v6s, v7, v9, date_str):
 
     return '\n'.join(lines)
 
-def generate_v5_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v9_set, date_str):
-    """產生 V5 小卡（LINE 推送用）- 極簡版 + 完整評分 + 版本標籤 + 分離 V7 狙擊股"""
+def generate_v9_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set, date_str):
+    """產生 V9 小卡（LINE 推送用）- 多版本整合 + 完整評分 + 版本標籤"""
     lines = []
 
     # 開頭框線
@@ -358,14 +446,14 @@ def generate_v5_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set
     lines.append('━' * 25)
     lines.append('')
 
-    # 分類股票：順勢股 vs 純狙擊股
+    # 分類股票：順勢股 vs 純狙擊股/量縮股
     trend_stocks = []  # 有通過 V4/V5/V6/V6* 任一版本
-    sniper_stocks = []  # 只通過 V7/V9
+    sniper_stocks = []  # 只通過 V7/V8/V9
 
     for s in v5_with_score:
         t = s['ticker']
         has_trend = t in v4_set or t in v5_set or t in v6_set or t in v6s_set
-        has_sniper = t in v7_set or t in v9_set
+        has_sniper = t in v7_set or t in v8_set or t in v9_set
 
         if has_trend:
             trend_stocks.append(s)
@@ -414,9 +502,11 @@ def generate_v5_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set
         else:
             version_label = '/'.join(trend_versions)
 
-        # 加上狙擊標籤
+        # 加上狙擊/量縮標籤
         if t in v9_set:
             version_label += '+V9'
+        elif t in v8_set:
+            version_label += '+V8'
         elif t in v7_set:
             version_label += '+V7'
 
@@ -444,10 +534,10 @@ def generate_v5_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set
         lines.append(f"   💵{entry_low}~{entry_high}｜🛡️{stop}｜🎯{t1}/{t2}")
         lines.append('')
 
-    # ===== 下半部：純狙擊股 (如果有) =====
+    # ===== 下半部：純狙擊股/量縮股 (如果有) =====
     if sniper_sorted:
         lines.append('━' * 25)
-        lines.append('⚡ V7 狙擊股')
+        lines.append('⚡ V7/V8/V9 特殊股')
         lines.append('━' * 25)
         lines.append('')
 
@@ -475,9 +565,11 @@ def generate_v5_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set
             # 狙擊股圖示
             score_icon = '⚡'
 
-            # 產生版本標籤（只有 V7/V9）
+            # 產生版本標籤（只有 V7/V8/V9）
             if t in v9_set:
                 version_label = 'V9'
+            elif t in v8_set:
+                version_label = 'V8'
             else:
                 version_label = 'V7'
 
@@ -516,10 +608,11 @@ v5_set = {s['ticker'] for s in v5}
 v6_set = {s['ticker'] for s in v6}
 v6s_set = {s['ticker'] for s in v6s}
 v7_set = {s['ticker'] for s in v7}
+v8_set = {s['ticker'] for s in v8}
 v9_set = {s['ticker'] for s in v7s}
 
-full_report = generate_full_report(v4, v5, v6, v6s, v7, v7s, date_str)
-v5_lite = generate_v5_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v9_set, date_str)
+full_report = generate_full_report(v4, v5, v6, v6s, v7, v8, v7s, date_str)
+v9_lite = generate_v9_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set, date_str)
 
 # ===== Part 4: 儲存輸出 =====
 print('[3/3] 儲存輸出檔案...')
@@ -530,11 +623,11 @@ with open(output_file, 'w', encoding='utf-8') as f:
     f.write(full_report)
 print(f'   [OK] 完整報告: scan_result_all_versions.txt')
 
-# V5 小卡
-lite_file = 'd:/claude-project/STOCK_HUNTER/scan_result_v5_lite.txt'
+# V9 小卡
+lite_file = 'd:/claude-project/STOCK_HUNTER/scan_result_v9_lite.txt'
 with open(lite_file, 'w', encoding='utf-8') as f:
-    f.write(v5_lite)
-print(f'   [OK] V5 小卡: scan_result_v5_lite.txt')
+    f.write(v9_lite)
+print(f'   [OK] V9 小卡: scan_result_v9_lite.txt')
 
 print()
 print('=' * 60)
@@ -547,6 +640,6 @@ print(full_report[:800])
 print()
 print('...')
 print()
-print('[V5 CARD] V5 小卡預覽:')
+print('[V9 CARD] V9 小卡預覽:')
 print()
-print(v5_lite)
+print(v9_lite)

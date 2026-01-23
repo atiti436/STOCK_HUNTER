@@ -1234,6 +1234,8 @@ def main():
             'trust_5day': trust_5day,
             'foreign_5day': foreign_5day,
             'trust_buy_days': trust_buy_days,
+            # 歷史價格資料 (供 V8 量縮蓄勢使用)
+            'prices': prices_list[:20] if prices_list else [],  # 保留最近 20 天
         })
     
     # 存到 raw 目錄（包含全市場收盤價，方便 V7 驗證）
