@@ -27,15 +27,15 @@ def run_daily_scan():
     log("=" * 50)
     
     try:
-        # Step 1: 執行掃描
-        log("🔍 執行 scan_20260106.py...")
+        # Step 1: 執行完整掃描（含所有版本）
+        log("🔍 執行 scan_all_versions.py...")
         result = subprocess.run(
-            [sys.executable, os.path.join(SCRIPT_DIR, 'scan_20260106.py')],
+            [sys.executable, os.path.join(SCRIPT_DIR, 'scan_all_versions.py')],
             capture_output=True,
             text=True,
             timeout=300
         )
-        
+
         if result.returncode == 0:
             log("✅ 掃描完成")
             lines = result.stdout.strip().split('\n')
@@ -45,37 +45,16 @@ def run_daily_scan():
             log(f"❌ 掃描失敗: {result.stderr[:200]}")
             return
         
-        # Step 1.5: 執行版本比較產生 B 格式
-        log("📊 產生 B 格式推送卡...")
-        try:
-            # 找到最新的 candidates.json
-            import glob
-            candidates = sorted(glob.glob(os.path.join(SCRIPT_DIR, 'data/raw/*_candidates.json')))
-            if candidates:
-                latest_candidate = candidates[-1]
-                compare_result = subprocess.run(
-                    [sys.executable, os.path.join(SCRIPT_DIR, 'compare_versions_v7.py'), latest_candidate],
-                    capture_output=True,
-                    text=True,
-                    timeout=60
-                )
-                if compare_result.returncode == 0:
-                    log("✅ B 格式產生完成")
-                else:
-                    log(f"⚠️ B 格式產生失敗，將使用 v3 格式")
-        except Exception as e:
-            log(f"⚠️ B 格式產生異常: {e}")
-        
         # Step 2: 推送到 LINE（改用 HTTP API）
         log("📤 推送到 LINE...")
         try:
             import requests
-            
-            # 優先讀取 lite 格式，fallback 到 v3
-            result_file = os.path.join(SCRIPT_DIR, 'scan_result_lite.txt')
+
+            # 讀取 V9 lite 格式
+            result_file = os.path.join(SCRIPT_DIR, 'scan_result_v9_lite.txt')
             if not os.path.exists(result_file):
-                result_file = os.path.join(SCRIPT_DIR, 'scan_result_v3.txt')
-                log("⚠️ 使用 v3 格式（lite 不存在）")
+                log("❌ 找不到 scan_result_v9_lite.txt")
+                return
             
             if os.path.exists(result_file):
                 with open(result_file, 'r', encoding='utf-8') as f:

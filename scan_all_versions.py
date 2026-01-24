@@ -46,7 +46,7 @@ if ARGS.dry_run or ARGS.date:
         candidates_files = sorted(raw_dir.glob('*_candidates.json'), reverse=True)
 
     if not candidates_files:
-        print('❌ 找不到 candidates.json 檔案')
+        print('[ERROR] candidates.json not found')
         sys.exit(1)
 
     candidates_file = candidates_files[0]
@@ -78,7 +78,7 @@ else:
     scan_script = script_dir / 'scan_20260106.py'
 
     if not scan_script.exists():
-        print(f'❌ 找不到 scan_20260106.py: {scan_script}')
+        print(f'[ERROR] scan_20260106.py not found: {scan_script}')
         sys.exit(1)
 
     # 執行掃描程式（只產生 candidates.json，不做後續篩選）
@@ -90,18 +90,16 @@ else:
             check=True,
             capture_output=True,
             text=True,
-            encoding='utf-8'
+            encoding='utf-8',
+            errors='replace'  # Windows cp950 編碼相容
         )
-        # 顯示輸出的前幾行（確認有執行）
-        output_lines = result.stdout.split('\n')[:20]
-        for line in output_lines:
-            if line.strip():
-                print(f'  {line}')
-        print('  ...')
+        # 跳過輸出（避免 Windows 編碼問題）
+        print('  scan_20260106.py completed successfully')
         print()
     except subprocess.CalledProcessError as e:
-        print(f'❌ 執行 scan_20260106.py 失敗')
-        print(f'錯誤訊息: {e.stderr}')
+        print('[ERROR] scan_20260106.py failed')
+        # 不輸出 stderr（可能包含無法編碼的字元）
+        # 如需除錯，請直接執行 python scan_20260106.py
         sys.exit(1)
 
     # 步驟 2: 讀取產生的 candidates.json
@@ -112,7 +110,7 @@ else:
     candidates_files = sorted(raw_dir.glob('*_candidates.json'), reverse=True)
 
     if not candidates_files:
-        print('❌ 找不到 candidates.json 檔案')
+        print('[ERROR] candidates.json not found')
         sys.exit(1)
 
     candidates_file = candidates_files[0]
@@ -136,6 +134,7 @@ print('[1/3] 套用多版本篩選邏輯...')
 
 v4, v5, v6, v6s, v7, v8, v7s = [], [], [], [], [], [], []
 v5_with_score = []  # V5 + 評分系統
+all_stocks_with_score = []  # 所有股票 + 評分（修復 V7 遺漏問題）
 
 for s in stocks:
     t = s['ticker']
@@ -157,107 +156,109 @@ for s in stocks:
     # 共同條件
     base = (30 <= p <= 300) and (bd >= 2) and (i5 > 300)
 
+    # === 評分系統（對所有候選股票都計算，不限 V5）===
+    score = 0
+    score_reasons = []
+    tags = []
+
+    avg_vol = s.get('avg_volume', 1000)
+    vol = s.get('volume', 0)
+    margin_3d = s.get('margin_3day_change', 0)
+    short_3d = s.get('short_3day_change', 0)
+    is_margin_dec = s.get('is_margin_decrease', False)
+    is_short_inc = s.get('is_short_increase', False)
+
+    # 計算 MA20 乖離
+    bias_ma20 = ((p - ma20) / ma20 * 100) if ma20 > 0 else 0
+
+    # 標籤判定
+    if d5 >= 10:
+        tags.append('[已漲]')
+    if vol < avg_vol:
+        tags.append('[整理]')
+    if bias_ma20 > 1 and chg > 0:
+        tags.append('[攻擊]')
+    if ma5 is not None and ma10 is not None and ma5 > ma10:
+        tags.append('[多頭]')
+
+    # 投信數據
+    trust_today = s.get('trust_today', 0)
+    trust_5day = s.get('trust_5day', 0)
+    foreign_5day = s.get('foreign_5day', 0)
+    trust_buy_days = s.get('trust_buy_days', 0)
+
+    # 投信標籤
+    if trust_today > 0:
+        tags.append('[投信]')
+    if trust_5day > foreign_5day and trust_5day > 0:
+        tags.append('[土洋對作]')
+
+    # 1. 法人買超
+    if i5 > 0:
+        score += 1
+        score_reasons.append("法人買超")
+    if bd >= 3:
+        score += 1
+        score_reasons.append(f"連{bd}天")
+
+    # 2. 攻擊訊號
+    if bias_ma20 > 1 and chg > 0:
+        score += 1
+        score_reasons.append("攻擊")
+
+    # 3. 量增
+    if vol > avg_vol:
+        score += 1
+        score_reasons.append("量增")
+
+    # 4. 穩漲
+    if 0 < chg < 5:
+        score += 1
+        score_reasons.append("穩漲")
+
+    # 5. 資減
+    if is_margin_dec and i5 > 0:
+        score += 1
+        score_reasons.append("資減")
+        tags.append('[資減]')
+
+    # 6. 軋空
+    if is_short_inc:
+        score += 1
+        score_reasons.append("軋空")
+        tags.append('[軋空]')
+
+    # 7. YoY
+    if yoy > 0:
+        score += 1
+        score_reasons.append(f"YoY+{yoy:.0f}%")
+
+    # 8. 投信買
+    if trust_today > 0:
+        score += 1
+        score_reasons.append("投信買")
+
+    # 9. 投信連買
+    if trust_buy_days >= 2:
+        score += 1
+        score_reasons.append(f"投信連{trust_buy_days}天")
+
+    # 儲存所有股票的評分（不限版本）
+    s_copy = s.copy()
+    s_copy['score'] = score
+    s_copy['score_reasons'] = score_reasons
+    s_copy['tags'] = tags
+    all_stocks_with_score.append(s_copy)
+
     # V4: 穩健版
     if base and (d5 < 10) and (yoy > 0):
         v4.append(s)
 
-    # V5: 寬鬆版 (90-300, 5日<15%) + 評分系統
+    # V5: 寬鬆版 (90-300, 5日<15%)
     if (90 <= p <= 300) and (d5 < 15) and (bd >= 2) and (i5 > 300):
         v5.append(s)
-
-        # === V5 評分系統 (完整版) ===
-        score = 0
-        score_reasons = []
-        tags = []
-
-        avg_vol = s.get('avg_volume', 1000)
-        vol = s.get('volume', 0)
-        margin_3d = s.get('margin_3day_change', 0)
-        short_3d = s.get('short_3day_change', 0)
-        is_margin_dec = s.get('is_margin_decrease', False)
-        is_short_inc = s.get('is_short_increase', False)
-
-        # 計算 MA20 乖離
-        bias_ma20 = ((p - ma20) / ma20 * 100) if ma20 > 0 else 0
-
-        # 標籤判定
-        if d5 >= 10:
-            tags.append('[已漲]')
-        if vol < avg_vol:
-            tags.append('[整理]')
-        if bias_ma20 > 1 and chg > 0:
-            tags.append('[攻擊]')
-        if ma5 is not None and ma10 is not None and ma5 > ma10:
-            tags.append('[多頭]')
-
-        # 投信數據
-        trust_today = s.get('trust_today', 0)
-        trust_5day = s.get('trust_5day', 0)
-        foreign_5day = s.get('foreign_5day', 0)
-        trust_buy_days = s.get('trust_buy_days', 0)
-
-        # 投信標籤
-        if trust_today > 0:
-            tags.append('[投信]')
-        if trust_5day > foreign_5day and trust_5day > 0:
-            tags.append('[土洋對作]')
-
-        # 1. 法人買超
-        if i5 > 0:
-            score += 1
-            score_reasons.append("法人買超")
-        if bd >= 3:
-            score += 1
-            score_reasons.append(f"連{bd}天")
-
-        # 2. 攻擊訊號
-        if bias_ma20 > 1 and chg > 0:
-            score += 1
-            score_reasons.append("攻擊")
-
-        # 3. 量增
-        if vol > avg_vol:
-            score += 1
-            score_reasons.append("量增")
-
-        # 4. 穩漲
-        if 0 < chg < 5:
-            score += 1
-            score_reasons.append("穩漲")
-
-        # 5. 資減
-        if is_margin_dec and i5 > 0:
-            score += 1
-            score_reasons.append("資減")
-            tags.append('[資減]')
-
-        # 6. 軋空
-        if is_short_inc:
-            score += 1
-            score_reasons.append("軋空")
-            tags.append('[軋空]')
-
-        # 7. YoY
-        if yoy > 0:
-            score += 1
-            score_reasons.append(f"YoY+{yoy:.0f}%")
-
-        # 8. 投信買
-        if trust_today > 0:
-            score += 1
-            score_reasons.append("投信買")
-
-        # 9. 投信連買
-        if trust_buy_days >= 2:
-            score += 1
-            score_reasons.append(f"投信連{trust_buy_days}天")
-
         # 只保留 >= 3 分的股票
         if score >= 3:
-            s_copy = s.copy()
-            s_copy['score'] = score
-            s_copy['score_reasons'] = score_reasons
-            s_copy['tags'] = tags
             v5_with_score.append(s_copy)
 
     # V6: 嚴格版 (5日<5%, YoY>0)
@@ -436,169 +437,177 @@ def generate_full_report(v4, v5, v6, v6s, v7, v8, v9, date_str):
 
     return '\n'.join(lines)
 
-def generate_v9_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set, date_str):
-    """產生 V9 小卡（LINE 推送用）- 多版本整合 + 完整評分 + 版本標籤"""
+def generate_v9_lite_card(all_stocks_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set, date_str):
+    """產生 V9 小卡（LINE 推送用）- 版本標籤格式"""
+
+    # 建立版本標籤函數（主列表用，只含 V4/V5/V6/V6*/V8）
+    def get_version_label(ticker):
+        versions = []
+        if ticker in v4_set: versions.append('V4')
+        if ticker in v5_set: versions.append('V5')
+        if ticker in v6_set: versions.append('V6')
+        if ticker in v6s_set: versions.append('V6*')
+        if ticker in v8_set: versions.append('V8')
+
+        if len(versions) >= 4:
+            return '⟨全過⟩'
+        elif len(versions) > 0:
+            return '⟨' + ' '.join(versions) + '⟩'
+        else:
+            return ''
+
+    # 計算版本數（用於排序和 emoji）
+    def count_versions(s):
+        ticker = s['ticker']
+        count = 0
+        if ticker in v4_set: count += 1
+        if ticker in v5_set: count += 1
+        if ticker in v6_set: count += 1
+        if ticker in v6s_set: count += 1
+        if ticker in v7_set: count += 1
+        if ticker in v8_set: count += 1
+        # V9 不單獨計算（V9 ⊂ V7）
+        return count
+
+    # 合併所有通過版本的股票
+    all_tickers = {}
+    for s in all_stocks_with_score:
+        ticker = s['ticker']
+        # 只要通過任一版本就加入（不管評分！）
+        if ticker in v4_set or ticker in v5_set or ticker in v6_set or ticker in v6s_set or ticker in v7_set or ticker in v8_set or ticker in v9_set:
+            all_tickers[ticker] = s
+
+    # 排序：版本數 > 評分 > 法人買超
+    sorted_stocks = sorted(
+        all_tickers.values(),
+        key=lambda x: (count_versions(x), x.get('score', 0), x.get('inst_5day', 0)),
+        reverse=True
+    )
+
     lines = []
+    lines.append(f"📊 {date_str} 選股")
+    lines.append("")
 
-    # 開頭框線
-    lines.append('━' * 25)
-    lines.append(f"📊 {date_str} 選股 (大盤+0.00%)")
-    lines.append('━' * 25)
-    lines.append('')
+    # 主列表：順勢股（通過 V4/V5/V6/V6* 或 V8）
+    for s in sorted_stocks:
+        ticker = s['ticker']
 
-    # 分類股票：順勢股 vs 純狙擊股/量縮股
-    trend_stocks = []  # 有通過 V4/V5/V6/V6* 任一版本
-    sniper_stocks = []  # 只通過 V7/V8/V9
+        # V7 only 跳過，稍後在 V7 區塊顯示
+        is_v7_only = (ticker in v7_set and
+                      ticker not in v4_set and
+                      ticker not in v5_set and
+                      ticker not in v6_set and
+                      ticker not in v6s_set and
+                      ticker not in v8_set)
+        if is_v7_only:
+            continue
 
-    for s in v5_with_score:
-        t = s['ticker']
-        has_trend = t in v4_set or t in v5_set or t in v6_set or t in v6s_set
-        has_sniper = t in v7_set or t in v8_set or t in v9_set
+        # V8 only 也跳過，稍後在 V8 區塊顯示
+        is_v8_only = (ticker in v8_set and
+                      ticker not in v4_set and
+                      ticker not in v5_set and
+                      ticker not in v6_set and
+                      ticker not in v6s_set and
+                      ticker not in v7_set)
+        if is_v8_only:
+            continue
 
-        if has_trend:
-            trend_stocks.append(s)
-        elif has_sniper:
-            sniper_stocks.append(s)
-
-    # 按評分排序（同分則按法人5日）
-    trend_sorted = sorted(trend_stocks, key=lambda x: (x.get('score', 0), x.get('inst_5day', 0)), reverse=True)
-    sniper_sorted = sorted(sniper_stocks, key=lambda x: (x.get('score', 0), x.get('inst_5day', 0)), reverse=True)
-
-    # ===== 上半部：順勢股 =====
-    for s in trend_sorted[:6]:  # 最多 6 檔
-        t = s['ticker']
+        # 格式化輸出
         name = s.get('name', '')[:4]
         price = s['price']
-        bd = s.get('buy_days', 0)
-        inst_leader = s.get('inst_leader', '外資')
-        stock_type = s.get('stock_type', '普通')
-        atr = s.get('atr', price * 0.03)
-        score = s.get('score', 0)
-        tags = s.get('tags', [])
+        label = get_version_label(ticker)
 
-        # 動物圖示
-        type_icon = '🐰' if stock_type == '兔子' else ('🐢' if stock_type == '烏龜' else '🚶')
+        # emoji（依版本數）
+        vcnt = count_versions(s)
+        emoji = '🏆' if vcnt >= 4 else ('⭐' if vcnt >= 2 else '📋')
 
-        # 計算停損停利
-        stop = int(price - 2 * atr)
-        t1 = int(price + 2 * atr)
-        t2 = int(price + 3 * atr)
-        entry_low = int(price - 0.5 * atr)
-        entry_high = int(price)
+        # 法人資訊
+        buy_days = s.get('buy_days', 0)
+        foreign_5day = s.get('foreign_5day', 0)
+        trust_5day = s.get('trust_5day', 0)
+        inst_leader = '外資' if foreign_5day > trust_5day else '投信'
+        inst_info = f"{inst_leader}連{buy_days}買" if buy_days >= 2 else f"法人+{s.get('inst_5day', 0)}張"
 
-        # 評分圖示
-        score_icon = '🔥' if score >= 5 else ('⭐' if score >= 4 else '✅')
-
-        # 產生版本標籤（順勢 + 狙擊）
-        trend_versions = []
-        if t in v4_set: trend_versions.append('V4')
-        if t in v5_set: trend_versions.append('V5')
-        if t in v6_set: trend_versions.append('V6')
-        if t in v6s_set: trend_versions.append('V6*')
-
-        # 基礎標籤
-        if len(trend_versions) >= 4:
-            version_label = '全過'
-        else:
-            version_label = '/'.join(trend_versions)
-
-        # 加上狙擊/量縮標籤
-        if t in v9_set:
-            version_label += '+V9'
-        elif t in v8_set:
-            version_label += '+V8'
-        elif t in v7_set:
-            version_label += '+V7'
-
-        # 組合籌碼標籤
-        chip_tags = []
-        if '[資減]' in tags:
-            chip_tags.append('資減')
-        if '[軋空]' in tags:
-            chip_tags.append('軋空')
-        if '[投信]' in tags:
-            chip_tags.append('投信')
-
+        # 題材（YoY）
         yoy = s.get('revenue_yoy', 0)
-        if yoy >= 10:
-            chip_tags.append(f"YoY+{int(yoy)}%")
+        news = f"YoY+{yoy:.0f}%" if yoy > 10 else (f"YoY+{yoy:.1f}%" if yoy > 0 else "")
 
-        # 組合第二行：版本 | 主力 | 標籤
-        chip_line = f"   {version_label} | {inst_leader}連{bd}買"
-        if chip_tags:
-            chip_line += '｜' + '｜'.join(chip_tags)
+        # ATR 計算
+        atr = s.get('atr', price * 0.03)
+        entry_low = round(price - 0.5 * atr)
+        stop = round(price - 2 * atr)
+        target = round(price + 2 * atr)
 
-        # 輸出格式 (3行精簡)
-        lines.append(f"{score_icon} {name} {t} ${price:.1f} ⟨{score}分⟩{type_icon}")
-        lines.append(chip_line)
-        lines.append(f"   💵{entry_low}~{entry_high}｜🛡️{stop}｜🎯{t1}/{t2}")
-        lines.append('')
+        # 股性標籤（🐰兔子=活潑, 🐢烏龜=穩健）
+        atr_pct = (atr / price * 100) if price > 0 else 0
+        personality = '🐰' if atr_pct > 3 else '🐢'
 
-    # ===== 下半部：純狙擊股/量縮股 (如果有) =====
-    if sniper_sorted:
-        lines.append('━' * 25)
-        lines.append('⚡ V7/V8/V9 特殊股')
-        lines.append('━' * 25)
-        lines.append('')
+        # 輸出
+        lines.append(f"{emoji} {name} {ticker} ${price:.0f} {label}{personality}")
+        if news:
+            lines.append(f"   {inst_info}｜{news}")
+        else:
+            lines.append(f"   {inst_info}")
+        lines.append(f"   💵{entry_low}~{price:.0f}｜🛡️{stop}｜🎯{target}")
+        lines.append("")
 
-        for s in sniper_sorted[:3]:  # 最多 3 檔
-            t = s['ticker']
+    # V7 狙擊區塊（含 V9 標示）
+    v7_only_stocks = [s for s in all_stocks_with_score
+                      if s['ticker'] in v7_set and
+                      s['ticker'] not in v4_set and
+                      s['ticker'] not in v5_set and
+                      s['ticker'] not in v6_set and
+                      s['ticker'] not in v6s_set and
+                      s['ticker'] not in v8_set]
+
+    if v7_only_stocks:
+        lines.append("─── V7 狙擊 ───")
+        lines.append("")
+
+        for s in v7_only_stocks:
             name = s.get('name', '')[:4]
+            ticker = s['ticker']
             price = s['price']
-            bd = s.get('buy_days', 0)
-            inst_leader = s.get('inst_leader', '外資')
-            stock_type = s.get('stock_type', '普通')
-            atr = s.get('atr', price * 0.03)
-            score = s.get('score', 0)
-            tags = s.get('tags', [])
+            rsi = s.get('rsi', 50)
+            ma10 = s.get('ma10', 0)
+            ma20 = s.get('ma20', 0)
+            support = min(ma10, ma20) if ma10 > 0 and ma20 > 0 else price * 0.97
 
-            # 動物圖示
-            type_icon = '🐰' if stock_type == '兔子' else ('🐢' if stock_type == '烏龜' else '🚶')
-
-            # 計算停損停利
-            stop = int(price - 2 * atr)
-            t1 = int(price + 2 * atr)
-            t2 = int(price + 3 * atr)
-            entry_low = int(price - 0.5 * atr)
-            entry_high = int(price)
-
-            # 狙擊股圖示
-            score_icon = '⚡'
-
-            # 產生版本標籤（只有 V7/V8/V9）
-            if t in v9_set:
-                version_label = 'V9'
-            elif t in v8_set:
-                version_label = 'V8'
+            # V9 標示：V9 = V7 + KD 金叉，所以 V9 一定也是 V7
+            if ticker in v9_set:
+                label = "⟨V7 V9⟩"
+                kd_mark = " KD✓"
             else:
-                version_label = 'V7'
+                label = "⟨V7⟩"
+                kd_mark = ""
 
-            # 組合籌碼標籤
-            chip_tags = []
-            if '[資減]' in tags:
-                chip_tags.append('資減')
-            if '[軋空]' in tags:
-                chip_tags.append('軋空')
-            if '[投信]' in tags:
-                chip_tags.append('投信')
+            lines.append(f"🎯 {name} {ticker} ${price:.0f} {label}RSI{rsi:.0f}{kd_mark}")
+            lines.append(f"   💵{support:.0f}~{price:.0f}")
+            lines.append("")
 
-            yoy = s.get('revenue_yoy', 0)
-            if yoy >= 10:
-                chip_tags.append(f"YoY+{int(yoy)}%")
+    # V8 量縮區塊（獨立維度）
+    v8_only_stocks = [s for s in all_stocks_with_score
+                      if s['ticker'] in v8_set and
+                      s['ticker'] not in v4_set and
+                      s['ticker'] not in v5_set and
+                      s['ticker'] not in v6_set and
+                      s['ticker'] not in v6s_set and
+                      s['ticker'] not in v7_set]
 
-            # 組合第二行：版本 | 主力 | 標籤
-            chip_line = f"   {version_label} | {inst_leader}連{bd}買"
-            if chip_tags:
-                chip_line += '｜' + '｜'.join(chip_tags)
+    if v8_only_stocks:
+        lines.append("─── V8 量縮 ───")
+        lines.append("")
 
-            # 輸出格式 (3行精簡)
-            lines.append(f"{score_icon} {name} {t} ${price:.1f} ⟨{score}分⟩{type_icon}")
-            lines.append(chip_line)
-            lines.append(f"   💵{entry_low}~{entry_high}｜🛡️{stop}｜🎯{t1}/{t2}")
-            lines.append('')
+        for s in v8_only_stocks:
+            name = s.get('name', '')[:4]
+            ticker = s['ticker']
+            price = s['price']
+            # V8 特有資訊：連續幾天站穩 MA20 且量縮
+            volume_shrink_days = s.get('volume_shrink_days', 3)
 
-    # 結尾框線
-    lines.append('━' * 25)
+            lines.append(f"🔋 {name} {ticker} ${price:.0f} ⟨V8⟩")
+            lines.append(f"   連{volume_shrink_days}天量縮｜站穩MA20")
+            lines.append("")
 
     return '\n'.join(lines)
 
@@ -612,7 +621,7 @@ v8_set = {s['ticker'] for s in v8}
 v9_set = {s['ticker'] for s in v7s}
 
 full_report = generate_full_report(v4, v5, v6, v6s, v7, v8, v7s, date_str)
-v9_lite = generate_v9_lite_card(v5_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set, date_str)
+v9_lite = generate_v9_lite_card(all_stocks_with_score, v4_set, v5_set, v6_set, v6s_set, v7_set, v8_set, v9_set, date_str)
 
 # ===== Part 4: 儲存輸出 =====
 print('[3/3] 儲存輸出檔案...')
@@ -634,12 +643,8 @@ print('=' * 60)
 print('[DONE] 乾測試完成！')
 print('=' * 60)
 print()
-print('[PREVIEW] 結果預覽:')
+print('[INFO] Result files generated successfully!')
+print('       - scan_result_all_versions.txt (full report)')
+print('       - scan_result_v9_lite.txt (V9 card)')
 print()
-print(full_report[:800])
-print()
-print('...')
-print()
-print('[V9 CARD] V9 小卡預覽:')
-print()
-print(v9_lite)
+print('[TIP] Use "type scan_result_v9_lite.txt" to view the V9 card')
