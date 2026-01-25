@@ -1838,6 +1838,10 @@ def save_to_history(results):
             'score_reasons': r.get('score_reasons', []),
             'tags': r.get('tags', []),
             'bias_ma20': r.get('bias_ma20', 0),
+            # v5.4 RVol 相對成交量（用於回測量能策略）
+            'volume': r.get('volume', 0),
+            'avg_volume': r.get('avg_volume', 0),
+            'rvol': round(r.get('volume', 0) / r.get('avg_volume', 1), 2) if r.get('avg_volume', 0) > 0 else 0,
         }
         history_entry['stocks'].append(stock_data)
     
@@ -1847,7 +1851,7 @@ def save_to_history(results):
     with open(daily_file, 'w', encoding='utf-8') as f:
         json.dump(history_entry, f, ensure_ascii=False, indent=2)
     
-    print(f'📁 歷史資料已存: {daily_file}')
+    print(f'[SAVED] History: {daily_file}')
     
     # 也追加到總歷史檔 (方便查詢)
     all_history_file = f'{history_dir}/all_history.json'
@@ -1870,7 +1874,7 @@ def save_to_history(results):
     with open(all_history_file, 'w', encoding='utf-8') as f:
         json.dump(all_history, f, ensure_ascii=False, indent=2)
     
-    print(f'📊 總歷史資料: {len(all_history)} 天')
+    print(f'[TOTAL] History: {len(all_history)} days')
 
 
 if __name__ == '__main__':

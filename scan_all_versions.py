@@ -542,8 +542,24 @@ def generate_v9_lite_card(all_stocks_with_score, v4_set, v5_set, v6_set, v6s_set
         atr_pct = (atr / price * 100) if price > 0 else 0
         personality = '🐰' if atr_pct > 3 else '🐢'
 
+        # RVol 計算與警示 (v5.4)
+        volume = s.get('volume', 0)
+        avg_volume = s.get('avg_volume', 1)
+        rvol = volume / avg_volume if avg_volume > 0 else 0
+        change_pct = s.get('change_pct', 0)
+
+        # 量能警示：漲時量縮=警示，漲時量增=加分
+        if change_pct > 0 and rvol < 0.8:
+            rvol_tag = f" ⚠️量弱{rvol:.1f}x"
+        elif change_pct > 0 and rvol > 1.3:
+            rvol_tag = f" ✅量強{rvol:.1f}x"
+        elif rvol > 0:
+            rvol_tag = f" 量{rvol:.1f}x"
+        else:
+            rvol_tag = ""
+
         # 輸出
-        lines.append(f"{emoji} {name} {ticker} ${price:.0f} {label}{personality}")
+        lines.append(f"{emoji} {name} {ticker} ${price:.0f} {label}{personality}{rvol_tag}")
         if news:
             lines.append(f"   {inst_info}｜{news}")
         else:
@@ -581,7 +597,23 @@ def generate_v9_lite_card(all_stocks_with_score, v4_set, v5_set, v6_set, v6s_set
                 label = "⟨V7⟩"
                 kd_mark = ""
 
-            lines.append(f"🎯 {name} {ticker} ${price:.0f} {label}RSI{rsi:.0f}{kd_mark}")
+            # RVol 警示 (v5.4) - V7 是回檔股，跌時量縮=好
+            volume = s.get('volume', 0)
+            avg_volume = s.get('avg_volume', 1)
+            rvol = volume / avg_volume if avg_volume > 0 else 0
+            change_pct = s.get('change_pct', 0)
+
+            # V7 特有邏輯：跌時量縮=健康回檔，跌時量增=可能破線
+            if change_pct < 0 and rvol < 0.8:
+                rvol_tag = f" ✅跌縮{rvol:.1f}x"
+            elif change_pct < 0 and rvol > 1.3:
+                rvol_tag = f" ⚠️跌量{rvol:.1f}x"
+            elif rvol > 0:
+                rvol_tag = f" 量{rvol:.1f}x"
+            else:
+                rvol_tag = ""
+
+            lines.append(f"🎯 {name} {ticker} ${price:.0f} {label}RSI{rsi:.0f}{kd_mark}{rvol_tag}")
             lines.append(f"   💵{support:.0f}~{price:.0f}")
             lines.append("")
 
